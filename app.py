@@ -103,6 +103,7 @@ def obtener_datos_historicos(ticker):
         financials['Operating Margin'] = financials.get('Operating Income', 0) / financials.get('Total Revenue', 1)
         financials['Total Debt'] = balance_sheet.get('Total Debt', 0)
         financials['EPS'] = financials['Net Income'] / stock.info.get('sharesOutstanding', 1)
+        financials['ROE'] = financials['Net Income'] / balance_sheet.get('Total Stockholder Equity', 1)
         
         return financials, dividends, hist_precios
     except Exception:
@@ -170,7 +171,6 @@ def calcular_puntuaciones_y_justificaciones(datos):
         justificaciones['salud'] = "Datos de deuda no disponibles."
     puntuaciones['salud'] = nota_salud
     
-    # NUEVA PUNTUACIÓN DE MOAT
     puntuaciones['moat'] = round((nota_calidad * 0.7) + (nota_salud * 0.3))
     if puntuaciones['moat'] >= 8: justificaciones['moat'] = "Moat Ancho: Negocio dominante y muy defendido."
     elif puntuaciones['moat'] >= 5: justificaciones['moat'] = "Moat Estrecho: Ciertas ventajas competitivas."
@@ -219,29 +219,35 @@ def crear_graficos_profesionales(ticker, financials, dividends, hist_precios):
             ax.xaxis.label.set_color('white')
             ax.title.set_color('white')
 
-        # Gráfico 1: Crecimiento
+        # Gráfico 1
         axs[0, 0].bar(años, financials['Total Revenue'] / 1e9, label='Ingresos', color='#87CEEB')
         axs[0, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto', color='#D4AF37', width=0.5)
         axs[0, 0].set_title('1. Crecimiento del Negocio (B)')
         axs[0, 0].legend()
 
-        # Gráfico 2: Rentabilidad
+        # Gráfico 2
         ax2_twin = axs[0, 1].twinx()
         axs[0, 1].plot(años, financials['ROE'] * 100, label='ROE (%)', color='purple', marker='o')
         ax2_twin.plot(años, financials['Operating Margin'] * 100, label='Margen Op. (%)', color='#D4AF37', marker='s')
         axs[0, 1].set_title('2. Rentabilidad y Eficiencia')
         fig.legend(loc='upper center', bbox_to_anchor=(0.7, 0.9))
 
-        # Gráfico 3: Valoración Histórica (PER)
-        hist_per = hist_precios.resample('YE').last() / financials['EPS']
-        media_per = hist_per.mean()
-        axs[1, 0].plot(hist_per.index.year, hist_per, label='PER Histórico', color='cyan', marker='o')
-        axs[1, 0].axhline(y=media_per, color='yellow', linestyle='--', label=f'Media 5 Años ({media_per:.1f}x)')
-        axs[1, 0].set_title('3. Valoración Histórica (PER)')
-        axs[1, 0].legend()
+        # Gráfico 3
+        if hist_precios is not None and not hist_precios.empty and 'EPS' in financials.columns:
+            hist_per = hist_precios.resample('YE').last() / financials['EPS']
+            media_per = hist_per.mean()
+            axs[1, 0].plot(hist_per.index.year, hist_per, label='PER Histórico', color='cyan', marker='o')
+            axs[1, 0].axhline(y=media_per, color='yellow', linestyle='--', label=f'Media 5 Años ({media_per:.1f}x)')
+            axs[1, 0].set_title('3. Valoración Histórica (PER)')
+            axs[1, 0].legend()
+        else:
+            axs[1, 0].text(0.5, 0.5, 'Datos de PER histórico no disponibles', ha='center', va='center', color='white')
+            axs[1, 0].set_title('3. Valoración Histórica (PER)')
 
-        # Gráfico 4: Dividendos
-        axs[1, 1].bar(dividends.index.year, dividends, label='Dividendo por Acción', color='orange')
+
+        # Gráfico 4
+        if dividends is not None and not dividends.empty:
+            axs[1, 1].bar(dividends.index.year, dividends, label='Dividendo por Acción', color='orange')
         axs[1, 1].set_title('4. Retorno al Accionista')
         
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
@@ -274,13 +280,20 @@ if st.button('Analizar Acción'):
             st.header(f"Informe Profesional: {datos['nombre']} ({ticker_input})")
             
             st.markdown(f"### 🧭 Nota Global del Compás: **{nota_final:.1f} / 10**")
-            # ... (Veredictos)
+            if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
+            elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
+            elif nota_final >= 4: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
+            else: st.error("Veredicto: Proceder con CAUTELA. Presenta debilidades o riesgos significativos.")
 
             with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
-                # ... (Info de Identidad y Riesgo Geo)
-                pass
+                st.write(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
+                geo_nota = puntuaciones['geopolitico']
+                if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
+                elif geo_nota >= 5: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
+                else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** ALTO 🔴")
+                st.caption(justificaciones['geopolitico'])
+                st.write(f"**Descripción:** {datos['descripcion']}")
             
-            # --- NUEVA SECCIÓN DE CONSENSO Y MOAT ---
             col_moat, col_analistas = st.columns(2)
             with col_moat:
                 with st.container(border=True):
@@ -293,7 +306,33 @@ if st.button('Analizar Acción'):
                     st.metric("Recomendación Media", recomendacion)
                     st.metric("Precio Objetivo Medio", f"{datos.get('precio_objetivo', 'N/A')}")
 
-            # ... (Resto de columnas de métricas)
+            col1, col2 = st.columns(2)
+            with col1:
+                with st.container(border=True):
+                    st.subheader(f"Calidad del Negocio [Nota: {puntuaciones['calidad']}/10]")
+                    st.caption(justificaciones['calidad'])
+                    st.metric("📈 ROE (Rentabilidad)", f"{datos['roe']:.2f}%")
+                    st.metric("📊 Margen Operativo", f"{datos['margen_operativo']:.2f}%")
+            with col2:
+                with st.container(border=True):
+                    st.subheader(f"Salud Financiera [Nota: {puntuaciones['salud']}/10]")
+                    st.caption(justificaciones['salud'])
+                    st.metric("🏦 Deuda / Patrimonio", f"{datos['deuda_patrimonio']:.2f}" if isinstance(datos['deuda_patrimonio'], (int, float)) else "N/A")
+                    st.metric("💧 Ratio Corriente", f"{datos['ratio_corriente']:.2f}" if isinstance(datos['ratio_corriente'], (int, float)) else "N/A")
+
+            col3, col4 = st.columns(2)
+            with col3:
+                with st.container(border=True):
+                    st.subheader(f"Valoración [Nota: {puntuaciones['valoracion']}/10]")
+                    st.caption(justificaciones['valoracion'])
+                    st.metric("⚖️ PER (Precio/Beneficio)", f"{datos['per']:.2f}" if isinstance(datos['per'], (int, float)) else "N/A")
+                    st.metric("🏷️ Precio / Ventas", f"{datos['precio_ventas']:.2f}" if isinstance(datos['precio_ventas'], (int, float)) else "N/A")
+            with col4:
+                with st.container(border=True):
+                    st.subheader(f"Dividendos [Nota: {puntuaciones['dividendos']}/10]")
+                    st.caption(justificaciones['dividendos'])
+                    st.metric("💸 Rentabilidad por Dividendo", f"{datos['yield_dividendo']:.2f}%")
+                    st.metric("🤲 Ratio de Reparto (Payout)", f"{datos['payout_ratio']:.2f}%")
 
             st.header("Análisis Gráfico Histórico")
             financials_hist, dividends_hist, prices_hist = obtener_datos_historicos(ticker_input)
@@ -313,6 +352,39 @@ if st.button('Analizar Acción'):
             
             # LEYENDA DINÁMICA Y COMPLETA
             with st.expander(f"Leyenda y Benchmarks para el Sector: {datos['sector'].upper()}", expanded=False):
-                # ... (código completo de la leyenda)
-                pass
+                benchmarks = {
+                    'Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35},
+                    'Healthcare': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30},
+                    'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18},
+                    'Consumer Defensive': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25},
+                    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25},
+                    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22},
+                    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20},
+                    'Basic Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25},
+                    'Consumer Cyclical': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28},
+                    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30},
+                    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35},
+                    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25}
+                }
+                sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
+                
+                st.markdown("---")
+                st.subheader("1. Identidad del Negocio")
+                st.write("Esta sección te dice a qué se dedica la empresa. Es el primer filtro: ¿entiendes el negocio?")
+                
+                st.subheader("2. Calidad del Negocio")
+                st.write(f"**📈 ROE:** Mide la rentabilidad del dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, se considera **Excelente > {sector_bench['roe_excelente']}%** y **Bueno > {sector_bench['roe_bueno']}%**.")
+                st.write(f"**📊 Margen Operativo:** % de beneficio del negocio principal. Para este sector, se considera **Excelente > {sector_bench['margen_excelente']}%** y **Bueno > {sector_bench['margen_bueno']}%**.")
+                st.write(f"**💰 Margen Neto:** % de beneficio final. Para este sector, se considera **Excelente > {sector_bench.get('margen_neto_excelente', 8)}%** y **Bueno > {sector_bench.get('margen_neto_bueno', 5)}%**.")
 
+                st.subheader("3. Salud Financiera")
+                st.write("**🏦 Deuda/Patrimonio:** Compara deuda con fondos propios. Un valor **< 100** es generalmente saludable (no aplica a finanzas/utilities).")
+                st.write("**💧 Ratio Corriente:** Capacidad de pagar deudas a corto plazo. Un valor **> 1.5** es muy seguro.")
+                
+                st.subheader("4. Valoración")
+                st.write(f"**⚖️ PER:** Veces que pagas los beneficios. Para el sector **{datos['sector'].upper()}**, se considera **Atractivo < {sector_bench['per_barato']}** y **Justo < {sector_bench['per_justo']}**.")
+                st.write("**🔮 PER Adelantado:** PER basado en beneficios futuros. Debe ser menor que el PER actual para indicar crecimiento esperado.")
+                
+                st.subheader("5. Dividendos (Baremo General)")
+                st.write("**💸 Yield:** % que recibes en dividendos. **> 3.5%** es atractivo.")
+                st.write("**🤲 Payout:** % del beneficio destinado a dividendos. **< 60%** es muy sostenible.")
