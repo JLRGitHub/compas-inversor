@@ -1,11 +1,11 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v23.0 (Versión Web Final y Corregida)
+# El Compás del Inversor - v24.0 (Versión Web Final y Corregida)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
 # 1. Guarda este código como 'app.py'.
-# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
 # 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
 #    streamlit run app.py
 #
@@ -15,6 +15,7 @@ import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd # <-- LIBRERÍA QUE FALTABA
 
 # --- CONFIGURACIÓN DE LA PÁGINA WEB Y ESTILOS ---
 st.set_page_config(page_title="El Compás del Inversor", page_icon="🧭", layout="wide")
