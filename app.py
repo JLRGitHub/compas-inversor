@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v25.0 (Versión Web Final Profesional)
+# El Compás del Inversor - v26.0 (Versión Web Final y Completa)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -102,7 +102,14 @@ def obtener_datos_historicos(ticker):
         
         financials['Operating Margin'] = financials.get('Operating Income', 0) / financials.get('Total Revenue', 1)
         financials['Total Debt'] = balance_sheet.get('Total Debt', 0)
-        financials['EPS'] = financials['Net Income'] / stock.info.get('sharesOutstanding', 1)
+        
+        # Asegurarse de que 'sharesOutstanding' existe para calcular el EPS
+        shares_outstanding = stock.info.get('sharesOutstanding')
+        if shares_outstanding:
+            financials['EPS'] = financials['Net Income'] / shares_outstanding
+        else:
+            financials['EPS'] = np.nan # Marcar como no disponible si no hay datos de acciones
+
         financials['ROE'] = financials['Net Income'] / balance_sheet.get('Total Stockholder Equity', 1)
         
         return financials, dividends, hist_precios
@@ -233,7 +240,7 @@ def crear_graficos_profesionales(ticker, financials, dividends, hist_precios):
         fig.legend(loc='upper center', bbox_to_anchor=(0.7, 0.9))
 
         # Gráfico 3
-        if hist_precios is not None and not hist_precios.empty and 'EPS' in financials.columns:
+        if hist_precios is not None and not hist_precios.empty and 'EPS' in financials.columns and financials['EPS'].notna().all():
             hist_per = hist_precios.resample('YE').last() / financials['EPS']
             media_per = hist_per.mean()
             axs[1, 0].plot(hist_per.index.year, hist_per, label='PER Histórico', color='cyan', marker='o')
@@ -243,7 +250,6 @@ def crear_graficos_profesionales(ticker, financials, dividends, hist_precios):
         else:
             axs[1, 0].text(0.5, 0.5, 'Datos de PER histórico no disponibles', ha='center', va='center', color='white')
             axs[1, 0].set_title('3. Valoración Histórica (PER)')
-
 
         # Gráfico 4
         if dividends is not None and not dividends.empty:
