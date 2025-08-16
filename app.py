@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v22.0 (Versión Web Final Profesional)
+# El Compás del Inversor - v23.0 (Versión Web Final y Corregida)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -98,7 +98,6 @@ def obtener_datos_historicos(ticker):
         stock = yf.Ticker(ticker)
         financials = stock.financials.T.sort_index(ascending=True).tail(4)
         balance_sheet = stock.balance_sheet.T.sort_index(ascending=True).tail(4)
-        cashflow = stock.cashflow.T.sort_index(ascending=True).tail(4)
         dividends = stock.dividends.resample('YE').sum().tail(5)
         
         if financials.empty: return None, None
@@ -120,14 +119,17 @@ def analizar_banderas_rojas(datos, financials):
     if financials is not None and not financials.empty:
         # 2. Márgenes Decrecientes
         if 'Operating Margin' in financials.columns and len(financials) >= 3:
-            if financials['Operating Margin'].iloc[-1] < financials['Operating Margin'].iloc[-2] and financials['Operating Margin'].iloc[-2] < financials['Operating Margin'].iloc[-3]:
-                banderas.append("🔴 **Márgenes Decrecientes:** Los márgenes de beneficio llevan 3 años seguidos bajando, señal de posible pérdida de ventaja competitiva.")
+            # Comprobamos que los datos no sean nulos antes de comparar
+            if pd.notna(financials['Operating Margin'].iloc[-1]) and pd.notna(financials['Operating Margin'].iloc[-2]) and pd.notna(financials['Operating Margin'].iloc[-3]):
+                if financials['Operating Margin'].iloc[-1] < financials['Operating Margin'].iloc[-2] and financials['Operating Margin'].iloc[-2] < financials['Operating Margin'].iloc[-3]:
+                    banderas.append("🔴 **Márgenes Decrecientes:** Los márgenes de beneficio llevan 3 años seguidos bajando, señal de posible pérdida de ventaja competitiva.")
         
         # 3. Deuda Creciente
         if 'Total Debt' in financials.columns and len(financials) >= 3:
-            # Comprobamos que la deuda no sea cero para evitar divisiones por cero
-            if financials['Total Debt'].iloc[-3] > 0 and financials['Total Debt'].iloc[-1] > financials['Total Debt'].iloc[-3] * 1.5:
-                banderas.append("🔴 **Deuda Creciente:** La deuda total ha aumentado significativamente en los últimos años.")
+            # Comprobamos que la deuda no sea cero para evitar divisiones por cero y que los datos no sean nulos
+            if pd.notna(financials['Total Debt'].iloc[-3]) and financials['Total Debt'].iloc[-3] > 0 and pd.notna(financials['Total Debt'].iloc[-1]):
+                if financials['Total Debt'].iloc[-1] > financials['Total Debt'].iloc[-3] * 1.5:
+                    banderas.append("🔴 **Deuda Creciente:** La deuda total ha aumentado significativamente en los últimos años.")
 
     return banderas
 
@@ -343,7 +345,7 @@ if st.button('Analizar Acción'):
                     st.metric("🤲 Ratio de Reparto (Payout)", f"{datos['payout_ratio']:.2f}%")
 
             st.header("Análisis Gráfico Histórico")
-            fig, financials_hist = obtener_y_crear_graficos(ticker_input)
+            fig, financials_hist = crear_graficos_profesionales(ticker_input)
             
             if fig:
                 st.pyplot(fig)
@@ -395,4 +397,3 @@ if st.button('Analizar Acción'):
                 st.subheader("5. Dividendos (Baremo General)")
                 st.write("**💸 Yield:** % que recibes en dividendos. **> 3.5%** es atractivo.")
                 st.write("**🤲 Payout:** % del beneficio destinado a dividendos. **< 60%** es muy sostenible.")
-
