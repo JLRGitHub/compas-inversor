@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v44.1 (Gráficos Corregidos)
+# El Analizador de Acciones de Sr. Outfit - v44.2 (PER Histórico 10A)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -100,7 +100,7 @@ def obtener_datos_historicos(ticker):
             financials = financials_raw.T.sort_index(ascending=True).tail(4)
             balance_sheet = balance_sheet_raw.T.sort_index(ascending=True).tail(4)
             cashflow = cashflow_raw.T.sort_index(ascending=True).tail(4)
-            dividends = stock.dividends.resample('YE').sum().tail(5)
+            dividends_chart_data = stock.dividends.resample('YE').sum().tail(5)
             
             financials['Operating Margin'] = financials.get('Operating Income', 0) / financials.get('Total Revenue', 1)
             financials['Total Debt'] = balance_sheet.get('Total Debt', 0)
@@ -108,7 +108,7 @@ def obtener_datos_historicos(ticker):
             capex = cashflow.get('Capital Expenditure', cashflow.get('Capital Expenditures', 0))
             op_cash = cashflow.get('Total Cash From Operating Activities', 0)
             financials['Free Cash Flow'] = op_cash + capex
-            financials_for_charts, dividends_for_charts = financials, dividends
+            financials_for_charts, dividends_for_charts = financials, dividends_chart_data
 
         per_historico = None
         pers = []
@@ -133,18 +133,32 @@ def obtener_datos_historicos(ticker):
         if not pers:
             current_eps = stock.info.get('trailingEps')
             if current_eps and current_eps > 0:
-                hist_data = stock.history(period="5y", interval="1y")
+                hist_data = stock.history(period="10y", interval="1y") # Cambiado a 10 años
                 if not hist_data.empty:
                     for price in hist_data['Close']:
                         per = price / current_eps
                         if 0 < per < 100: pers.append(per)
         
-        if pers:
-            per_historico = np.mean(pers)
+        if pers: per_historico = np.mean(pers)
+
+        yield_historico = None
+        hist_10y = stock.history(period="10y")
+        divs_10y = stock.dividends.loc[hist_10y.index[0]:]
+        
+        if not divs_10y.empty:
+            annual_dividends = divs_10y.resample('YE').sum()
+            annual_prices = hist_10y['Close'].resample('YE').mean()
             
-        return financials_for_charts, dividends_for_charts, per_historico
+            df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
+            df_yield.columns = ['Dividends', 'Price']
+            
+            if not df_yield.empty:
+                annual_yields = (df_yield['Dividends'] / df_yield['Price']) * 100
+                yield_historico = annual_yields.mean()
+
+        return financials_for_charts, dividends_for_charts, per_historico, yield_historico
     except Exception:
-        return None, None, None
+        return None, None, None, None
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
@@ -158,7 +172,7 @@ def analizar_banderas_rojas(datos, financials):
             banderas.append("🔴 **Deuda Creciente:** La deuda total ha aumentado significativamente.")
     return banderas
 
-def calcular_puntuaciones_y_justificaciones(datos, per_historico):
+def calcular_puntuaciones_y_justificaciones(datos, per_historico, yield_historico):
     puntuaciones, justificaciones = {}, {}
     sector, pais = datos['sector'], datos['pais']
     
@@ -244,12 +258,14 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
     else: justificaciones['valoracion'] = "Valoración razonable o exigente."
 
     nota_dividendos = 0
-    if datos['yield_dividendo'] > 3.5: nota_dividendos += 5
-    elif datos['yield_dividendo'] > 2: nota_dividendos += 3
-    if 0 < datos['payout_ratio'] < 60: nota_dividendos += 5
-    elif 0 < datos['payout_ratio'] < 80: nota_dividendos += 3
-    puntuaciones['dividendos'] = nota_dividendos
-    justificaciones['dividendos'] = "Dividendo excelente." if nota_dividendos >= 8 else "Dividendo sólido."
+    if datos['yield_dividendo'] > 3.5: nota_dividendos += 4
+    elif datos['yield_dividendo'] > 2: nota_dividendos += 2
+    if 0 < datos['payout_ratio'] < 60: nota_dividendos += 4
+    elif 0 < datos['payout_ratio'] < 80: nota_dividendos += 2
+    if yield_historico and datos['yield_dividendo'] > yield_historico:
+        nota_dividendos += 2
+    puntuaciones['dividendos'] = min(10, nota_dividendos)
+    justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
     return puntuaciones, justificaciones, benchmarks
 
@@ -267,7 +283,7 @@ def crear_grafico_radar(puntuaciones):
     stats = np.concatenate((stats,[stats[0]]))
     angles = np.concatenate((angles,[angles[0]]))
 
-    fig, ax = plt.subplots(figsize=(3.5, 3.5), subplot_kw=dict(polar=True)) # Tamaño reducido
+    fig, ax = plt.subplots(figsize=(3.5, 3.5), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
     
@@ -285,7 +301,7 @@ def crear_grafico_radar(puntuaciones):
     return fig
 
 def crear_grafico_gauge(score):
-    fig, ax = plt.subplots(figsize=(3.5, 2.2)) # Tamaño reducido
+    fig, ax = plt.subplots(figsize=(3.5, 2.2))
     fig.patch.set_facecolor('#0E1117')
     
     colors = ['#dc3545', '#fd7e14', '#28a745']
@@ -320,12 +336,10 @@ def crear_graficos_profesionales(ticker, financials, dividends):
             ax.set_xticks(años)
             ax.set_xticklabels(años)
 
-        # Gráfico 1
         axs[0, 0].bar(años, financials['Total Revenue'] / 1e9, label='Ingresos', color='#87CEEB')
         axs[0, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto', color='#D4AF37', width=0.5)
         axs[0, 0].set_title('1. Crecimiento (Billones)'); axs[0, 0].legend()
 
-        # Gráfico 2 (CORREGIDO)
         ax2 = axs[0, 1]
         ax2_twin = ax2.twinx()
         line1, = ax2.plot(años, financials['ROE'] * 100, color='purple', marker='o', label='ROE (%)')
@@ -333,12 +347,10 @@ def crear_graficos_profesionales(ticker, financials, dividends):
         ax2.set_title('2. Rentabilidad')
         ax2.legend(handles=[line1, line2])
 
-        # Gráfico 3
         axs[1, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto (B)', color='royalblue')
         axs[1, 0].plot(años, financials['Free Cash Flow'] / 1e9, label='FCF (B)', color='green', marker='o', linestyle='--')
         axs[1, 0].set_title('3. Beneficio vs. Caja Real'); axs[1, 0].legend()
 
-        # Gráfico 4
         if dividends is not None and not dividends.empty:
             axs[1, 1].bar(dividends.index.year, dividends, label='Dividendo/Acción', color='orange')
         axs[1, 1].set_title('4. Retorno al Accionista')
@@ -388,8 +400,8 @@ if st.button('Analizar Acción'):
         if not datos:
             st.error(f"Error: No se pudo encontrar el ticker '{ticker_input}'. Verifica que sea correcto.")
         else:
-            financials_hist, dividends_hist, per_historico = obtener_datos_historicos(ticker_input)
-            puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, per_historico)
+            financials_hist, dividends_hist, per_historico, yield_historico = obtener_datos_historicos(ticker_input)
+            puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, per_historico, yield_historico)
             
             pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
             nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
@@ -470,26 +482,29 @@ if st.button('Analizar Acción'):
                     mostrar_metrica_con_color("🛡️ Margen Seguridad", puntuaciones['margen_seguridad_analistas'], 25, 15, is_percent=True)
                 with val3:
                     st.markdown("##### Histórico (Pasado)")
-                    mostrar_metrica_con_color("📈 Potencial vs PER Medio", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
+                    mostrar_metrica_con_color("📈 Potencial vs PER Medio (10A)", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
+                    mostrar_metrica_con_color("🕰️ PER Medio (10A)", per_historico, 25, 35, lower_is_better=True)
                 with st.expander("Ver Leyenda Detallada"):
                     st.markdown("""
                     - **PER y P/FCF:** Miden cuántas veces estás pagando los beneficios o el flujo de caja libre. Valores por debajo de 20 suelen considerarse atractivos.
                     - **PER Adelantado:** Usa beneficios futuros esperados. Si es menor que el PER actual, **suma un bonus a la nota de valoración**, ya que indica crecimiento.
                     - **Margen de Seguridad (Analistas):** Potencial de revalorización hasta el precio objetivo de los analistas. Es una visión basada en **expectativas de futuro**.
-                    - **Potencial vs PER Medio (Histórico):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 5 años. Es una visión basada en su **comportamiento pasado**.
+                    - **Potencial vs PER Medio (10A):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 10 años. Es una visión basada en su **comportamiento pasado**.
                     """)
 
             if datos['yield_dividendo'] > 0:
                 with st.container(border=True):
                     st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
                     st.caption(justificaciones['dividendos'])
-                    div1, div2 = st.columns(2)
+                    div1, div2, div3 = st.columns(3)
                     with div1: mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                     with div2: mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], 60, 80, lower_is_better=True, is_percent=True)
+                    with div3: mostrar_metrica_con_color("📈 Yield Medio (10A)", yield_historico, is_percent=True)
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown("""
                         - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
                         - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio neto se destina a pagar dividendos. Un payout bajo (< 60%) es muy saludable y sostenible.
+                        - **Yield Medio (10A):** Es la rentabilidad por dividendo media de los últimos 10 años. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
                         """)
 
             st.header("Análisis Gráfico y Banderas Rojas")
@@ -504,3 +519,4 @@ if st.button('Analizar Acción'):
                     st.success("✅ No se han detectado banderas rojas significativas.")
             else:
                 st.warning("No se pudieron generar los gráficos históricos.")
+
