@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v29.0 (Versión Web Final Profesional)
+# El Compás del Inversor - v30.0 (Versión Web Final y Completa)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -80,6 +80,7 @@ def obtener_datos_historicos(ticker):
         stock = yf.Ticker(ticker)
         financials = stock.financials.T.sort_index(ascending=True).tail(4)
         balance_sheet = stock.balance_sheet.T.sort_index(ascending=True).tail(4)
+        cashflow = stock.cashflow.T.sort_index(ascending=True).tail(4)
         dividends = stock.dividends.resample('YE').sum().tail(5)
         hist_precios = stock.history(period="5y")['Close']
         
@@ -95,6 +96,10 @@ def obtener_datos_historicos(ticker):
             financials['EPS'] = np.nan
 
         financials['ROE'] = financials['Net Income'] / balance_sheet.get('Total Stockholder Equity', 1)
+        
+        capex = cashflow.get('Capital Expenditure', cashflow.get('Capital Expenditures', 0))
+        op_cash = cashflow.get('Total Cash From Operating Activities', 0)
+        financials['Free Cash Flow'] = op_cash + capex
         
         return financials, dividends, hist_precios
     except Exception:
@@ -193,7 +198,19 @@ def calcular_margen_de_seguridad(datos, financials, hist_precios):
     if financials is None or hist_precios is None or 'EPS' not in financials.columns or datos['bpa_actual'] is None:
         return None, None, "Datos insuficientes para el cálculo."
 
-    hist_per = hist_precios.resample('YE').last() / financials['EPS']
+    # Corrección del error de alineación de fechas
+    price_yearly = hist_precios.resample('YE').last()
+    financials_yearly_eps = financials['EPS'].copy()
+    financials_yearly_eps.index = financials_yearly_eps.index.year
+    price_yearly.index = price_yearly.index.year
+    
+    # Alineamos los dos conjuntos de datos por el año
+    aligned_prices, aligned_eps = price_yearly.align(financials_yearly_eps, join='inner')
+    
+    if aligned_eps.empty or aligned_prices.empty:
+        return None, None, "No se pudieron alinear los datos históricos de precios y beneficios."
+        
+    hist_per = aligned_prices / aligned_eps
     hist_per = hist_per.replace([np.inf, -np.inf], np.nan).dropna()
     
     if hist_per.empty:
@@ -242,9 +259,14 @@ def crear_graficos_profesionales(ticker, financials, dividends, hist_precios):
 
         # Gráfico 3
         if hist_precios is not None and not hist_precios.empty and 'EPS' in financials.columns and financials['EPS'].notna().all():
-            hist_per = hist_precios.resample('YE').last() / financials['EPS']
+            price_yearly = hist_precios.resample('YE').last()
+            financials_yearly_eps = financials['EPS'].copy()
+            financials_yearly_eps.index = financials_yearly_eps.index.year
+            price_yearly.index = price_yearly.index.year
+            aligned_prices, aligned_eps = price_yearly.align(financials_yearly_eps, join='inner')
+            hist_per = aligned_prices / aligned_eps
             media_per = hist_per.mean()
-            axs[1, 0].plot(hist_per.index.year, hist_per, label='PER Histórico', color='cyan', marker='o')
+            axs[1, 0].plot(hist_per.index, hist_per, label='PER Histórico', color='cyan', marker='o')
             axs[1, 0].axhline(y=media_per, color='yellow', linestyle='--', label=f'Media 5 Años ({media_per:.1f}x)')
             axs[1, 0].set_title('3. Valoración Histórica (PER)')
             axs[1, 0].legend()
