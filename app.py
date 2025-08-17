@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v47.0 (Análisis Histórico Avanzado)
+# El Analizador de Acciones de Sr. Outfit - v47.2 (Versión Definitiva)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -112,7 +112,6 @@ def obtener_datos_historicos(ticker):
 
         hist_10y = stock.history(period="10y")
         
-        # --- Cálculo de PER y P/FCF Históricos ---
         pers, pfcfs = [], []
         possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
         share_key_found = next((key for key in possible_share_keys if key in balance_sheet_raw.index), None)
@@ -143,7 +142,6 @@ def obtener_datos_historicos(ticker):
         pfcf_historico_10y = np.mean(pfcfs) if pfcfs else None
         pfcf_historico_5y = np.mean(pfcfs[-5:]) if len(pfcfs) >= 5 else pfcf_historico_10y
         
-        # --- Cálculo del Yield Histórico ---
         yield_historico_10y, yield_historico_5y = None, None
         divs_10y = stock.dividends.loc[hist_10y.index[0]:]
         
@@ -185,11 +183,12 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     sector, pais = datos['sector'], datos['pais']
     
     benchmarks = {
-        'Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35},
-        'Healthcare': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30},
-        'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18},
-        'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25},
-        'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25}
+        'Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
+        'Healthcare': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
+        'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'payout_bueno': 70, 'payout_aceptable': 90},
+        'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
+        'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'payout_bueno': 80, 'payout_aceptable': 95},
+        'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80}
     }
     sector_bench = benchmarks.get(sector, benchmarks['Default'])
     
@@ -269,8 +268,8 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     nota_dividendos = 0
     if datos['yield_dividendo'] > 3.5: nota_dividendos += 4
     elif datos['yield_dividendo'] > 2: nota_dividendos += 2
-    if 0 < datos['payout_ratio'] < 60: nota_dividendos += 4
-    elif 0 < datos['payout_ratio'] < 80: nota_dividendos += 2
+    if 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 4
+    elif 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
     if hist_data.get('yield_10y') and datos['yield_dividendo'] > hist_data['yield_10y']:
         nota_dividendos += 2
     puntuaciones['dividendos'] = min(10, nota_dividendos)
@@ -292,7 +291,7 @@ def crear_grafico_radar(puntuaciones):
     stats = np.concatenate((stats,[stats[0]]))
     angles = np.concatenate((angles,[angles[0]]))
 
-    fig, ax = plt.subplots(figsize=(3.5, 3.5), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(3, 3), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
     
@@ -310,7 +309,7 @@ def crear_grafico_radar(puntuaciones):
     return fig
 
 def crear_grafico_gauge(score):
-    fig, ax = plt.subplots(figsize=(3.5, 2.2))
+    fig, ax = plt.subplots(figsize=(3, 1.8))
     fig.patch.set_facecolor('#0E1117')
     
     colors = ['#dc3545', '#fd7e14', '#28a745']
@@ -437,7 +436,7 @@ if st.button('Analizar Acción'):
             elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
             else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
 
-            col_gauge, col_radar = st.columns([0.8, 1])
+            col_gauge, col_radar = st.columns([0.7, 1])
             with col_gauge:
                 st.subheader("Nota Global")
                 fig_gauge = crear_grafico_gauge(nota_final)
@@ -475,7 +474,7 @@ if st.button('Analizar Acción'):
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(f"""
                         - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, se considera **Excelente > {sector_bench['roe_excelente']}%**. Un ROE muy alto (>50%) puede estar 'inflado' por una deuda elevada.
-                        - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para este sector, un **Margen Operativo Excelente es > {sector_bench['margen_excelente']}%** y un **Margen Neto Excelente es > {sector_bench['margen_neto_excelente']}%**.
+                        - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para este sector, un **Margen Operativo Excelente es > {sector_bench['margen_excelente']}%** y un **Margen Neto Excelente es > {sector_bench['margen_neto_excelente']}%**. Es una señal de alerta si el Margen Neto es superior al Operativo, ya que puede indicar beneficios extraordinarios no recurrentes.
                         - **Crecimiento Ingresos:** Mide el crecimiento de las ventas. Un crecimiento de doble dígito (>10%) es una señal muy positiva.
                         """)
             with col2:
@@ -501,7 +500,7 @@ if st.button('Analizar Acción'):
                     val1, val2 = st.columns(2)
                     with val1:
                         st.markdown("##### Múltiplos (Presente)")
-                        mostrar_metrica_con_color("⚖️ PER", datos['per'], 20, 30, lower_is_better=True)
+                        mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
                         mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
                         mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
                     with val2:
@@ -519,8 +518,8 @@ if st.button('Analizar Acción'):
                         st.metric("🌊 P/FCF Medio (10A)", f"{hist_data.get('pfcf_10y'):.2f}" if hist_data.get('pfcf_10y') else "N/A")
 
                 with st.expander("Ver Leyenda Detallada"):
-                    st.markdown("""
-                    - **Múltiplos:** Miden cuántas veces estás pagando los beneficios (PER) o el flujo de caja (P/FCF). Valores por debajo de 20 suelen ser atractivos. El **PER Adelantado** usa beneficios futuros esperados; si es menor que el PER actual, indica crecimiento y **suma un bonus a la nota**.
+                    st.markdown(f"""
+                    - **Múltiplos:** Miden cuántas veces estás pagando los beneficios (PER) o el flujo de caja (P/FCF). Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}**. El **PER Adelantado** usa beneficios futuros esperados; si es menor que el PER actual, indica crecimiento y **suma un bonus a la nota**.
                     - **Márgenes de Seguridad:** Miden el potencial de revalorización. El de **Expertos** se basa en el precio objetivo de los analistas (futuro), y el **Histórico** en si la acción volviera a su PER medio de los últimos 10 años (pasado).
                     - **Análisis Histórico:** Compara los múltiplos actuales con sus medias de 5 y 10 años para ver si la empresa está cara o barata respecto a su propia historia.
                     """)
@@ -532,18 +531,20 @@ if st.button('Analizar Acción'):
                     div1, div2 = st.columns(2)
                     with div1: 
                         mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
-                        mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], 60, 80, lower_is_better=True, is_percent=True)
+                        mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                     with div2:
                         st.metric("📈 Yield Medio (5A)", f"{hist_data.get('yield_5y'):.2f}%" if hist_data.get('yield_5y') else "N/A")
                         st.metric("📈 Yield Medio (10A)", f"{hist_data.get('yield_10y'):.2f}%" if hist_data.get('yield_10y') else "N/A")
                     with st.expander("Ver Leyenda Detallada"):
-                        st.markdown("""
+                        st.markdown(f"""
                         - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
-                        - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio neto se destina a pagar dividendos. Un payout bajo (< 60%) es muy saludable y sostenible.
+                        - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
                         - **Yield Medio (5A y 10A):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
                         """)
 
             st.header("Análisis Gráfico y Banderas Rojas")
+            financials_hist = hist_data.get('financials_charts')
+            dividends_hist = hist_data.get('dividends_charts')
             fig = crear_graficos_profesionales(ticker_input, financials_hist, dividends_hist)
             if fig:
                 st.pyplot(fig)
@@ -555,4 +556,3 @@ if st.button('Analizar Acción'):
                     st.success("✅ No se han detectado banderas rojas significativas.")
             else:
                 st.warning("No se pudieron generar los gráficos históricos.")
-
