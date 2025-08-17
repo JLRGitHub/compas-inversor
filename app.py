@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v44.0 (con Yield Histórico)
+# El Analizador de Acciones de Sr. Outfit - v44.4 (Versión Definitiva Corregida)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -133,7 +133,7 @@ def obtener_datos_historicos(ticker):
         if not pers:
             current_eps = stock.info.get('trailingEps')
             if current_eps and current_eps > 0:
-                hist_data = stock.history(period="5y", interval="1y")
+                hist_data = stock.history(period="10y", interval="1y")
                 if not hist_data.empty:
                     for price in hist_data['Close']:
                         per = price / current_eps
@@ -141,7 +141,6 @@ def obtener_datos_historicos(ticker):
         
         if pers: per_historico = np.mean(pers)
 
-        # --- Cálculo del Yield Histórico (10 años) ---
         yield_historico = None
         hist_10y = stock.history(period="10y")
         divs_10y = stock.dividends.loc[hist_10y.index[0]:]
@@ -150,7 +149,6 @@ def obtener_datos_historicos(ticker):
             annual_dividends = divs_10y.resample('YE').sum()
             annual_prices = hist_10y['Close'].resample('YE').mean()
             
-            # Alinear los índices de dividendos y precios
             df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
             df_yield.columns = ['Dividends', 'Price']
             
@@ -265,7 +263,7 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico, yield_historic
     if 0 < datos['payout_ratio'] < 60: nota_dividendos += 4
     elif 0 < datos['payout_ratio'] < 80: nota_dividendos += 2
     if yield_historico and datos['yield_dividendo'] > yield_historico:
-        nota_dividendos += 2 # Bonus si el yield actual es mayor al histórico
+        nota_dividendos += 2
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
@@ -484,13 +482,14 @@ if st.button('Analizar Acción'):
                     mostrar_metrica_con_color("🛡️ Margen Seguridad", puntuaciones['margen_seguridad_analistas'], 25, 15, is_percent=True)
                 with val3:
                     st.markdown("##### Histórico (Pasado)")
-                    mostrar_metrica_con_color("📈 Potencial vs PER Medio", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
+                    mostrar_metrica_con_color("📈 Potencial vs PER Medio (10A)", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
+                    mostrar_metrica_con_color("🕰️ PER Medio (10A)", per_historico, 25, 35, lower_is_better=True)
                 with st.expander("Ver Leyenda Detallada"):
                     st.markdown("""
                     - **PER y P/FCF:** Miden cuántas veces estás pagando los beneficios o el flujo de caja libre. Valores por debajo de 20 suelen considerarse atractivos.
                     - **PER Adelantado:** Usa beneficios futuros esperados. Si es menor que el PER actual, **suma un bonus a la nota de valoración**, ya que indica crecimiento.
                     - **Margen de Seguridad (Analistas):** Potencial de revalorización hasta el precio objetivo de los analistas. Es una visión basada en **expectativas de futuro**.
-                    - **Potencial vs PER Medio (Histórico):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 5 años. Es una visión basada en su **comportamiento pasado**.
+                    - **Potencial vs PER Medio (10A):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 10 años. Es una visión basada en su **comportamiento pasado**.
                     """)
 
             if datos['yield_dividendo'] > 0:
@@ -500,7 +499,9 @@ if st.button('Analizar Acción'):
                     div1, div2, div3 = st.columns(3)
                     with div1: mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                     with div2: mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], 60, 80, lower_is_better=True, is_percent=True)
-                    with div3: mostrar_metrica_con_color("📈 Yield Medio (10A)", yield_historico, is_percent=True)
+                    with div3:
+                        # CORRECCIÓN: Usar st.metric para el dato informativo sin umbrales
+                        st.metric("📈 Yield Medio (10A)", f"{yield_historico:.2f}%" if yield_historico is not None else "N/A")
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown("""
                         - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
