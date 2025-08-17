@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v37.0 (Versión Final con Leyendas Detalladas)
+# El Compás del Inversor - v39.0 (Versión Definitiva y Completa)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -63,6 +63,10 @@ def obtener_datos_completos(ticker):
             payout = dividend_rate / trailing_eps
         else:
             payout = None
+    
+    free_cash_flow = info.get('freeCashflow')
+    market_cap = info.get('marketCap')
+    p_fcf = (market_cap / free_cash_flow) if market_cap and free_cash_flow and free_cash_flow > 0 else None
             
     return {
         "nombre": info.get('longName', 'N/A'), "sector": info.get('sector', 'N/A'),
@@ -73,6 +77,8 @@ def obtener_datos_completos(ticker):
         "margen_beneficio": info.get('profitMargins', 0) * 100, 
         "deuda_patrimonio": info.get('debtToEquity'), "ratio_corriente": info.get('currentRatio'), 
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'), 
+        "p_fcf": p_fcf,
+        "crecimiento_ingresos": info.get('revenueGrowth', 0) * 100,
         "yield_dividendo": div_yield * 100 if div_yield is not None else 0,
         "payout_ratio": payout * 100 if payout is not None else 0,
         "recomendacion_analistas": info.get('recommendationKey', 'N/A'),
@@ -83,7 +89,6 @@ def obtener_datos_completos(ticker):
 def obtener_datos_historicos(ticker):
     try:
         stock = yf.Ticker(ticker)
-        # Para gráficos
         financials = stock.financials.T.sort_index(ascending=True).tail(4)
         balance_sheet = stock.balance_sheet.T.sort_index(ascending=True).tail(4)
         cashflow = stock.cashflow.T.sort_index(ascending=True).tail(4)
@@ -100,7 +105,6 @@ def obtener_datos_historicos(ticker):
             financials['Free Cash Flow'] = op_cash + capex
             financials_for_charts, dividends_for_charts = financials, dividends
 
-        # Para PER histórico
         end_date = datetime.now()
         start_date = end_date - pd.DateOffset(years=5)
         hist_prices = stock.history(start=start_date, end=end_date, interval='1y')['Close']
@@ -151,28 +155,27 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
     }
     sector_bench = benchmarks.get(sector, benchmarks['Default'])
     
-    # Geopolítica
     paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland']
     paises_precaucion = ['Spain', 'Italy', 'South Korea', 'Taiwan', 'India']
     paises_alto_riesgo = ['China', 'Brazil', 'Russia', 'Argentina', 'Turkey', 'Mexico']
-    nota_geo, justificacion_geo, penalizador_geo = 10, "Opera en una jurisdicción estable y predecible.", 0
+    nota_geo, justificacion_geo, penalizador_geo = 10, "Jurisdicción estable y predecible.", 0
     if pais in paises_precaucion: nota_geo, justificacion_geo, penalizador_geo = 6, "PRECAUCIÓN: Jurisdicción con cierta volatilidad.", 1.5
     elif pais in paises_alto_riesgo: nota_geo, justificacion_geo, penalizador_geo = 2, "ALTO RIESGO: Jurisdicción con alta inestabilidad.", 3.0
     elif pais not in paises_seguros: nota_geo, justificacion_geo, penalizador_geo = 5, "PRECAUCIÓN: Jurisdicción no clasificada.", 2.0
     puntuaciones['geopolitico'], justificaciones['geopolitico'], puntuaciones['penalizador_geo'] = nota_geo, justificacion_geo, penalizador_geo
 
-    # Calidad
     nota_calidad = 0
-    if datos['roe'] > sector_bench['roe_excelente']: nota_calidad += 4
-    elif datos['roe'] > sector_bench['roe_bueno']: nota_calidad += 3
+    if datos['roe'] > sector_bench['roe_excelente']: nota_calidad += 3
+    elif datos['roe'] > sector_bench['roe_bueno']: nota_calidad += 2
     if datos['margen_operativo'] > sector_bench['margen_excelente']: nota_calidad += 3
     elif datos['margen_operativo'] > sector_bench['margen_bueno']: nota_calidad += 2
-    if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): nota_calidad += 3
-    elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): nota_calidad += 2
+    if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): nota_calidad += 2
+    elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): nota_calidad += 1
+    if datos['crecimiento_ingresos'] > 15: nota_calidad += 2
+    elif datos['crecimiento_ingresos'] > 8: nota_calidad += 1
     puntuaciones['calidad'] = min(10, nota_calidad)
-    justificaciones['calidad'] = "Rentabilidad y márgenes de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
+    justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
-    # Salud Financiera
     deuda_ratio = datos['deuda_patrimonio']
     if sector in ['Financial Services', 'Utilities']: nota_salud, justificaciones['salud'] = 8, "Sector intensivo en capital."
     elif isinstance(deuda_ratio, (int, float)):
@@ -183,7 +186,10 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
     else: nota_salud, justificaciones['salud'] = 5, "Datos de deuda no disponibles."
     puntuaciones['salud'] = nota_salud
     
-    # Valoración
+    nota_multiplos = 0
+    if datos['per'] and datos['per'] < 20: nota_multiplos += 5
+    if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
+    
     nota_analistas, margen_seguridad = 0, 0
     if datos['precio_actual'] and datos['precio_objetivo']:
         margen_seguridad = ((datos['precio_objetivo'] - datos['precio_actual']) / datos['precio_actual']) * 100
@@ -200,11 +206,10 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
         else: nota_historica = 5
     puntuaciones['margen_seguridad_historico'] = potencial_per
     
-    puntuaciones['valoracion'] = (nota_analistas * 0.6) + (nota_historica * 0.4)
-    if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Doble señal de compra: infravalorada por analistas y su histórico."
+    puntuaciones['valoracion'] = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
+    if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Valoración muy atractiva desde múltiples ángulos."
     else: justificaciones['valoracion'] = "Valoración razonable o exigente."
 
-    # Dividendos
     nota_dividendos = 0
     if datos['yield_dividendo'] > 3.5: nota_dividendos += 5
     elif datos['yield_dividendo'] > 2: nota_dividendos += 3
@@ -253,7 +258,7 @@ def crear_graficos_profesionales(ticker, financials, dividends):
         return None
 
 def mostrar_metrica_con_color(label, value, umbral_bueno, umbral_malo=None, lower_is_better=False, is_percent=False):
-    if umbral_malo is None: umbral_malo = umbral_bueno * 0.8
+    if umbral_malo is None: umbral_malo = umbral_bueno * 1.25 if lower_is_better else umbral_bueno * 0.8
     color_class = "color-white"
     try:
         numeric_value = float(str(value).replace('%', ''))
@@ -270,10 +275,13 @@ def mostrar_metrica_con_color(label, value, umbral_bueno, umbral_malo=None, lowe
 
 def get_recommendation_html(recommendation):
     rec_lower = recommendation.lower()
-    if 'buy' in rec_lower: color_class = "color-green"
-    elif 'sell' in rec_lower: color_class = "color-red"
-    elif 'hold' in rec_lower: color_class = "color-orange"
-    else: color_class = "color-white"
+    color_class = "color-white"
+    if any(term in rec_lower for term in ['buy', 'outperform', 'strong']):
+        color_class = "color-green"
+    elif any(term in rec_lower for term in ['sell', 'underperform']):
+        color_class = "color-red"
+    elif 'hold' in rec_lower:
+        color_class = "color-orange"
     return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{recommendation}</div></div>'
 
 # --- ESTRUCTURA DE LA APLICACIÓN WEB ---
@@ -291,8 +299,7 @@ if st.button('Analizar Acción'):
         else:
             financials_hist, dividends_hist, per_historico = obtener_datos_historicos(ticker_input)
             puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, per_historico)
-            sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
-
+            
             pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
             nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
             nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
@@ -322,43 +329,35 @@ if st.button('Analizar Acción'):
                 with st.container(border=True):
                     st.subheader(f"Calidad del Negocio [{puntuaciones['calidad']}/10]")
                     st.caption(justificaciones['calidad'])
-                    mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
-                    mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
-                    mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench.get('margen_neto_excelente', 8), sector_bench.get('margen_neto_bueno', 5), is_percent=True)
-                    with st.expander("Ver Leyenda Detallada"):
-                        st.markdown("""
-                        - **ROE (Return on Equity):** Mide la rentabilidad que la empresa genera con el dinero de los accionistas. Es la métrica de eficiencia por excelencia.
-                        - **Importante:** Un ROE muy alto (>50%) puede ser señal de un negocio excepcional, pero también puede estar 'inflado' por una deuda elevada o por intensas recompras de acciones, que reducen el patrimonio. Por eso, es crucial analizarlo junto a los márgenes y la deuda.
-                        - **Márgenes (Operativo y Neto):** Indican qué porcentaje de cada euro vendido se convierte en beneficio. Márgenes altos y estables son señal de un negocio fuerte y con poder de fijación de precios.
-                        """)
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        mostrar_metrica_con_color("📈 ROE", datos['roe'], 20, 15, is_percent=True)
+                        mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], 15, 10, is_percent=True)
+                    with c2:
+                        mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], 20, 15, is_percent=True)
+                        mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], 15, 8, is_percent=True)
             with col2:
                 with st.container(border=True):
                     st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
                     st.caption(justificaciones['salud'])
-                    mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
-                    mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
-                    with st.expander("Ver Leyenda Detallada"):
-                        st.markdown("""
-                        - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda total con los fondos propios. Un valor bajo (< 40) indica un balance muy conservador. Un valor muy alto (> 100) puede ser un riesgo, excepto en sectores como finanzas o utilities donde la deuda es parte del modelo de negocio.
-                        - **Ratio Corriente (Current Ratio):** Mide la capacidad de la empresa para pagar sus deudas a corto plazo (menos de un año). Un valor > 1.5 es muy saludable, indicando que tiene 1,5€ en activos líquidos por cada 1€ de deuda a corto plazo.
-                        """)
+                    s1, s2 = st.columns(2)
+                    with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
+                    with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
 
             with st.container(border=True):
                 st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
                 st.caption(justificaciones['valoracion'])
-                val1, val2 = st.columns(2)
+                val1, val2, val3 = st.columns(3)
                 with val1:
-                    st.markdown("##### Según Analistas (Visión de Futuro)")
-                    mostrar_metrica_con_color("🛡️ Margen de Seguridad", puntuaciones['margen_seguridad_analistas'], 25, 15, is_percent=True)
+                    st.markdown("##### Múltiplos (Presente)")
+                    mostrar_metrica_con_color("⚖️ PER", datos['per'], 20, 30, lower_is_better=True)
+                    mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
                 with val2:
-                    st.markdown("##### Según PER Histórico (Visión de Pasado)")
-                    mostrar_metrica_con_color("📈 Potencial de Revalorización", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
-                with st.expander("Ver Leyenda Detallada"):
-                    st.markdown("""
-                    Este análisis combina dos puntos de vista:
-                    - **Según Analistas:** Compara el precio actual con el precio objetivo medio que le asignan los analistas profesionales. Es una visión basada en **expectativas de futuro**. Un margen de seguridad alto (>25%) es una señal muy positiva.
-                    - **Según PER Histórico:** Compara el PER actual de la acción con su propia media de los últimos 5 años. Es una visión basada en su **comportamiento pasado**. Un potencial alto (>30%) sugiere que está barata en comparación con su propia historia.
-                    """)
+                    st.markdown("##### Analistas (Futuro)")
+                    mostrar_metrica_con_color("🛡️ Margen Seguridad", puntuaciones['margen_seguridad_analistas'], 25, 15, is_percent=True)
+                with val3:
+                    st.markdown("##### Histórico (Pasado)")
+                    mostrar_metrica_con_color("📈 Potencial vs PER Medio", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
 
             if datos['yield_dividendo'] > 0:
                 with st.container(border=True):
@@ -367,13 +366,8 @@ if st.button('Analizar Acción'):
                     div1, div2 = st.columns(2)
                     with div1: mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                     with div2: mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], 60, 80, lower_is_better=True, is_percent=True)
-                    with st.expander("Ver Leyenda Detallada"):
-                        st.markdown("""
-                        - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción. Un yield > 3.5% se considera atractivo para inversores que buscan rentas.
-                        - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio neto se destina a pagar dividendos. Un payout bajo (< 60%) es muy saludable y sostenible, ya que deja a la empresa mucho margen para reinvertir en su crecimiento o para soportar años peores.
-                        """)
 
-            st.header("Análisis Gráfico Histórico")
+            st.header("Análisis Gráfico y Banderas Rojas")
             fig = crear_graficos_profesionales(ticker_input, financials_hist, dividends_hist)
             if fig:
                 st.pyplot(fig)
