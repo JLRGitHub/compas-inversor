@@ -111,29 +111,37 @@ def obtener_datos_historicos(ticker):
         annual_financials = stock.financials
         annual_balance_sheet = stock.balance_sheet
 
-        if not annual_financials.empty and not annual_balance_sheet.empty and 'Share Issued' in annual_balance_sheet.index:
+        # Nombres posibles para las acciones en circulación en los informes de yfinance
+        possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding']
+        
+        # Encontrar la clave correcta para las acciones en el balance
+        share_key_found = None
+        for key in possible_share_keys:
+            if key in annual_balance_sheet.index:
+                share_key_found = key
+                break
+        
+        if not annual_financials.empty and share_key_found:
             pers = []
             # Iterar por cada columna de datos anuales (cada año fiscal)
             for col_date in annual_financials.columns:
-                # Asegurarse de que tenemos datos para el mismo año en el balance
                 if col_date in annual_balance_sheet.columns:
                     net_income = annual_financials.loc['Net Income', col_date]
-                    shares = annual_balance_sheet.loc['Share Issued', col_date]
+                    shares = annual_balance_sheet.loc[share_key_found, col_date]
 
-                    # Si tenemos los datos necesarios y son válidos
                     if pd.notna(net_income) and pd.notna(shares) and shares > 0 and net_income > 0:
                         eps = net_income / shares
                         
                         # Obtener el precio de la acción en la fecha de cierre del año fiscal
-                        # Buscamos en una pequeña ventana por si ese día no cotizó
                         price_data = stock.history(start=col_date - pd.Timedelta(days=5), end=col_date + pd.Timedelta(days=5))
                         if not price_data.empty:
-                            # Tomamos el precio más cercano a la fecha del informe
-                            price = price_data.iloc[price_data.index.get_loc(col_date, method='nearest')]['Close']
-                            per = price / eps
-                            # Añadir solo PERs razonables para evitar distorsiones
-                            if 0 < per < 100:
-                                pers.append(per)
+                            try:
+                                price = price_data.iloc[price_data.index.get_loc(col_date, method='nearest')]['Close']
+                                per = price / eps
+                                if 0 < per < 100:
+                                    pers.append(per)
+                            except KeyError:
+                                continue # Si no encuentra la fecha, salta al siguiente año
             
             if pers:
                 per_historico = np.mean(pers)
@@ -431,3 +439,4 @@ if st.button('Analizar Acción'):
                 else: st.success("✅ No se han detectado banderas rojas significativas.")
             else:
                 st.warning("No se pudieron generar los gráficos históricos.")
+
