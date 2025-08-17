@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v30.0 (Versión Web Final y Completa)
+# El Compás del Inversor - v31.0 (Versión Web Estable y Completa)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -82,28 +82,20 @@ def obtener_datos_historicos(ticker):
         balance_sheet = stock.balance_sheet.T.sort_index(ascending=True).tail(4)
         cashflow = stock.cashflow.T.sort_index(ascending=True).tail(4)
         dividends = stock.dividends.resample('YE').sum().tail(5)
-        hist_precios = stock.history(period="5y")['Close']
         
-        if financials.empty: return None, None, None
+        if financials.empty: return None, None
         
         financials['Operating Margin'] = financials.get('Operating Income', 0) / financials.get('Total Revenue', 1)
         financials['Total Debt'] = balance_sheet.get('Total Debt', 0)
-        
-        shares_outstanding = stock.info.get('sharesOutstanding')
-        if shares_outstanding and shares_outstanding > 0:
-            financials['EPS'] = financials['Net Income'] / shares_outstanding
-        else:
-            financials['EPS'] = np.nan
-
         financials['ROE'] = financials['Net Income'] / balance_sheet.get('Total Stockholder Equity', 1)
         
         capex = cashflow.get('Capital Expenditure', cashflow.get('Capital Expenditures', 0))
         op_cash = cashflow.get('Total Cash From Operating Activities', 0)
         financials['Free Cash Flow'] = op_cash + capex
         
-        return financials, dividends, hist_precios
+        return financials, dividends
     except Exception:
-        return None, None, None
+        return None, None
 
 def analizar_banderas_rojas(datos, financials):
     banderas = []
@@ -118,7 +110,7 @@ def analizar_banderas_rojas(datos, financials):
                 banderas.append("🔴 **Deuda Creciente:** La deuda total ha aumentado significativamente.")
     return banderas
 
-def calcular_puntuaciones_y_justificaciones(datos, margen_seguridad):
+def calcular_puntuaciones_y_justificaciones(datos):
     puntuaciones = {}
     justificaciones = {}
     sector = datos['sector']
@@ -173,14 +165,15 @@ def calcular_puntuaciones_y_justificaciones(datos, margen_seguridad):
     else: justificaciones['moat'] = "Sin Moat Claro: Negocio vulnerable a la competencia."
 
     nota_valoracion = 0
-    if margen_seguridad is not None and margen_seguridad > 25: nota_valoracion = 10
-    elif margen_seguridad is not None and margen_seguridad > 10: nota_valoracion = 8
-    elif datos['per'] is not None and datos['per'] < sector_bench['per_justo']: nota_valoracion = 5
-    else: nota_valoracion = 2
+    per = datos['per']
+    if isinstance(per, (int, float)):
+        if per < sector_bench['per_barato']: nota_valoracion = 10
+        elif per < sector_bench['per_justo']: nota_valoracion = 7
+        else: nota_valoracion = 4
     puntuaciones['valoracion'] = nota_valoracion
-    if nota_valoracion >= 8: justificaciones['valoracion'] = "Valoración atractiva con un alto margen de seguridad."
-    elif nota_valoracion >= 5: justificaciones['valoracion'] = "Precio justo por un negocio de esta calidad."
-    else: justificaciones['valoracion'] = "Valoración exigente, sin margen de seguridad aparente."
+    if nota_valoracion >= 7: justificaciones['valoracion'] = "Valoración atractiva para su sector."
+    elif nota_valoracion >= 4: justificaciones['valoracion'] = "Precio justo por un negocio de calidad."
+    else: justificaciones['valoracion'] = "Valoración exigente."
 
     nota_dividendos = 0
     if datos['yield_dividendo'] > 3.5: nota_dividendos += 5
@@ -194,27 +187,9 @@ def calcular_puntuaciones_y_justificaciones(datos, margen_seguridad):
     
     return puntuaciones, justificaciones
 
-def calcular_margen_de_seguridad(datos, financials, hist_precios):
-    if financials is None or hist_precios is None or 'EPS' not in financials.columns or datos['bpa_actual'] is None:
-        return None, None, "Datos insuficientes para el cálculo."
-
-    hist_per = hist_precios.resample('YE').last() / financials['EPS']
-    hist_per = hist_per.replace([np.inf, -np.inf], np.nan).dropna()
-    
-    if hist_per.empty:
-        return None, None, "No se pudo calcular el PER histórico medio."
-        
-    per_medio_hist = hist_per.mean()
-    valor_intrinseco = per_medio_hist * datos['bpa_actual']
-    margen_seguridad = (1 - (datos['precio_actual'] / valor_intrinseco)) * 100 if valor_intrinseco > 0 else -999
-
-    justificacion = f"Basado en un PER histórico medio de {per_medio_hist:.1f}x y un BPA actual de {datos['bpa_actual']:.2f}."
-    
-    return valor_intrinseco, margen_seguridad, justificacion
-
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
 @st.cache_data(ttl=3600)
-def crear_graficos_profesionales(ticker, financials, dividends, hist_precios):
+def crear_graficos_profesionales(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
@@ -246,16 +221,10 @@ def crear_graficos_profesionales(ticker, financials, dividends, hist_precios):
         fig.legend(loc='upper center', bbox_to_anchor=(0.7, 0.9))
 
         # Gráfico 3
-        if hist_precios is not None and not hist_precios.empty and 'EPS' in financials.columns and financials['EPS'].notna().all():
-            hist_per = hist_precios.resample('YE').last() / financials['EPS']
-            media_per = hist_per.mean()
-            axs[1, 0].plot(hist_per.index.year, hist_per, label='PER Histórico', color='cyan', marker='o')
-            axs[1, 0].axhline(y=media_per, color='yellow', linestyle='--', label=f'Media 5 Años ({media_per:.1f}x)')
-            axs[1, 0].set_title('3. Valoración Histórica (PER)')
-            axs[1, 0].legend()
-        else:
-            axs[1, 0].text(0.5, 0.5, 'Datos de PER histórico no disponibles', ha='center', va='center', color='white')
-            axs[1, 0].set_title('3. Valoración Histórica (PER)')
+        axs[1, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto (B)', color='royalblue')
+        axs[1, 0].plot(años, financials['Free Cash Flow'] / 1e9, label='Flujo de Caja Libre (B)', color='green', marker='o', linestyle='--')
+        axs[1, 0].set_title('3. Beneficio vs. Caja Real (B)')
+        axs[1, 0].legend()
 
         # Gráfico 4
         if dividends is not None and not dividends.empty:
@@ -280,10 +249,7 @@ if st.button('Analizar Acción'):
         if not datos:
             st.error(f"Error: No se pudo encontrar el ticker '{ticker_input}'. Verifica que sea correcto.")
         else:
-            financials_hist, dividends_hist, prices_hist = obtener_datos_historicos(ticker_input)
-            valor_intrinseco, margen_seguridad, justificacion_ms = calcular_margen_de_seguridad(datos, financials_hist, prices_hist)
-            puntuaciones, justificaciones = calcular_puntuaciones_y_justificaciones(datos, margen_seguridad)
-            
+            puntuaciones, justificaciones = calcular_puntuaciones_y_justificaciones(datos)
             pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
             nota_ponderada = (puntuaciones['calidad'] * pesos['calidad'] +
                               puntuaciones['valoracion'] * pesos['valoracion'] +
@@ -324,13 +290,13 @@ if st.button('Analizar Acción'):
             col1, col2 = st.columns(2)
             with col1:
                 with st.container(border=True):
-                    st.subheader(f"Calidad del Negocio [Nota: {puntuaciones['calidad']}/10]", help="¿Es un negocio rentable y eficiente?")
+                    st.subheader(f"Calidad del Negocio [Nota: {puntuaciones['calidad']}/10]")
                     st.caption(justificaciones['calidad'])
                     st.metric("📈 ROE (Rentabilidad)", f"{datos['roe']:.2f}%")
                     st.metric("📊 Margen Operativo", f"{datos['margen_operativo']:.2f}%")
             with col2:
                 with st.container(border=True):
-                    st.subheader(f"Salud Financiera [Nota: {puntuaciones['salud']}/10]", help="¿Tiene un balance sólido?")
+                    st.subheader(f"Salud Financiera [Nota: {puntuaciones['salud']}/10]")
                     st.caption(justificaciones['salud'])
                     st.metric("🏦 Deuda / Patrimonio", f"{datos['deuda_patrimonio']:.2f}" if isinstance(datos['deuda_patrimonio'], (int, float)) else "N/A")
                     st.metric("💧 Ratio Corriente", f"{datos['ratio_corriente']:.2f}" if isinstance(datos['ratio_corriente'], (int, float)) else "N/A")
@@ -338,20 +304,22 @@ if st.button('Analizar Acción'):
             col3, col4 = st.columns(2)
             with col3:
                 with st.container(border=True):
-                    st.subheader(f"Valoración [Nota: {puntuaciones['valoracion']}/10]", help="¿Está la acción a un precio atractivo?")
+                    st.subheader(f"Valoración [Nota: {puntuaciones['valoracion']}/10]")
                     st.caption(justificaciones['valoracion'])
                     st.metric("⚖️ PER (Precio/Beneficio)", f"{datos['per']:.2f}" if isinstance(datos['per'], (int, float)) else "N/A")
-                    st.metric("🛡️ Margen de Seguridad", f"{margen_seguridad:.1f}%" if margen_seguridad is not None else "N/A", delta=f"{margen_seguridad:.1f}%" if margen_seguridad is not None else None)
+                    st.metric("🏷️ Precio / Ventas", f"{datos['precio_ventas']:.2f}" if isinstance(datos['precio_ventas'], (int, float)) else "N/A")
             with col4:
                 with st.container(border=True):
-                    st.subheader(f"Dividendos [Nota: {puntuaciones['dividendos']}/10]", help="¿Remunera bien al accionista?")
+                    st.subheader(f"Dividendos [Nota: {puntuaciones['dividendos']}/10]")
                     st.caption(justificaciones['dividendos'])
                     st.metric("💸 Rentabilidad por Dividendo", f"{datos['yield_dividendo']:.2f}%")
                     st.metric("🤲 Ratio de Reparto (Payout)", f"{datos['payout_ratio']:.2f}%")
 
             st.header("Análisis Gráfico Histórico")
-            fig, financials_hist = obtener_datos_historicos(ticker_input)
-            fig = crear_graficos_profesionales(ticker_input, financials_hist, dividends_hist, prices_hist)
+            financials_hist, dividends_hist = obtener_datos_historicos(ticker_input)
+            
+            # Llamamos a la función de gráficos con los datos ya obtenidos
+            fig = crear_graficos_profesionales(ticker_input, financials_hist, dividends_hist)
             
             if fig:
                 st.pyplot(fig)
