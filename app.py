@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v47.2 (Versión Definitiva)
+# El Analizador de Acciones de Sr. Outfit - v47.3 (Versión Definitiva)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -384,18 +384,34 @@ def mostrar_metrica_con_color(label, value, umbral_bueno, umbral_malo=None, lowe
     formatted_value = f"{value:.2f}%" if is_percent and isinstance(value, (int, float)) else (f"{value:.2f}" if isinstance(value, (int, float)) else "N/A")
     st.markdown(f'<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value {color_class}">{formatted_value}</div></div>', unsafe_allow_html=True)
 
-def mostrar_metrica_valoracion(label, value, umbral_bueno, umbral_neutro=0):
-    color_class = "color-red"
-    try:
-        numeric_value = float(str(value).replace('%', ''))
-        if numeric_value > umbral_bueno:
+def mostrar_margen_seguridad(label, value):
+    color_class = "color-white"
+    prose = "N/A"
+    if isinstance(value, (int, float)):
+        if value > 0:
             color_class = "color-green"
-        elif numeric_value > umbral_neutro:
-            color_class = "color-orange"
-    except (ValueError, TypeError): pass
+            prose = f"Podría aumentar un +{value:.2f}%"
+        else:
+            color_class = "color-red"
+            prose = f"Podría disminuir un {value:.2f}%"
+    
+    st.markdown(f'''
+    <div class="metric-container">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value {color_class}">{prose}</div>
+    </div>
+    ''', unsafe_allow_html=True)
 
-    formatted_value = f"{value:.2f}%" if isinstance(value, (int, float)) else "N/A"
-    st.markdown(f'<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value {color_class}">{formatted_value}</div></div>', unsafe_allow_html=True)
+def mostrar_metrica_informativa(label, value, is_percent=False):
+    formatted_value = "N/A"
+    if isinstance(value, (int, float)):
+        formatted_value = f"{value:.2f}%" if is_percent else f"{value:.2f}"
+    st.markdown(f'''
+    <div class="metric-container">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value color-white">{formatted_value}</div>
+    </div>
+    ''', unsafe_allow_html=True)
 
 def get_recommendation_html(recommendation):
     rec_lower = recommendation.lower()
@@ -505,17 +521,17 @@ if st.button('Analizar Acción'):
                         mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
                     with val2:
                         st.markdown("##### Márgenes de Seguridad")
-                        mostrar_metrica_valoracion("🛡️ Según Expertos (Futuro)", puntuaciones['margen_seguridad_analistas'], 25)
-                        mostrar_metrica_valoracion("📈 Según Histórico (Pasado)", puntuaciones['margen_seguridad_historico'], 30)
+                        mostrar_margen_seguridad("🛡️ Según Expertos (Futuro)", puntuaciones['margen_seguridad_analistas'])
+                        mostrar_margen_seguridad("📈 Según Histórico (Pasado)", puntuaciones['margen_seguridad_historico'])
                 
                 with tab2:
                     h1, h2 = st.columns(2)
                     with h1:
-                        st.metric("🕰️ PER Medio (5A)", f"{hist_data.get('per_5y'):.2f}" if hist_data.get('per_5y') else "N/A")
-                        st.metric("🕰️ PER Medio (10A)", f"{hist_data.get('per_10y'):.2f}" if hist_data.get('per_10y') else "N/A")
+                        mostrar_metrica_informativa("🕰️ PER Medio (5A)", hist_data.get('per_5y'))
+                        mostrar_metrica_informativa("🕰️ PER Medio (10A)", hist_data.get('per_10y'))
                     with h2:
-                        st.metric("🌊 P/FCF Medio (5A)", f"{hist_data.get('pfcf_5y'):.2f}" if hist_data.get('pfcf_5y') else "N/A")
-                        st.metric("🌊 P/FCF Medio (10A)", f"{hist_data.get('pfcf_10y'):.2f}" if hist_data.get('pfcf_10y') else "N/A")
+                        mostrar_metrica_informativa("🌊 P/FCF Medio (5A)", hist_data.get('pfcf_5y'))
+                        mostrar_metrica_informativa("🌊 P/FCF Medio (10A)", hist_data.get('pfcf_10y'))
 
                 with st.expander("Ver Leyenda Detallada"):
                     st.markdown(f"""
@@ -533,8 +549,8 @@ if st.button('Analizar Acción'):
                         mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                         mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                     with div2:
-                        st.metric("📈 Yield Medio (5A)", f"{hist_data.get('yield_5y'):.2f}%" if hist_data.get('yield_5y') else "N/A")
-                        st.metric("📈 Yield Medio (10A)", f"{hist_data.get('yield_10y'):.2f}%" if hist_data.get('yield_10y') else "N/A")
+                        mostrar_metrica_informativa("📈 Yield Medio (5A)", hist_data.get('yield_5y'), is_percent=True)
+                        mostrar_metrica_informativa("📈 Yield Medio (10A)", hist_data.get('yield_10y'), is_percent=True)
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(f"""
                         - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
@@ -556,3 +572,5 @@ if st.button('Analizar Acción'):
                     st.success("✅ No se han detectado banderas rojas significativas.")
             else:
                 st.warning("No se pudieron generar los gráficos históricos.")
+
+
