@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v43.0 (Versión Definitiva y Corregida)
+# El Compás del Inversor - v43.0 (Versión Definitiva con Gráfico Radar)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -90,7 +90,6 @@ def obtener_datos_historicos(ticker):
     try:
         stock = yf.Ticker(ticker)
         
-        # --- Datos para Gráficos (Lógica robusta) ---
         financials_raw = stock.financials
         balance_sheet_raw = stock.balance_sheet
         cashflow_raw = stock.cashflow
@@ -111,11 +110,9 @@ def obtener_datos_historicos(ticker):
             financials['Free Cash Flow'] = op_cash + capex
             financials_for_charts, dividends_for_charts = financials, dividends
 
-        # --- Cálculo del PER Histórico (Lógica Definitiva con Fallback) ---
         per_historico = None
         pers = []
         
-        # Método Primario: Usar datos históricos de acciones y beneficios
         possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
         share_key_found = next((key for key in possible_share_keys if key in balance_sheet_raw.index), None)
         
@@ -133,7 +130,6 @@ def obtener_datos_historicos(ticker):
                             per = price / eps
                             if 0 < per < 100: pers.append(per)
         
-        # Método de Respaldo (Fallback): Si el primario falla, usar EPS actual
         if not pers:
             current_eps = stock.info.get('trailingEps')
             if current_eps and current_eps > 0:
@@ -258,6 +254,37 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
     return puntuaciones, justificaciones, benchmarks
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
+def crear_grafico_radar(puntuaciones):
+    labels = ['Calidad', 'Valoración', 'Salud Fin.', 'Dividendos']
+    stats = [
+        puntuaciones.get('calidad', 0), 
+        puntuaciones.get('valoracion', 0), 
+        puntuaciones.get('salud', 0), 
+        puntuaciones.get('dividendos', 0)
+    ]
+
+    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
+    stats = np.concatenate((stats,[stats[0]]))
+    angles = np.concatenate((angles,[angles[0]]))
+
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    fig.patch.set_facecolor('#0E1117')
+    ax.set_facecolor('#0E1117')
+    
+    ax.plot(angles, stats, color='#D4AF37', linewidth=2)
+    ax.fill(angles, stats, color='#D4AF37', alpha=0.25)
+    
+    ax.set_yticklabels([])
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels, color='white', size=12)
+    ax.set_ylim(0, 10)
+    
+    # Estilo de la rejilla
+    ax.spines['polar'].set_color('white')
+    ax.grid(color='gray', linestyle='--', linewidth=0.5)
+
+    return fig
+
 @st.cache_data(ttl=3600)
 def crear_graficos_profesionales(ticker, financials, dividends):
     try:
@@ -347,6 +374,11 @@ if st.button('Analizar Acción'):
             if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
             elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
             else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
+
+            # --- NUEVO: Gráfico Radar ---
+            st.subheader("Resumen Visual de Fortalezas")
+            fig_radar = crear_grafico_radar(puntuaciones)
+            st.pyplot(fig_radar)
 
             with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
                 st.write(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
