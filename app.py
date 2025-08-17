@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v41.0 (Versión Definitiva Corregida)
+# El Compás del Inversor - v42.0 (Evaluación Mejorada y Definitiva)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -121,9 +121,8 @@ def obtener_datos_historicos(ticker):
                     balance_sheet_col = [col for col in annual_balance_sheet.columns if col.year == year][0]
                     
                     net_income = annual_financials[financial_col].get('Net Income')
-                    # FIX: Usar acciones del balance histórico, no el actual
                     shares = annual_balance_sheet[balance_sheet_col].get('Share Issued')
-                    if not shares: shares = stock.info.get('sharesOutstanding') # Fallback por si no está en el balance
+                    if not shares: shares = stock.info.get('sharesOutstanding')
 
                     if net_income and shares and shares > 0:
                         eps = net_income / shares
@@ -182,16 +181,25 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
     puntuaciones['calidad'] = min(10, nota_calidad)
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
+    # MEJORA: Salud Financiera ahora incluye Ratio Corriente
+    nota_salud = 0
     deuda_ratio = datos['deuda_patrimonio']
-    if sector in ['Financial Services', 'Utilities']: nota_salud, justificaciones['salud'] = 8, "Sector intensivo en capital."
+    if sector in ['Financial Services', 'Utilities']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
     elif isinstance(deuda_ratio, (int, float)):
-        if deuda_ratio < 40: nota_salud = 10
-        elif deuda_ratio < 80: nota_salud = 8
-        else: nota_salud = 5
-        justificaciones['salud'] = "Balance muy sólido." if nota_salud >= 8 else "Deuda manejable."
-    else: nota_salud, justificaciones['salud'] = 5, "Datos de deuda no disponibles."
-    puntuaciones['salud'] = nota_salud
+        if deuda_ratio < 40: nota_salud = 8
+        elif deuda_ratio < 80: nota_salud = 6
+        else: nota_salud = 4
+    else: nota_salud = 4
     
+    ratio_corriente = datos['ratio_corriente']
+    if isinstance(ratio_corriente, (int, float)):
+        if ratio_corriente > 2.0: nota_salud += 2
+        elif ratio_corriente > 1.5: nota_salud += 1
+    
+    puntuaciones['salud'] = min(10, nota_salud)
+    justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
+    
+    # MEJORA: Valoración ahora incluye PER Adelantado como ajuste
     nota_multiplos = 0
     if datos['per'] and datos['per'] < 20: nota_multiplos += 5
     if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
@@ -212,7 +220,18 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
         else: nota_historica = 5
     puntuaciones['margen_seguridad_historico'] = potencial_per
     
-    puntuaciones['valoracion'] = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
+    nota_valoracion_base = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
+    
+    # Ajuste por PER Adelantado
+    per_actual = datos.get('per')
+    per_adelantado = datos.get('per_adelantado')
+    if per_actual and per_adelantado:
+        if per_adelantado < per_actual * 0.9: # Crecimiento esperado
+            nota_valoracion_base += 1
+        elif per_adelantado > per_actual: # Contracción esperada
+            nota_valoracion_base -= 1
+
+    puntuaciones['valoracion'] = max(0, min(10, nota_valoracion_base))
     if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Valoración muy atractiva desde múltiples ángulos."
     else: justificaciones['valoracion'] = "Valoración razonable o exigente."
 
@@ -357,8 +376,8 @@ if st.button('Analizar Acción'):
                     with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown("""
-                        - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda total con los fondos propios. Un valor bajo (< 40) indica un balance muy conservador. Un valor muy alto (> 100) puede ser un riesgo.
-                        - **Ratio Corriente (Current Ratio):** Mide la capacidad de la empresa para pagar sus deudas a corto plazo. Un valor > 1.5 es muy saludable.
+                        - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda total con los fondos propios. Un valor bajo (< 40) indica un balance muy conservador. **Esta nota se combina con el Ratio Corriente para la puntuación final.**
+                        - **Ratio Corriente (Current Ratio):** Mide la capacidad de la empresa para pagar sus deudas a corto plazo. Un valor > 1.5 es muy saludable y **aporta puntos extra a la nota de salud financiera.**
                         """)
 
             with st.container(border=True):
@@ -378,7 +397,8 @@ if st.button('Analizar Acción'):
                     mostrar_metrica_con_color("📈 Potencial vs PER Medio", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
                 with st.expander("Ver Leyenda Detallada"):
                     st.markdown("""
-                    - **PER y P/FCF:** Miden cuántas veces estás pagando los beneficios o el flujo de caja libre. Valores por debajo de 20 suelen considerarse atractivos. El **PER Adelantado** usa beneficios futuros esperados, por lo que es ideal que sea menor al PER actual.
+                    - **PER y P/FCF:** Miden cuántas veces estás pagando los beneficios o el flujo de caja libre. Valores por debajo de 20 suelen considerarse atractivos.
+                    - **PER Adelantado:** Usa beneficios futuros esperados. Si es menor que el PER actual, **suma un bonus a la nota de valoración**, ya que indica crecimiento.
                     - **Margen de Seguridad (Analistas):** Potencial de revalorización hasta el precio objetivo de los analistas. Es una visión basada en **expectativas de futuro**.
                     - **Potencial vs PER Medio (Histórico):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 5 años. Es una visión basada en su **comportamiento pasado**.
                     """)
