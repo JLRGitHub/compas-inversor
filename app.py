@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v43.0 (Versión Definitiva con Gráfico Radar)
+# El Analizador de Acciones de Sr. Outfit - v43.0 (Versión Definitiva)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -19,7 +19,7 @@ import pandas as pd
 from datetime import datetime
 
 # --- CONFIGURACIÓN DE LA PÁGINA WEB Y ESTILOS ---
-st.set_page_config(page_title="El Compás del Inversor", page_icon="🧭", layout="wide")
+st.set_page_config(page_title="El Analizador de Acciones de Sr. Outfit", page_icon="📈", layout="wide")
 
 st.markdown("""
 <style>
@@ -279,7 +279,6 @@ def crear_grafico_radar(puntuaciones):
     ax.set_xticklabels(labels, color='white', size=12)
     ax.set_ylim(0, 10)
     
-    # Estilo de la rejilla
     ax.spines['polar'].set_color('white')
     ax.grid(color='gray', linestyle='--', linewidth=0.5)
 
@@ -349,8 +348,8 @@ def get_recommendation_html(recommendation):
     return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{recommendation}</div></div>'
 
 # --- ESTRUCTURA DE LA APLICACIÓN WEB ---
-st.title('El Compás del Inversor 🧭')
-st.caption("Tu copiloto para la inversión a largo plazo. Creado por y para un inversor exigente.")
+st.title('El Analizador de Acciones de Sr. Outfit')
+st.caption("Herramienta de análisis. Esto no es una recomendación de compra o venta. Realiza tu propio juicio y análisis antes de invertir.")
 
 ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "AAPL").upper()
 
@@ -375,7 +374,6 @@ if st.button('Analizar Acción'):
             elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
             else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
 
-            # --- NUEVO: Gráfico Radar ---
             st.subheader("Resumen Visual de Fortalezas")
             fig_radar = crear_grafico_radar(puntuaciones)
             st.pyplot(fig_radar)
