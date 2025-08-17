@@ -1,15 +1,3 @@
-# app.py
-# -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v45.0 (Valoración Mejorada)
-# -----------------------------------------------------------------------------
-#
-# Para ejecutar esta aplicación:
-# 1. Guarda este código como 'app.py'.
-# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
-# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
-#    streamlit run app.py
-#
-# -----------------------------------------------------------------------------
 
 import streamlit as st
 import yfinance as yf
@@ -376,6 +364,19 @@ def mostrar_metrica_con_color(label, value, umbral_bueno, umbral_malo=None, lowe
     formatted_value = f"{value:.2f}%" if is_percent and isinstance(value, (int, float)) else (f"{value:.2f}" if isinstance(value, (int, float)) else "N/A")
     st.markdown(f'<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value {color_class}">{formatted_value}</div></div>', unsafe_allow_html=True)
 
+def mostrar_metrica_valoracion(label, value, umbral_bueno, umbral_neutro=0):
+    color_class = "color-red"
+    try:
+        numeric_value = float(str(value).replace('%', ''))
+        if numeric_value > umbral_bueno:
+            color_class = "color-green"
+        elif numeric_value > umbral_neutro:
+            color_class = "color-orange"
+    except (ValueError, TypeError): pass
+
+    formatted_value = f"{value:.2f}%" if isinstance(value, (int, float)) else "N/A"
+    st.markdown(f'<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value {color_class}">{formatted_value}</div></div>', unsafe_allow_html=True)
+
 def get_recommendation_html(recommendation):
     rec_lower = recommendation.lower()
     color_class = "color-white"
@@ -471,25 +472,22 @@ if st.button('Analizar Acción'):
             with st.container(border=True):
                 st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
                 st.caption(justificaciones['valoracion'])
-                val1, val2, val3 = st.columns(3)
+                val1, val2 = st.columns(2)
                 with val1:
                     st.markdown("##### Múltiplos (Presente)")
                     mostrar_metrica_con_color("⚖️ PER", datos['per'], 20, 30, lower_is_better=True)
                     mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
                     mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
                 with val2:
-                    st.markdown("##### Analistas (Futuro)")
-                    mostrar_metrica_con_color("🛡️ Margen Seguridad", puntuaciones['margen_seguridad_analistas'], 25, 15, is_percent=True)
-                with val3:
-                    st.markdown("##### Histórico (Pasado)")
-                    mostrar_metrica_con_color("📈 Potencial vs PER Medio (10A)", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
-                    st.metric("🕰️ PER Medio (10A)", f"{per_historico:.2f}" if per_historico is not None else "N/A")
+                    st.markdown("##### Márgenes de Seguridad")
+                    mostrar_metrica_valoracion("🛡️ Según Expertos (Futuro)", puntuaciones['margen_seguridad_analistas'], 25)
+                    mostrar_metrica_valoracion("📈 Según Histórico (Pasado)", puntuaciones['margen_seguridad_historico'], 30)
+
                 with st.expander("Ver Leyenda Detallada"):
                     st.markdown("""
-                    - **PER y P/FCF:** Miden cuántas veces estás pagando los beneficios o el flujo de caja libre. Valores por debajo de 20 suelen considerarse atractivos.
-                    - **PER Adelantado:** Usa beneficios futuros esperados. Si es menor que el PER actual, **suma un bonus a la nota de valoración**, ya que indica crecimiento.
-                    - **Margen de Seguridad (Analistas):** Potencial de revalorización hasta el precio objetivo de los analistas. Es una visión basada en **expectativas de futuro**.
-                    - **Potencial vs PER Medio (10A):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 10 años. Es una visión basada en su **comportamiento pasado**.
+                    - **Múltiplos:** Miden cuántas veces estás pagando los beneficios (PER) o el flujo de caja (P/FCF). Valores por debajo de 20 suelen ser atractivos. El **PER Adelantado** usa beneficios futuros esperados; si es menor que el PER actual, indica crecimiento y **suma un bonus a la nota**.
+                    - **Margen de Seguridad (Según Expertos):** Potencial de revalorización hasta el precio objetivo de los analistas. Es una visión basada en **expectativas de futuro**.
+                    - **Margen de Seguridad (Según Histórico):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 10 años. Es una visión basada en su **comportamiento pasado**.
                     """)
 
             if datos['yield_dividendo'] > 0:
