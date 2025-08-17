@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v44.4 (Versión Definitiva Corregida)
+# El Analizador de Acciones de Sr. Outfit - v45.0 (Valoración Mejorada)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -483,7 +483,7 @@ if st.button('Analizar Acción'):
                 with val3:
                     st.markdown("##### Histórico (Pasado)")
                     mostrar_metrica_con_color("📈 Potencial vs PER Medio (10A)", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
-                    mostrar_metrica_con_color("🕰️ PER Medio (10A)", per_historico, 25, 35, lower_is_better=True)
+                    st.metric("🕰️ PER Medio (10A)", f"{per_historico:.2f}" if per_historico is not None else "N/A")
                 with st.expander("Ver Leyenda Detallada"):
                     st.markdown("""
                     - **PER y P/FCF:** Miden cuántas veces estás pagando los beneficios o el flujo de caja libre. Valores por debajo de 20 suelen considerarse atractivos.
@@ -500,7 +500,6 @@ if st.button('Analizar Acción'):
                     with div1: mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                     with div2: mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], 60, 80, lower_is_better=True, is_percent=True)
                     with div3:
-                        # CORRECCIÓN: Usar st.metric para el dato informativo sin umbrales
                         st.metric("📈 Yield Medio (10A)", f"{yield_historico:.2f}%" if yield_historico is not None else "N/A")
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown("""
