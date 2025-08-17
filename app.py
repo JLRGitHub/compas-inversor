@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v44.2 (PER Histórico 10A)
+# El Analizador de Acciones de Sr. Outfit - v44.0 (con Yield Histórico)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -133,7 +133,7 @@ def obtener_datos_historicos(ticker):
         if not pers:
             current_eps = stock.info.get('trailingEps')
             if current_eps and current_eps > 0:
-                hist_data = stock.history(period="10y", interval="1y") # Cambiado a 10 años
+                hist_data = stock.history(period="5y", interval="1y")
                 if not hist_data.empty:
                     for price in hist_data['Close']:
                         per = price / current_eps
@@ -141,6 +141,7 @@ def obtener_datos_historicos(ticker):
         
         if pers: per_historico = np.mean(pers)
 
+        # --- Cálculo del Yield Histórico (10 años) ---
         yield_historico = None
         hist_10y = stock.history(period="10y")
         divs_10y = stock.dividends.loc[hist_10y.index[0]:]
@@ -149,6 +150,7 @@ def obtener_datos_historicos(ticker):
             annual_dividends = divs_10y.resample('YE').sum()
             annual_prices = hist_10y['Close'].resample('YE').mean()
             
+            # Alinear los índices de dividendos y precios
             df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
             df_yield.columns = ['Dividends', 'Price']
             
@@ -263,7 +265,7 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico, yield_historic
     if 0 < datos['payout_ratio'] < 60: nota_dividendos += 4
     elif 0 < datos['payout_ratio'] < 80: nota_dividendos += 2
     if yield_historico and datos['yield_dividendo'] > yield_historico:
-        nota_dividendos += 2
+        nota_dividendos += 2 # Bonus si el yield actual es mayor al histórico
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
@@ -482,14 +484,13 @@ if st.button('Analizar Acción'):
                     mostrar_metrica_con_color("🛡️ Margen Seguridad", puntuaciones['margen_seguridad_analistas'], 25, 15, is_percent=True)
                 with val3:
                     st.markdown("##### Histórico (Pasado)")
-                    mostrar_metrica_con_color("📈 Potencial vs PER Medio (10A)", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
-                    mostrar_metrica_con_color("🕰️ PER Medio (10A)", per_historico, 25, 35, lower_is_better=True)
+                    mostrar_metrica_con_color("📈 Potencial vs PER Medio", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
                 with st.expander("Ver Leyenda Detallada"):
                     st.markdown("""
                     - **PER y P/FCF:** Miden cuántas veces estás pagando los beneficios o el flujo de caja libre. Valores por debajo de 20 suelen considerarse atractivos.
                     - **PER Adelantado:** Usa beneficios futuros esperados. Si es menor que el PER actual, **suma un bonus a la nota de valoración**, ya que indica crecimiento.
                     - **Margen de Seguridad (Analistas):** Potencial de revalorización hasta el precio objetivo de los analistas. Es una visión basada en **expectativas de futuro**.
-                    - **Potencial vs PER Medio (10A):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 10 años. Es una visión basada en su **comportamiento pasado**.
+                    - **Potencial vs PER Medio (Histórico):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 5 años. Es una visión basada en su **comportamiento pasado**.
                     """)
 
             if datos['yield_dividendo'] > 0:
@@ -519,4 +520,3 @@ if st.button('Analizar Acción'):
                     st.success("✅ No se han detectado banderas rojas significativas.")
             else:
                 st.warning("No se pudieron generar los gráficos históricos.")
-
