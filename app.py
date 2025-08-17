@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v34.0 (Análisis y UI Mejorados)
+# El Compás del Inversor - v35.0 (con Margen de Seguridad)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -76,7 +76,8 @@ def obtener_datos_completos(ticker):
         "yield_dividendo": div_yield * 100 if div_yield is not None else 0,
         "payout_ratio": payout * 100 if payout is not None else 0,
         "recomendacion_analistas": info.get('recommendationKey', 'N/A'),
-        "precio_objetivo": info.get('targetMeanPrice', 'N/A'),
+        "precio_objetivo": info.get('targetMeanPrice'),
+        "precio_actual": info.get('currentPrice')
     }
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
@@ -164,7 +165,7 @@ def calcular_puntuaciones_y_justificaciones(datos):
         nota_geo, justificacion_geo, penalizador_geo = 5, "PRECAUCIÓN: Jurisdicción no clasificada.", 2.0
     puntuaciones['geopolitico'], justificaciones['geopolitico'], puntuaciones['penalizador_geo'] = nota_geo, justificacion_geo, penalizador_geo
 
-    # Análisis de Calidad del Negocio (incluyendo Margen Neto)
+    # Análisis de Calidad del Negocio
     nota_calidad = 0
     if datos['roe'] > sector_bench['roe_excelente']: nota_calidad += 4
     elif datos['roe'] > sector_bench['roe_bueno']: nota_calidad += 3
@@ -172,7 +173,7 @@ def calcular_puntuaciones_y_justificaciones(datos):
     elif datos['margen_operativo'] > sector_bench['margen_bueno']: nota_calidad += 2
     if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): nota_calidad += 3
     elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): nota_calidad += 2
-    puntuaciones['calidad'] = min(10, nota_calidad) # Se asegura que la nota no pase de 10
+    puntuaciones['calidad'] = min(10, nota_calidad)
     if puntuaciones['calidad'] >= 8: justificaciones['calidad'] = "Rentabilidad y márgenes de élite para su sector."
     else: justificaciones['calidad'] = "Negocio de buena calidad con márgenes sólidos."
 
@@ -197,7 +198,7 @@ def calcular_puntuaciones_y_justificaciones(datos):
     elif puntuaciones['moat'] >= 5: justificaciones['moat'] = "Moat Estrecho: Ciertas ventajas competitivas."
     else: justificaciones['moat'] = "Sin Moat Claro: Negocio vulnerable a la competencia."
 
-    # Análisis de Valoración (incluyendo PER Adelantado)
+    # Análisis de Valoración (con PER Adelantado y Margen de Seguridad)
     nota_valoracion = 0
     per = datos['per']
     per_adelantado = datos['per_adelantado']
@@ -207,20 +208,24 @@ def calcular_puntuaciones_y_justificaciones(datos):
         elif per < sector_bench['per_justo']: nota_valoracion = 7
         else: nota_valoracion = 4
         
-        # Ajuste por PER adelantado
         if isinstance(per_adelantado, (int, float)) and per_adelantado > 0:
-            if per_adelantado < per * 0.9: # Si hay una expectativa de crecimiento clara
-                nota_valoracion += 1
-                justificaciones['valoracion'] = "Valoración atractiva con crecimiento de beneficios esperado."
-            elif per_adelantado > per: # Si se espera que los beneficios caigan
-                nota_valoracion -= 1
-                justificaciones['valoracion'] = "Valoración exigente con posible contracción de beneficios."
+            if per_adelantado < per * 0.9: nota_valoracion += 1
+            elif per_adelantado > per: nota_valoracion -= 1
     
-    puntuaciones['valoracion'] = max(0, min(10, nota_valoracion)) # Se asegura que la nota esté entre 0 y 10
-    if 'valoracion' not in justificaciones:
-        if puntuaciones['valoracion'] >= 7: justificaciones['valoracion'] = "Valoración atractiva en comparación con su sector."
-        elif puntuaciones['valoracion'] >= 4: justificaciones['valoracion'] = "Precio justo por un negocio de esta calidad."
-        else: justificaciones['valoracion'] = "Valoración exigente."
+    # Cálculo y aplicación del Margen de Seguridad
+    precio_actual = datos.get('precio_actual')
+    precio_objetivo = datos.get('precio_objetivo')
+    margen_seguridad = 0
+    if isinstance(precio_actual, (int, float)) and isinstance(precio_objetivo, (int, float)) and precio_actual > 0:
+        margen_seguridad = ((precio_objetivo - precio_actual) / precio_actual) * 100
+        if margen_seguridad > 20: nota_valoracion += 2
+        elif margen_seguridad < 0: nota_valoracion -= 1
+    puntuaciones['margen_seguridad'] = margen_seguridad
+    
+    puntuaciones['valoracion'] = max(0, min(10, nota_valoracion))
+    if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Valoración muy atractiva con potencial de revalorización."
+    elif puntuaciones['valoracion'] >= 5: justificaciones['valoracion'] = "Precio justo por un negocio de esta calidad."
+    else: justificaciones['valoracion'] = "Valoración exigente o con riesgos."
 
     # Análisis de Dividendos
     nota_dividendos = 0
@@ -233,7 +238,7 @@ def calcular_puntuaciones_y_justificaciones(datos):
     elif nota_dividendos >= 5: justificaciones['dividendos'] = "Dividendo sólido y sostenible."
     else: justificaciones['dividendos'] = "Dividendo bajo o no prioritario."
     
-    return puntuaciones, justificaciones, benchmarks # Devuelve benchmarks para usar en la UI
+    return puntuaciones, justificaciones, benchmarks
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
 @st.cache_data(ttl=3600)
@@ -248,7 +253,6 @@ def crear_graficos_profesionales(ticker, financials, dividends):
         plt.style.use('dark_background')
         fig.patch.set_facecolor('#0E1117')
         
-        # Estilos comunes para todos los gráficos
         for ax in axs.flat:
             ax.tick_params(colors='white')
             for spine in ax.spines.values():
@@ -257,26 +261,22 @@ def crear_graficos_profesionales(ticker, financials, dividends):
             ax.xaxis.label.set_color('white')
             ax.title.set_color('white')
 
-        # Gráfico 1: Crecimiento
         axs[0, 0].bar(años, financials['Total Revenue'] / 1e9, label='Ingresos', color='#87CEEB')
         axs[0, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto', color='#D4AF37', width=0.5)
         axs[0, 0].set_title('1. Crecimiento del Negocio (en Billones)')
         axs[0, 0].legend()
 
-        # Gráfico 2: Rentabilidad
         ax2_twin = axs[0, 1].twinx()
         axs[0, 1].plot(años, financials['ROE'] * 100, label='ROE (%)', color='purple', marker='o')
         ax2_twin.plot(años, financials['Operating Margin'] * 100, label='Margen Op. (%)', color='#D4AF37', marker='s')
         axs[0, 1].set_title('2. Rentabilidad y Eficiencia')
         fig.legend(loc='upper center', bbox_to_anchor=(0.7, 0.9))
 
-        # Gráfico 3: Calidad de Beneficios
         axs[1, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto (B)', color='royalblue')
         axs[1, 0].plot(años, financials['Free Cash Flow'] / 1e9, label='Flujo de Caja Libre (B)', color='green', marker='o', linestyle='--')
         axs[1, 0].set_title('3. Beneficio vs. Caja Real (en Billones)')
         axs[1, 0].legend()
 
-        # Gráfico 4: Dividendos
         if dividends is not None and not dividends.empty:
             axs[1, 1].bar(dividends.index.year, dividends, label='Dividendo por Acción', color='orange')
         axs[1, 1].set_title('4. Retorno al Accionista')
@@ -302,7 +302,6 @@ if st.button('Analizar Acción'):
             puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos)
             sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
 
-            # Cálculo de la nota final ponderada
             pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
             nota_ponderada = (puntuaciones['calidad'] * pesos['calidad'] +
                               puntuaciones['valoracion'] * pesos['valoracion'] +
@@ -313,14 +312,12 @@ if st.button('Analizar Acción'):
 
             st.header(f"Informe Profesional: {datos['nombre']} ({ticker_input})")
             
-            # Veredicto final
             st.markdown(f"### 🧭 Nota Global del Compás: **{nota_final:.1f} / 10**")
             if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
             elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
             elif nota_final >= 4: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
             else: st.error("Veredicto: Proceder con CAUTELA. Presenta debilidades o riesgos significativos.")
 
-            # Sección 1: Identidad y Riesgo
             with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
                 st.write(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
                 geo_nota = puntuaciones['geopolitico']
@@ -330,7 +327,6 @@ if st.button('Analizar Acción'):
                 st.caption(justificaciones['geopolitico'])
                 st.write(f"**Descripción:** {datos['descripcion']}")
             
-            # Sección 2: Moat y Analistas
             col_moat, col_analistas = st.columns(2)
             with col_moat:
                 with st.container(border=True):
@@ -343,7 +339,6 @@ if st.button('Analizar Acción'):
                     st.metric("Recomendación Media", recomendacion)
                     st.metric("Precio Objetivo Medio", f"{datos.get('precio_objetivo', 'N/A')}")
 
-            # Sección 3: Métricas Fundamentales con Leyendas Integradas
             col1, col2 = st.columns(2)
             with col1:
                 with st.container(border=True):
@@ -374,10 +369,11 @@ if st.button('Analizar Acción'):
                     st.caption(justificaciones['valoracion'])
                     st.metric("⚖️ PER (Precio/Beneficio)", f"{datos['per']:.2f}" if isinstance(datos['per'], (int, float)) else "N/A")
                     st.metric("🔮 PER Adelantado", f"{datos['per_adelantado']:.2f}" if isinstance(datos['per_adelantado'], (int, float)) else "N/A")
-                    st.metric("🏷️ Precio / Ventas", f"{datos['precio_ventas']:.2f}" if isinstance(datos['precio_ventas'], (int, float)) else "N/A")
+                    st.metric("🛡️ Margen de Seguridad", f"{puntuaciones.get('margen_seguridad', 0):.2f}%")
                     with st.expander("Ver Leyenda y Benchmarks del Sector"):
                         st.write(f"**PER:** Veces que pagas los beneficios. Para **{datos['sector'].upper()}**, se considera **Atractivo < {sector_bench['per_barato']}** y **Justo < {sector_bench['per_justo']}**.")
                         st.write("**PER Adelantado:** PER basado en beneficios futuros. Si es menor que el PER actual, indica crecimiento esperado.")
+                        st.write("**Margen de Seguridad:** Potencial de revalorización hasta el precio objetivo de los analistas. Un valor **> 20%** es un buen colchón de seguridad.")
 
             with col4:
                 with st.container(border=True):
@@ -389,7 +385,6 @@ if st.button('Analizar Acción'):
                         st.write("**Yield:** % que recibes en dividendos. **> 3.5%** es atractivo.")
                         st.write("**Payout:** % del beneficio destinado a dividendos. **< 60%** es muy sostenible.")
 
-            # Sección 4: Gráficos y Banderas Rojas
             st.header("Análisis Gráfico Histórico")
             financials_hist, dividends_hist = obtener_datos_historicos(ticker_input)
             
