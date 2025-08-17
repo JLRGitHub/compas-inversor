@@ -80,6 +80,7 @@ def obtener_datos_historicos(ticker):
         stock = yf.Ticker(ticker)
         financials = stock.financials.T.sort_index(ascending=True).tail(4)
         balance_sheet = stock.balance_sheet.T.sort_index(ascending=True).tail(4)
+        cashflow = stock.cashflow.T.sort_index(ascending=True).tail(4)
         dividends = stock.dividends.resample('YE').sum().tail(5)
         hist_precios = stock.history(period="5y")['Close']
         
@@ -95,6 +96,10 @@ def obtener_datos_historicos(ticker):
             financials['EPS'] = np.nan
 
         financials['ROE'] = financials['Net Income'] / balance_sheet.get('Total Stockholder Equity', 1)
+        
+        capex = cashflow.get('Capital Expenditure', cashflow.get('Capital Expenditures', 0))
+        op_cash = cashflow.get('Total Cash From Operating Activities', 0)
+        financials['Free Cash Flow'] = op_cash + capex
         
         return financials, dividends, hist_precios
     except Exception:
