@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v43.0 (Versión Definitiva)
+# El Analizador de Acciones de Sr. Outfit - v44.0 (Dashboard Visual Mejorado)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -267,7 +267,7 @@ def crear_grafico_radar(puntuaciones):
     stats = np.concatenate((stats,[stats[0]]))
     angles = np.concatenate((angles,[angles[0]]))
 
-    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(4, 4), subplot_kw=dict(polar=True)) # Tamaño reducido
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
     
@@ -276,12 +276,35 @@ def crear_grafico_radar(puntuaciones):
     
     ax.set_yticklabels([])
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, color='white', size=12)
+    ax.set_xticklabels(labels, color='white', size=10) # Tamaño de fuente reducido
     ax.set_ylim(0, 10)
     
     ax.spines['polar'].set_color('white')
     ax.grid(color='gray', linestyle='--', linewidth=0.5)
 
+    return fig
+
+def crear_grafico_gauge(score):
+    fig, ax = plt.subplots(figsize=(4, 2.5))
+    fig.patch.set_facecolor('#0E1117')
+    
+    colors = ['#dc3545', '#fd7e14', '#28a745']
+    labels = ['Cautela', 'Sólida', 'Excepcional']
+    values = [4, 2, 4] # Rangos para cada color
+
+    ax.pie([*values, sum(values)], colors=[*colors, '#0E1117'], startangle=180, counterclock=False, radius=1, wedgeprops={'width':0.3})
+    
+    # Aguja del velocímetro
+    angle = (1 - score / 10) * 180
+    ax.arrow(0, 0, -0.8 * np.cos(np.radians(angle)), 0.8 * np.sin(np.radians(angle)),
+             width=0.02, head_width=0.05, head_length=0.1, fc='white', ec='white')
+    
+    # Texto de la nota
+    ax.text(0, -0.1, f'{score:.1f}', ha='center', va='center', fontsize=22, color='white', weight='bold')
+    ax.text(0, -0.4, 'Nota Global', ha='center', va='center', fontsize=10, color='gray')
+    
+    ax.set_aspect('equal')
+    plt.tight_layout()
     return fig
 
 @st.cache_data(ttl=3600)
@@ -369,14 +392,20 @@ if st.button('Analizar Acción'):
 
             st.header(f"Informe Profesional: {datos['nombre']} ({ticker_input})")
             
-            st.markdown(f"### 🧭 Nota Global del Compás: **{nota_final:.1f} / 10**")
+            st.markdown(f"### 🧭 Veredicto del Analizador: **{nota_final:.1f} / 10**")
             if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
             elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
             else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
 
-            st.subheader("Resumen Visual de Fortalezas")
-            fig_radar = crear_grafico_radar(puntuaciones)
-            st.pyplot(fig_radar)
+            col_gauge, col_radar = st.columns([1, 1])
+            with col_gauge:
+                st.subheader("Nota Global")
+                fig_gauge = crear_grafico_gauge(nota_final)
+                st.pyplot(fig_gauge)
+            with col_radar:
+                st.subheader("Resumen de Fortalezas")
+                fig_radar = crear_grafico_radar(puntuaciones)
+                st.pyplot(fig_radar)
 
             with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
                 st.write(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
