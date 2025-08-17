@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v34.0 (Versión Web Final y Completa)
+# El Compás del Inversor - v33.0 (Versión Web Final y Completa)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -76,6 +76,7 @@ def obtener_datos_historicos(ticker):
         stock = yf.Ticker(ticker)
         financials = stock.financials.T.sort_index(ascending=True).tail(4)
         balance_sheet = stock.balance_sheet.T.sort_index(ascending=True).tail(4)
+        cashflow = stock.cashflow.T.sort_index(ascending=True).tail(4)
         dividends = stock.dividends.resample('YE').sum().tail(5)
         
         if financials.empty: return None, None
@@ -111,9 +112,18 @@ def calcular_puntuaciones_y_justificaciones(datos):
     sector = datos['sector']
     pais = datos['pais']
     benchmarks = {
-        'Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'per_barato': 25, 'per_justo': 35},
-        'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'per_barato': 12, 'per_justo': 18},
-        'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'per_barato': 20, 'per_justo': 25}
+        'Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35},
+        'Healthcare': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30},
+        'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18},
+        'Consumer Defensive': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25},
+        'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25},
+        'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22},
+        'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20},
+        'Basic Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25},
+        'Consumer Cyclical': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28},
+        'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30},
+        'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35},
+        'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25}
     }
     sector_bench = benchmarks.get(sector, benchmarks['Default'])
     paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland']
@@ -130,10 +140,12 @@ def calcular_puntuaciones_y_justificaciones(datos):
     puntuaciones['geopolitico'], justificaciones['geopolitico'], puntuaciones['penalizador_geo'] = nota_geo, justificacion_geo, penalizador_geo
 
     nota_calidad = 0
-    if datos['roe'] > sector_bench.get('roe_excelente', 15): nota_calidad += 5
-    elif datos['roe'] > sector_bench.get('roe_bueno', 12): nota_calidad += 4
-    if datos['margen_operativo'] > sector_bench.get('margen_excelente', 15): nota_calidad += 5
-    elif datos['margen_operativo'] > sector_bench.get('margen_bueno', 10): nota_calidad += 4
+    if datos['roe'] > sector_bench['roe_excelente']: nota_calidad += 4
+    elif datos['roe'] > sector_bench['roe_bueno']: nota_calidad += 3
+    if datos['margen_operativo'] > sector_bench['margen_excelente']: nota_calidad += 3
+    elif datos['margen_operativo'] > sector_bench['margen_bueno']: nota_calidad += 2
+    if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): nota_calidad += 3
+    elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): nota_calidad += 2
     puntuaciones['calidad'] = nota_calidad
     if nota_calidad >= 8: justificaciones['calidad'] = "Rentabilidad y márgenes de élite para su sector."
     else: justificaciones['calidad'] = "Negocio de buena calidad con márgenes sólidos."
@@ -166,8 +178,8 @@ def calcular_puntuaciones_y_justificaciones(datos):
         elif per < sector_bench['per_justo']: nota_valoracion = 7
         else: nota_valoracion = 4
     puntuaciones['valoracion'] = nota_valoracion
-    if nota_valoracion >= 7: justificaciones['valoracion'] = "Valoración atractiva para su sector."
-    elif nota_valoracion >= 4: justificaciones['valoracion'] = "Precio justo por un negocio de calidad."
+    if nota_valoracion >= 7: justificaciones['valoracion'] = "Valoración atractiva en comparación con su sector."
+    elif nota_valoracion >= 4: justificaciones['valoracion'] = "Precio justo por un negocio de esta calidad."
     else: justificaciones['valoracion'] = "Valoración exigente."
 
     nota_dividendos = 0
