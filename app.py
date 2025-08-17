@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v42.1 (PER Histórico Corregido y Definitivo)
+# El Compás del Inversor - v43.0 (Versión Definitiva y Corregida)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -89,15 +89,20 @@ def obtener_datos_completos(ticker):
 def obtener_datos_historicos(ticker):
     try:
         stock = yf.Ticker(ticker)
-        # --- Datos para Gráficos ---
-        financials = stock.financials.T.sort_index(ascending=True).tail(4)
-        balance_sheet = stock.balance_sheet.T.sort_index(ascending=True).tail(4)
-        cashflow = stock.cashflow.T.sort_index(ascending=True).tail(4)
-        dividends = stock.dividends.resample('YE').sum().tail(5)
         
-        if financials.empty: 
-            financials_for_charts, dividends_for_charts = None, None
-        else:
+        # --- Datos para Gráficos (Lógica robusta) ---
+        financials_raw = stock.financials
+        balance_sheet_raw = stock.balance_sheet
+        cashflow_raw = stock.cashflow
+        
+        financials_for_charts, dividends_for_charts = None, None
+        
+        if not financials_raw.empty and not balance_sheet_raw.empty and not cashflow_raw.empty:
+            financials = financials_raw.T.sort_index(ascending=True).tail(4)
+            balance_sheet = balance_sheet_raw.T.sort_index(ascending=True).tail(4)
+            cashflow = cashflow_raw.T.sort_index(ascending=True).tail(4)
+            dividends = stock.dividends.resample('YE').sum().tail(5)
+            
             financials['Operating Margin'] = financials.get('Operating Income', 0) / financials.get('Total Revenue', 1)
             financials['Total Debt'] = balance_sheet.get('Total Debt', 0)
             financials['ROE'] = financials['Net Income'] / balance_sheet.get('Total Stockholder Equity', 1)
@@ -106,45 +111,40 @@ def obtener_datos_historicos(ticker):
             financials['Free Cash Flow'] = op_cash + capex
             financials_for_charts, dividends_for_charts = financials, dividends
 
-        # --- Cálculo del PER Histórico (Lógica Mejorada y Corregida) ---
+        # --- Cálculo del PER Histórico (Lógica Definitiva con Fallback) ---
         per_historico = None
-        annual_financials = stock.financials
-        annual_balance_sheet = stock.balance_sheet
-
-        # Nombres posibles para las acciones en circulación en los informes de yfinance
-        possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding']
+        pers = []
         
-        # Encontrar la clave correcta para las acciones en el balance
-        share_key_found = None
-        for key in possible_share_keys:
-            if key in annual_balance_sheet.index:
-                share_key_found = key
-                break
+        # Método Primario: Usar datos históricos de acciones y beneficios
+        possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
+        share_key_found = next((key for key in possible_share_keys if key in balance_sheet_raw.index), None)
         
-        if not annual_financials.empty and share_key_found:
-            pers = []
-            # Iterar por cada columna de datos anuales (cada año fiscal)
-            for col_date in annual_financials.columns:
-                if col_date in annual_balance_sheet.columns:
-                    net_income = annual_financials.loc['Net Income', col_date]
-                    shares = annual_balance_sheet.loc[share_key_found, col_date]
+        if not financials_raw.empty and share_key_found:
+            for col_date in financials_raw.columns:
+                if col_date in balance_sheet_raw.columns:
+                    net_income = financials_raw.loc['Net Income', col_date]
+                    shares = balance_sheet_raw.loc[share_key_found, col_date]
 
                     if pd.notna(net_income) and pd.notna(shares) and shares > 0 and net_income > 0:
                         eps = net_income / shares
-                        
-                        # Obtener el precio de la acción en la fecha de cierre del año fiscal
-                        price_data = stock.history(start=col_date - pd.Timedelta(days=5), end=col_date + pd.Timedelta(days=5))
+                        price_data = stock.history(start=col_date, end=col_date + pd.Timedelta(days=5), interval="1d")
                         if not price_data.empty:
-                            try:
-                                price = price_data.iloc[price_data.index.get_loc(col_date, method='nearest')]['Close']
-                                per = price / eps
-                                if 0 < per < 100:
-                                    pers.append(per)
-                            except KeyError:
-                                continue # Si no encuentra la fecha, salta al siguiente año
-            
-            if pers:
-                per_historico = np.mean(pers)
+                            price = price_data['Close'].iloc[0]
+                            per = price / eps
+                            if 0 < per < 100: pers.append(per)
+        
+        # Método de Respaldo (Fallback): Si el primario falla, usar EPS actual
+        if not pers:
+            current_eps = stock.info.get('trailingEps')
+            if current_eps and current_eps > 0:
+                hist_data = stock.history(period="5y", interval="1y")
+                if not hist_data.empty:
+                    for price in hist_data['Close']:
+                        per = price / current_eps
+                        if 0 < per < 100: pers.append(per)
+        
+        if pers:
+            per_historico = np.mean(pers)
             
         return financials_for_charts, dividends_for_charts, per_historico
     except Exception:
@@ -436,7 +436,7 @@ if st.button('Analizar Acción'):
                 banderas = analizar_banderas_rojas(datos, financials_hist)
                 if banderas:
                     for bandera in banderas: st.warning(bandera)
-                else: st.success("✅ No se han detectado banderas rojas significativas.")
+                else:
+                    st.success("✅ No se han detectado banderas rojas significativas.")
             else:
                 st.warning("No se pudieron generar los gráficos históricos.")
-
