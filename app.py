@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v44.0 (Dashboard Visual Mejorado)
+# El Analizador de Acciones de Sr. Outfit - v44.1 (Gráficos Corregidos)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -267,7 +267,7 @@ def crear_grafico_radar(puntuaciones):
     stats = np.concatenate((stats,[stats[0]]))
     angles = np.concatenate((angles,[angles[0]]))
 
-    fig, ax = plt.subplots(figsize=(4, 4), subplot_kw=dict(polar=True)) # Tamaño reducido
+    fig, ax = plt.subplots(figsize=(3.5, 3.5), subplot_kw=dict(polar=True)) # Tamaño reducido
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
     
@@ -276,7 +276,7 @@ def crear_grafico_radar(puntuaciones):
     
     ax.set_yticklabels([])
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, color='white', size=10) # Tamaño de fuente reducido
+    ax.set_xticklabels(labels, color='white', size=10)
     ax.set_ylim(0, 10)
     
     ax.spines['polar'].set_color('white')
@@ -285,22 +285,19 @@ def crear_grafico_radar(puntuaciones):
     return fig
 
 def crear_grafico_gauge(score):
-    fig, ax = plt.subplots(figsize=(4, 2.5))
+    fig, ax = plt.subplots(figsize=(3.5, 2.2)) # Tamaño reducido
     fig.patch.set_facecolor('#0E1117')
     
     colors = ['#dc3545', '#fd7e14', '#28a745']
-    labels = ['Cautela', 'Sólida', 'Excepcional']
-    values = [4, 2, 4] # Rangos para cada color
+    values = [4, 2, 4]
 
     ax.pie([*values, sum(values)], colors=[*colors, '#0E1117'], startangle=180, counterclock=False, radius=1, wedgeprops={'width':0.3})
     
-    # Aguja del velocímetro
     angle = (1 - score / 10) * 180
     ax.arrow(0, 0, -0.8 * np.cos(np.radians(angle)), 0.8 * np.sin(np.radians(angle)),
              width=0.02, head_width=0.05, head_length=0.1, fc='white', ec='white')
     
-    # Texto de la nota
-    ax.text(0, -0.1, f'{score:.1f}', ha='center', va='center', fontsize=22, color='white', weight='bold')
+    ax.text(0, -0.1, f'{score:.1f}', ha='center', va='center', fontsize=20, color='white', weight='bold')
     ax.text(0, -0.4, 'Nota Global', ha='center', va='center', fontsize=10, color='gray')
     
     ax.set_aspect('equal')
@@ -317,23 +314,31 @@ def crear_graficos_profesionales(ticker, financials, dividends):
         fig.patch.set_facecolor('#0E1117')
         
         for ax in axs.flat:
-            ax.tick_params(colors='white')
+            ax.tick_params(colors='white', which='both', bottom=False, left=False)
             for spine in ax.spines.values(): spine.set_color('white')
             ax.yaxis.label.set_color('white'); ax.xaxis.label.set_color('white'); ax.title.set_color('white')
+            ax.set_xticks(años)
+            ax.set_xticklabels(años)
 
+        # Gráfico 1
         axs[0, 0].bar(años, financials['Total Revenue'] / 1e9, label='Ingresos', color='#87CEEB')
         axs[0, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto', color='#D4AF37', width=0.5)
         axs[0, 0].set_title('1. Crecimiento (Billones)'); axs[0, 0].legend()
 
-        ax2_twin = axs[0, 1].twinx()
-        axs[0, 1].plot(años, financials['ROE'] * 100, label='ROE (%)', color='purple', marker='o')
-        ax2_twin.plot(años, financials['Operating Margin'] * 100, label='Margen Op. (%)', color='#D4AF37', marker='s')
-        axs[0, 1].set_title('2. Rentabilidad'); fig.legend(loc='upper center', bbox_to_anchor=(0.7, 0.9))
+        # Gráfico 2 (CORREGIDO)
+        ax2 = axs[0, 1]
+        ax2_twin = ax2.twinx()
+        line1, = ax2.plot(años, financials['ROE'] * 100, color='purple', marker='o', label='ROE (%)')
+        line2, = ax2_twin.plot(años, financials['Operating Margin'] * 100, color='#D4AF37', marker='s', label='Margen Op. (%)')
+        ax2.set_title('2. Rentabilidad')
+        ax2.legend(handles=[line1, line2])
 
+        # Gráfico 3
         axs[1, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto (B)', color='royalblue')
         axs[1, 0].plot(años, financials['Free Cash Flow'] / 1e9, label='FCF (B)', color='green', marker='o', linestyle='--')
         axs[1, 0].set_title('3. Beneficio vs. Caja Real'); axs[1, 0].legend()
 
+        # Gráfico 4
         if dividends is not None and not dividends.empty:
             axs[1, 1].bar(dividends.index.year, dividends, label='Dividendo/Acción', color='orange')
         axs[1, 1].set_title('4. Retorno al Accionista')
@@ -397,7 +402,7 @@ if st.button('Analizar Acción'):
             elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
             else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
 
-            col_gauge, col_radar = st.columns([1, 1])
+            col_gauge, col_radar = st.columns([0.8, 1])
             with col_gauge:
                 st.subheader("Nota Global")
                 fig_gauge = crear_grafico_gauge(nota_final)
