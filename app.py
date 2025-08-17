@@ -1,3 +1,15 @@
+# app.py
+# -----------------------------------------------------------------------------
+# El Analizador de Acciones de Sr. Outfit - v46.1 (Valoración Corregida)
+# -----------------------------------------------------------------------------
+#
+# Para ejecutar esta aplicación:
+# 1. Guarda este código como 'app.py'.
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
+# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
+#    streamlit run app.py
+#
+# -----------------------------------------------------------------------------
 
 import streamlit as st
 import yfinance as yf
@@ -165,11 +177,11 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico, yield_historic
     sector, pais = datos['sector'], datos['pais']
     
     benchmarks = {
-        'Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15},
-        'Healthcare': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10},
-        'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8},
-        'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6},
-        'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5}
+        'Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35},
+        'Healthcare': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30},
+        'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18},
+        'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25},
+        'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25}
     }
     sector_bench = benchmarks.get(sector, benchmarks['Default'])
     
@@ -212,7 +224,7 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico, yield_historic
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
     nota_multiplos = 0
-    if datos['per'] and datos['per'] < 20: nota_multiplos += 5
+    if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
     if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
     
     nota_analistas, margen_seguridad = 0, 0
@@ -403,6 +415,7 @@ if st.button('Analizar Acción'):
         else:
             financials_hist, dividends_hist, per_historico, yield_historico = obtener_datos_historicos(ticker_input)
             puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, per_historico, yield_historico)
+            sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
             
             pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
             nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
@@ -451,10 +464,10 @@ if st.button('Analizar Acción'):
                         mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], 20, 15, is_percent=True)
                         mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], 15, 8, is_percent=True)
                     with st.expander("Ver Leyenda Detallada"):
-                        st.markdown("""
-                        - **ROE (Return on Equity):** Mide la rentabilidad que la empresa genera con el dinero de los accionistas. Un ROE muy alto (>50%) puede ser señal de un negocio excepcional, pero también puede estar 'inflado' por una deuda elevada o por intensas recompras de acciones.
-                        - **Márgenes (Operativo y Neto):** Indican qué porcentaje de cada euro vendido se convierte en beneficio. Márgenes altos y estables son señal de un negocio fuerte.
-                        - **Crecimiento Ingresos:** Mide el crecimiento de las ventas año a año. Un crecimiento de doble dígito (>10%) es una señal muy positiva de la demanda de sus productos o servicios.
+                        st.markdown(f"""
+                        - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, se considera **Excelente > {sector_bench['roe_excelente']}%**. Un ROE muy alto (>50%) puede estar 'inflado' por una deuda elevada.
+                        - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para este sector, un **Margen Operativo Excelente es > {sector_bench['margen_excelente']}%** y un **Margen Neto Excelente es > {sector_bench['margen_neto_excelente']}%**.
+                        - **Crecimiento Ingresos:** Mide el crecimiento de las ventas. Un crecimiento de doble dígito (>10%) es una señal muy positiva.
                         """)
             with col2:
                 with st.container(border=True):
@@ -465,8 +478,8 @@ if st.button('Analizar Acción'):
                     with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown("""
-                        - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda total con los fondos propios. Un valor bajo (< 40) indica un balance muy conservador. **Esta nota se combina con el Ratio Corriente para la puntuación final.**
-                        - **Ratio Corriente (Current Ratio):** Mide la capacidad de la empresa para pagar sus deudas a corto plazo. Un valor > 1.5 es muy saludable y **aporta puntos extra a la nota de salud financiera.**
+                        - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda con los fondos propios. Un valor bajo (< 40) indica un balance muy conservador. **Esta nota se combina con el Ratio Corriente para la puntuación final.**
+                        - **Ratio Corriente (Current Ratio):** Mide la capacidad de pagar deudas a corto plazo. Un valor > 1.5 es muy saludable y **aporta puntos extra a la nota de salud financiera.**
                         """)
 
             with st.container(border=True):
