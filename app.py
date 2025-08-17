@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v40.0 (Versión Definitiva con Leyendas)
+# El Compás del Inversor - v41.0 (Versión Definitiva Corregida)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -109,6 +109,7 @@ def obtener_datos_historicos(ticker):
         start_date = end_date - pd.DateOffset(years=5)
         hist_prices = stock.history(start=start_date, end=end_date, interval='1y')['Close']
         annual_financials = stock.financials
+        annual_balance_sheet = stock.balance_sheet
         
         per_historico = None
         if not annual_financials.empty and 'Net Income' in annual_financials.columns:
@@ -117,8 +118,13 @@ def obtener_datos_historicos(ticker):
                 year = date.year
                 if any(col.year == year for col in annual_financials.columns):
                     financial_col = [col for col in annual_financials.columns if col.year == year][0]
+                    balance_sheet_col = [col for col in annual_balance_sheet.columns if col.year == year][0]
+                    
                     net_income = annual_financials[financial_col].get('Net Income')
-                    shares = stock.info.get('sharesOutstanding')
+                    # FIX: Usar acciones del balance histórico, no el actual
+                    shares = annual_balance_sheet[balance_sheet_col].get('Share Issued')
+                    if not shares: shares = stock.info.get('sharesOutstanding') # Fallback por si no está en el balance
+
                     if net_income and shares and shares > 0:
                         eps = net_income / shares
                         if eps > 0 and price > 0:
