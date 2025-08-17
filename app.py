@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v39.0 (Versión Definitiva y Completa)
+# El Compás del Inversor - v40.0 (Versión Definitiva con Leyendas)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -336,6 +336,12 @@ if st.button('Analizar Acción'):
                     with c2:
                         mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], 20, 15, is_percent=True)
                         mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], 15, 8, is_percent=True)
+                    with st.expander("Ver Leyenda Detallada"):
+                        st.markdown("""
+                        - **ROE (Return on Equity):** Mide la rentabilidad que la empresa genera con el dinero de los accionistas. Un ROE muy alto (>50%) puede ser señal de un negocio excepcional, pero también puede estar 'inflado' por una deuda elevada o por intensas recompras de acciones.
+                        - **Márgenes (Operativo y Neto):** Indican qué porcentaje de cada euro vendido se convierte en beneficio. Márgenes altos y estables son señal de un negocio fuerte.
+                        - **Crecimiento Ingresos:** Mide el crecimiento de las ventas año a año. Un crecimiento de doble dígito (>10%) es una señal muy positiva de la demanda de sus productos o servicios.
+                        """)
             with col2:
                 with st.container(border=True):
                     st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
@@ -343,6 +349,11 @@ if st.button('Analizar Acción'):
                     s1, s2 = st.columns(2)
                     with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
                     with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
+                    with st.expander("Ver Leyenda Detallada"):
+                        st.markdown("""
+                        - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda total con los fondos propios. Un valor bajo (< 40) indica un balance muy conservador. Un valor muy alto (> 100) puede ser un riesgo.
+                        - **Ratio Corriente (Current Ratio):** Mide la capacidad de la empresa para pagar sus deudas a corto plazo. Un valor > 1.5 es muy saludable.
+                        """)
 
             with st.container(border=True):
                 st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
@@ -351,6 +362,7 @@ if st.button('Analizar Acción'):
                 with val1:
                     st.markdown("##### Múltiplos (Presente)")
                     mostrar_metrica_con_color("⚖️ PER", datos['per'], 20, 30, lower_is_better=True)
+                    mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
                     mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
                 with val2:
                     st.markdown("##### Analistas (Futuro)")
@@ -358,6 +370,12 @@ if st.button('Analizar Acción'):
                 with val3:
                     st.markdown("##### Histórico (Pasado)")
                     mostrar_metrica_con_color("📈 Potencial vs PER Medio", puntuaciones['margen_seguridad_historico'], 30, 15, is_percent=True)
+                with st.expander("Ver Leyenda Detallada"):
+                    st.markdown("""
+                    - **PER y P/FCF:** Miden cuántas veces estás pagando los beneficios o el flujo de caja libre. Valores por debajo de 20 suelen considerarse atractivos. El **PER Adelantado** usa beneficios futuros esperados, por lo que es ideal que sea menor al PER actual.
+                    - **Margen de Seguridad (Analistas):** Potencial de revalorización hasta el precio objetivo de los analistas. Es una visión basada en **expectativas de futuro**.
+                    - **Potencial vs PER Medio (Histórico):** Potencial de revalorización si la acción volviera a su PER medio de los últimos 5 años. Es una visión basada en su **comportamiento pasado**.
+                    """)
 
             if datos['yield_dividendo'] > 0:
                 with st.container(border=True):
@@ -366,6 +384,11 @@ if st.button('Analizar Acción'):
                     div1, div2 = st.columns(2)
                     with div1: mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                     with div2: mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], 60, 80, lower_is_better=True, is_percent=True)
+                    with st.expander("Ver Leyenda Detallada"):
+                        st.markdown("""
+                        - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
+                        - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio neto se destina a pagar dividendos. Un payout bajo (< 60%) es muy saludable y sostenible.
+                        """)
 
             st.header("Análisis Gráfico y Banderas Rojas")
             fig = crear_graficos_profesionales(ticker_input, financials_hist, dividends_hist)
