@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Compás del Inversor - v42.0 (Evaluación Mejorada y Definitiva)
+# El Compás del Inversor - v42.1 (PER Histórico Corregido y Definitivo)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -89,6 +89,7 @@ def obtener_datos_completos(ticker):
 def obtener_datos_historicos(ticker):
     try:
         stock = yf.Ticker(ticker)
+        # --- Datos para Gráficos ---
         financials = stock.financials.T.sort_index(ascending=True).tail(4)
         balance_sheet = stock.balance_sheet.T.sort_index(ascending=True).tail(4)
         cashflow = stock.cashflow.T.sort_index(ascending=True).tail(4)
@@ -105,31 +106,37 @@ def obtener_datos_historicos(ticker):
             financials['Free Cash Flow'] = op_cash + capex
             financials_for_charts, dividends_for_charts = financials, dividends
 
-        end_date = datetime.now()
-        start_date = end_date - pd.DateOffset(years=5)
-        hist_prices = stock.history(start=start_date, end=end_date, interval='1y')['Close']
+        # --- Cálculo del PER Histórico (Lógica Mejorada y Corregida) ---
+        per_historico = None
         annual_financials = stock.financials
         annual_balance_sheet = stock.balance_sheet
-        
-        per_historico = None
-        if not annual_financials.empty and 'Net Income' in annual_financials.columns:
-            pers = []
-            for date, price in hist_prices.items():
-                year = date.year
-                if any(col.year == year for col in annual_financials.columns):
-                    financial_col = [col for col in annual_financials.columns if col.year == year][0]
-                    balance_sheet_col = [col for col in annual_balance_sheet.columns if col.year == year][0]
-                    
-                    net_income = annual_financials[financial_col].get('Net Income')
-                    shares = annual_balance_sheet[balance_sheet_col].get('Share Issued')
-                    if not shares: shares = stock.info.get('sharesOutstanding')
 
-                    if net_income and shares and shares > 0:
+        if not annual_financials.empty and not annual_balance_sheet.empty and 'Share Issued' in annual_balance_sheet.index:
+            pers = []
+            # Iterar por cada columna de datos anuales (cada año fiscal)
+            for col_date in annual_financials.columns:
+                # Asegurarse de que tenemos datos para el mismo año en el balance
+                if col_date in annual_balance_sheet.columns:
+                    net_income = annual_financials.loc['Net Income', col_date]
+                    shares = annual_balance_sheet.loc['Share Issued', col_date]
+
+                    # Si tenemos los datos necesarios y son válidos
+                    if pd.notna(net_income) and pd.notna(shares) and shares > 0 and net_income > 0:
                         eps = net_income / shares
-                        if eps > 0 and price > 0:
+                        
+                        # Obtener el precio de la acción en la fecha de cierre del año fiscal
+                        # Buscamos en una pequeña ventana por si ese día no cotizó
+                        price_data = stock.history(start=col_date - pd.Timedelta(days=5), end=col_date + pd.Timedelta(days=5))
+                        if not price_data.empty:
+                            # Tomamos el precio más cercano a la fecha del informe
+                            price = price_data.iloc[price_data.index.get_loc(col_date, method='nearest')]['Close']
                             per = price / eps
-                            if 0 < per < 100: pers.append(per)
-            per_historico = np.mean(pers) if pers else None
+                            # Añadir solo PERs razonables para evitar distorsiones
+                            if 0 < per < 100:
+                                pers.append(per)
+            
+            if pers:
+                per_historico = np.mean(pers)
             
         return financials_for_charts, dividends_for_charts, per_historico
     except Exception:
@@ -181,7 +188,6 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
     puntuaciones['calidad'] = min(10, nota_calidad)
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
-    # MEJORA: Salud Financiera ahora incluye Ratio Corriente
     nota_salud = 0
     deuda_ratio = datos['deuda_patrimonio']
     if sector in ['Financial Services', 'Utilities']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
@@ -199,7 +205,6 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
-    # MEJORA: Valoración ahora incluye PER Adelantado como ajuste
     nota_multiplos = 0
     if datos['per'] and datos['per'] < 20: nota_multiplos += 5
     if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
@@ -222,13 +227,12 @@ def calcular_puntuaciones_y_justificaciones(datos, per_historico):
     
     nota_valoracion_base = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
     
-    # Ajuste por PER Adelantado
     per_actual = datos.get('per')
     per_adelantado = datos.get('per_adelantado')
     if per_actual and per_adelantado:
-        if per_adelantado < per_actual * 0.9: # Crecimiento esperado
+        if per_adelantado < per_actual * 0.9:
             nota_valoracion_base += 1
-        elif per_adelantado > per_actual: # Contracción esperada
+        elif per_adelantado > per_actual:
             nota_valoracion_base -= 1
 
     puntuaciones['valoracion'] = max(0, min(10, nota_valoracion_base))
