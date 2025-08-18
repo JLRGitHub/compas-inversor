@@ -93,6 +93,7 @@ def obtener_datos_completos(ticker):
 def obtener_datos_historicos_y_tecnicos(ticker):
     try:
         stock = yf.Ticker(ticker)
+        info = stock.info
         
         financials_raw = stock.financials
         balance_sheet_raw = stock.balance_sheet
@@ -116,16 +117,30 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 
         hist_10y = stock.history(period="10y")
         
+        # --- CÁLCULO DE PER Y P/FCF HISTÓRICO (CORREGIDO) ---
         pers, pfcfs = [], []
+        
+        financial_currency = info.get('financialCurrency')
+        quote_currency = info.get('currency')
+        needs_conversion = financial_currency and quote_currency and financial_currency != quote_currency
+
         possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
         share_key_found = next((key for key in possible_share_keys if key in balance_sheet_raw.index), None)
         
-        if not financials_raw.empty and share_key_found:
+        net_income_key = 'Net Income Applicable To Common Shares' if 'Net Income Applicable To Common Shares' in financials_raw.index else 'Net Income'
+        op_cash_key = 'Total Cash From Operating Activities'
+        capex_keys = ['Capital Expenditure', 'Capital Expenditures']
+        capex_key_found = next((key for key in capex_keys if key in cashflow_raw.index), None)
+
+        if not financials_raw.empty and share_key_found and op_cash_key in cashflow_raw.index and capex_key_found:
             for col_date in financials_raw.columns:
                 if col_date in balance_sheet_raw.columns and col_date in cashflow_raw.columns:
-                    net_income = financials_raw.loc['Net Income', col_date]
-                    fcf = cashflow_raw.loc['Free Cash Flow', col_date]
+                    net_income = financials_raw.loc[net_income_key, col_date]
+                    op_cash = cashflow_raw.loc[op_cash_key, col_date]
+                    capex = cashflow_raw.loc[capex_key_found, col_date]
                     shares = balance_sheet_raw.loc[share_key_found, col_date]
+                    
+                    fcf = op_cash + capex if pd.notna(op_cash) and pd.notna(capex) else None
 
                     if pd.notna(shares) and shares > 0:
                         start_of_year = col_date - pd.DateOffset(years=1)
@@ -134,17 +149,31 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                         if not price_data_year.empty:
                             average_price_for_year = price_data_year['Close'].mean()
                             
+                            avg_exchange_rate = 1.0
+                            if needs_conversion:
+                                try:
+                                    rate_ticker_symbol = f"{financial_currency}{quote_currency}=X"
+                                    rate_history = yf.Ticker(rate_ticker_symbol).history(start=start_of_year, end=col_date)
+                                    if not rate_history.empty:
+                                        avg_exchange_rate = rate_history['Close'].mean()
+                                except Exception:
+                                    continue 
+
                             if pd.notna(net_income) and net_income > 0:
-                                eps = net_income / shares
-                                per_for_year = average_price_for_year / eps
-                                if 0 < per_for_year < 100:
-                                    pers.append(per_for_year)
-                            
+                                eps_financial_currency = net_income / shares
+                                eps_quote_currency = eps_financial_currency * avg_exchange_rate
+                                if eps_quote_currency > 0:
+                                    per_for_year = average_price_for_year / eps_quote_currency
+                                    if 0 < per_for_year < 200: 
+                                        pers.append(per_for_year)
+
                             if pd.notna(fcf) and fcf > 0:
-                                fcf_per_share = fcf / shares
-                                pfcf_for_year = average_price_for_year / fcf_per_share
-                                if 0 < pfcf_for_year < 100:
-                                    pfcfs.append(pfcf_for_year)
+                                fcf_per_share_financial_currency = fcf / shares
+                                fcf_per_share_quote_currency = fcf_per_share_financial_currency * avg_exchange_rate
+                                if fcf_per_share_quote_currency > 0:
+                                    pfcf_for_year = average_price_for_year / fcf_per_share_quote_currency
+                                    if 0 < pfcf_for_year < 200:
+                                        pfcfs.append(pfcf_for_year)
         
         per_historico = np.mean(pers) if pers else None
         pfcf_historico = np.mean(pfcfs) if pfcfs else None
