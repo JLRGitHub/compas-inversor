@@ -95,10 +95,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         stock = yf.Ticker(ticker)
         info = stock.info
         
-        # --- ¡CORRECCIÓN! Añadir comprobación de seguridad para el objeto 'info' ---
-        if not info or info.get('financialCurrency') is None:
-            return {}
-
         financials_raw = stock.financials
         balance_sheet_raw = stock.balance_sheet
         cashflow_raw = stock.cashflow
@@ -1087,9 +1083,6 @@ if st.button('Analizar Acción'):
                     else:
                         st.warning("No se pudieron generar los datos para el análisis técnico.")
 
-        except TypeError as e:
-            st.error(f"Error al procesar los datos para '{ticker_input}'. Es posible que los datos de Yahoo Finance para este ticker estén incompletos o no disponibles temporalmente.")
-            st.error(f"Detalle técnico: {e}")
         except Exception as e:
-            st.error("El Analizador de Acciones de Sr. Outfit ha encontrado un problema. Por favor, inténtalo de nuevo más tarde.")
+            st.error("El Analizador de Acciones de Sr. Outfit está en mantenimiento. Es posible que el ticker introducido no exista o que haya un problema de conexión. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
