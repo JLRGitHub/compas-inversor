@@ -1,9 +1,22 @@
+# app.py
+# -----------------------------------------------------------------------------
+# El Analizador de Acciones de Sr. Outfit - v49.1 (Versión Corregida)
+# -----------------------------------------------------------------------------
+#
+# Para ejecutar esta aplicación:
+# 1. Guarda este código como 'app.py'.
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
+# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
+#    streamlit run app.py
+#
+# -----------------------------------------------------------------------------
+
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta # CORRECCIÓN: Añadido timedelta
 
 # --- CONFIGURACIÓN DE LA PÁGINA WEB Y ESTILOS ---
 st.set_page_config(page_title="El Analizador de Acciones de Sr. Outfit", page_icon="📈", layout="wide")
@@ -105,7 +118,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         financials['Free Cash Flow'] = op_cash + capex
         financials_for_charts, dividends_for_charts = financials, dividends_chart_data
 
-    # MEJORA: Única llamada para datos históricos
     hist_10y = stock.history(period="10y")
     
     pers, pfcfs = [], []
@@ -151,10 +163,9 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             yield_historico_10y = annual_yields.mean()
             yield_historico_5y = annual_yields.tail(5).mean()
 
-    # MEJORA: Usar el dataframe de 10 años para obtener el de 1 año
     start_date_1y = datetime.now() - timedelta(days=365)
     hist_1y = hist_10y[hist_10y.index >= pd.to_datetime(start_date_1y.date())]
-    hist_1y = hist_1y.copy() # Evitar SettingWithCopyWarning
+    hist_1y = hist_1y.copy()
     hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
     hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
     delta = hist_1y['Close'].diff()
