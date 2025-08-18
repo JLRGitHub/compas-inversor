@@ -1,3 +1,16 @@
+# app.py
+# -----------------------------------------------------------------------------
+# El Analizador de Acciones de Sr. Outfit - v51.3 (Versión Definitiva Corregida)
+# -----------------------------------------------------------------------------
+#
+# Para ejecutar esta aplicación:
+# 1. Guarda este código como 'app.py'.
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
+# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
+#    streamlit run app.py
+#
+# -----------------------------------------------------------------------------
+
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -285,7 +298,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
-    return puntuaciones, justificaciones, benchmarks
+    return puntuaciones, justificaciones, SECTOR_BENCHMARKS # CORRECCIÓN: Devolver la constante global
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
 def crear_grafico_radar(puntuaciones):
