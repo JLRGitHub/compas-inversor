@@ -1,3 +1,16 @@
+# app.py
+# -----------------------------------------------------------------------------
+# El Analizador de Acciones de Sr. Outfit - v52.0 (Cálculo Histórico Corregido)
+# -----------------------------------------------------------------------------
+#
+# Para ejecutar esta aplicación:
+# 1. Guarda este código como 'app.py'.
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
+# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
+#    streamlit run app.py
+#
+# -----------------------------------------------------------------------------
+
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -26,7 +39,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- MEJORA: Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
+# --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
     'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
     'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
@@ -137,12 +150,10 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                                 pfcf = market_cap / fcf
                                 if 0 < pfcf < 100: pfcfs.append(pfcf)
         
-        per_historico_10y = np.mean(pers) if pers else None
-        per_historico_5y = np.mean(pers[-5:]) if len(pers) >= 5 else per_historico_10y
-        pfcf_historico_10y = np.mean(pfcfs) if pfcfs else None
-        pfcf_historico_5y = np.mean(pfcfs[-5:]) if len(pfcfs) >= 5 else pfcf_historico_10y
+        per_historico = np.mean(pers) if pers else None
+        pfcf_historico = np.mean(pfcfs) if pfcfs else None
         
-        yield_historico_10y, yield_historico_5y = None, None
+        yield_historico = None
         divs_10y = stock.dividends.loc[hist_10y.index[0]:]
         
         if not divs_10y.empty:
@@ -154,8 +165,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             
             if not df_yield.empty:
                 annual_yields = (df_yield['Dividends'] / df_yield['Price']) * 100
-                yield_historico_10y = annual_yields.mean()
-                yield_historico_5y = annual_yields.tail(5).mean()
+                yield_historico = annual_yields.mean()
 
         end_date_1y = hist_10y.index.max()
         start_date_1y = end_date_1y - pd.DateOffset(days=365)
@@ -171,9 +181,9 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 
         return {
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
-            "per_5y": per_historico_5y, "per_10y": per_historico_10y,
-            "pfcf_5y": pfcf_historico_5y, "pfcf_10y": pfcf_historico_10y,
-            "yield_5y": yield_historico_5y, "yield_10y": yield_historico_10y,
+            "per_hist": per_historico,
+            "pfcf_hist": pfcf_historico,
+            "yield_hist": yield_historico,
             "tech_data": hist_1y
         }
     except Exception:
@@ -253,7 +263,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['margen_seguridad_analistas'] = margen_seguridad
 
     nota_historica, potencial_per = 0, 0
-    per_historico = hist_data.get('per_10y')
+    per_historico = hist_data.get('per_hist')
     if per_historico and datos['per'] and datos['per'] > 0:
         potencial_per = ((per_historico / datos['per']) - 1) * 100
         if potencial_per > 30: nota_historica = 10
@@ -280,7 +290,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     elif datos['yield_dividendo'] > 2: nota_dividendos += 2
     if 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 4
     elif 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
-    if hist_data.get('yield_10y') and datos['yield_dividendo'] > hist_data['yield_10y']:
+    if hist_data.get('yield_hist') and datos['yield_dividendo'] > hist_data['yield_hist']:
         nota_dividendos += 2
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
