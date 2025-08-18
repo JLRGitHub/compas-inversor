@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v47.3 (Versión Definitiva)
+# El Analizador de Acciones de Sr. Outfit - v48.0 (Versión Definitiva con Análisis Técnico)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -16,7 +16,7 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # --- CONFIGURACIÓN DE LA PÁGINA WEB Y ESTILOS ---
 st.set_page_config(page_title="El Analizador de Acciones de Sr. Outfit", page_icon="📈", layout="wide")
@@ -86,10 +86,11 @@ def obtener_datos_completos(ticker):
     }
 
 @st.cache_data(ttl=3600)
-def obtener_datos_historicos(ticker):
+def obtener_datos_historicos_y_tecnicos(ticker):
     try:
         stock = yf.Ticker(ticker)
         
+        # --- Datos para Gráficos Financieros ---
         financials_raw = stock.financials
         balance_sheet_raw = stock.balance_sheet
         cashflow_raw = stock.cashflow
@@ -110,6 +111,7 @@ def obtener_datos_historicos(ticker):
             financials['Free Cash Flow'] = op_cash + capex
             financials_for_charts, dividends_for_charts = financials, dividends_chart_data
 
+        # --- Datos para Valoración Histórica ---
         hist_10y = stock.history(period="10y")
         
         pers, pfcfs = [], []
@@ -128,11 +130,9 @@ def obtener_datos_historicos(ticker):
                         if not price_data.empty:
                             price = price_data['Close'].iloc[0]
                             market_cap = price * shares
-                            
                             if pd.notna(net_income) and net_income > 0:
                                 per = market_cap / net_income
                                 if 0 < per < 100: pers.append(per)
-                            
                             if pd.notna(fcf) and fcf > 0:
                                 pfcf = market_cap / fcf
                                 if 0 < pfcf < 100: pfcfs.append(pfcf)
@@ -157,11 +157,22 @@ def obtener_datos_historicos(ticker):
                 yield_historico_10y = annual_yields.mean()
                 yield_historico_5y = annual_yields.tail(5).mean()
 
+        # --- Datos para Análisis Técnico ---
+        hist_1y = stock.history(period="1y")
+        hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
+        hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
+        delta = hist_1y['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        hist_1y['RSI'] = 100 - (100 / (1 + rs))
+
         return {
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
             "per_5y": per_historico_5y, "per_10y": per_historico_10y,
             "pfcf_5y": pfcf_historico_5y, "pfcf_10y": pfcf_historico_10y,
-            "yield_5y": yield_historico_5y, "yield_10y": yield_historico_10y
+            "yield_5y": yield_historico_5y, "yield_10y": yield_historico_10y,
+            "tech_data": hist_1y
         }
     except Exception:
         return {}
@@ -328,8 +339,38 @@ def crear_grafico_gauge(score):
     plt.tight_layout()
     return fig
 
+def crear_grafico_tecnico(data):
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    fig.patch.set_facecolor('#0E1117')
+    
+    # Gráfico de Precio
+    ax1.set_facecolor('#0E1117')
+    ax1.plot(data.index, data['Close'], label='Precio', color='#87CEEB', linewidth=2)
+    ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='orange', linestyle='--')
+    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='red', linestyle='--')
+    ax1.set_title('Análisis Técnico del Precio (Último Año)', color='white')
+    ax1.legend()
+    ax1.grid(color='gray', linestyle='--', linewidth=0.5)
+    ax1.tick_params(axis='y', colors='white')
+    ax1.spines['top'].set_color('white'); ax1.spines['bottom'].set_color('white'); ax1.spines['left'].set_color('white'); ax1.spines['right'].set_color('white')
+
+    # Gráfico de RSI
+    ax2.set_facecolor('#0E1117')
+    ax2.plot(data.index, data['RSI'], label='RSI', color='purple')
+    ax2.axhline(70, color='red', linestyle='--', linewidth=1)
+    ax2.axhline(30, color='green', linestyle='--', linewidth=1)
+    ax2.set_ylim(0, 100)
+    ax2.set_ylabel('RSI', color='white')
+    ax2.grid(color='gray', linestyle='--', linewidth=0.5)
+    ax2.tick_params(axis='x', colors='white')
+    ax2.tick_params(axis='y', colors='white')
+    ax2.spines['top'].set_color('white'); ax2.spines['bottom'].set_color('white'); ax2.spines['left'].set_color('white'); ax2.spines['right'].set_color('white')
+    
+    plt.tight_layout()
+    return fig
+
 @st.cache_data(ttl=3600)
-def crear_graficos_profesionales(ticker, financials, dividends):
+def crear_graficos_financieros(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
@@ -437,7 +478,7 @@ if st.button('Analizar Acción'):
         if not datos:
             st.error(f"Error: No se pudo encontrar el ticker '{ticker_input}'. Verifica que sea correcto.")
         else:
-            hist_data = obtener_datos_historicos(ticker_input)
+            hist_data = obtener_datos_historicos_y_tecnicos(ticker_input)
             puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
             sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
             
@@ -557,11 +598,47 @@ if st.button('Analizar Acción'):
                         - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
                         - **Yield Medio (5A y 10A):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
                         """)
+            
+            # --- NUEVO: Análisis Técnico ---
+            with st.container(border=True):
+                st.subheader("Análisis Técnico")
+                tech_data = hist_data.get('tech_data')
+                if tech_data is not None and not tech_data.empty:
+                    fig_tecnico = crear_grafico_tecnico(tech_data)
+                    st.pyplot(fig_tecnico)
+                    
+                    # Veredicto Técnico
+                    last_price = tech_data['Close'].iloc[-1]
+                    sma50 = tech_data['SMA50'].iloc[-1]
+                    sma200 = tech_data['SMA200'].iloc[-1]
+                    rsi = tech_data['RSI'].iloc[-1]
+                    
+                    tendencia = "Lateral"
+                    if last_price > sma50 and sma50 > sma200:
+                        tendencia = "Alcista 🟢"
+                    elif last_price < sma50 and sma50 < sma200:
+                        tendencia = "Bajista 🔴"
+                        
+                    rsi_estado = "Neutral"
+                    if rsi > 70: rsi_estado = "Sobrecompra 🔴"
+                    elif rsi < 30: rsi_estado = "Sobreventa 🟢"
 
-            st.header("Análisis Gráfico y Banderas Rojas")
+                    st.metric("Tendencia Actual", tendencia)
+                    st.metric("Estado RSI", f"{rsi:.2f} ({rsi_estado})")
+
+                    with st.expander("Ver Leyenda Detallada"):
+                        st.markdown("""
+                        - **Medias Móviles (SMA):** Suavizan el precio para mostrar la tendencia subyacente. La **SMA50** (naranja) indica la tendencia a corto plazo y la **SMA200** (roja) la de largo plazo. Una tendencia es claramente alcista cuando el precio está por encima de ambas medias y la SMA50 está por encima de la SMA200.
+                        - **RSI (Índice de Fuerza Relativa):** Es un oscilador que mide la velocidad y el cambio de los movimientos del precio. Un valor **> 70** indica que la acción puede estar "sobrecomprada" y podría corregir a la baja. Un valor **< 30** indica que puede estar "sobrevendida" y podría rebotar al alza.
+                        """)
+                else:
+                    st.warning("No se pudieron generar los datos para el análisis técnico.")
+
+
+            st.header("Análisis Gráfico Financiero y Banderas Rojas")
             financials_hist = hist_data.get('financials_charts')
             dividends_hist = hist_data.get('dividends_charts')
-            fig = crear_graficos_profesionales(ticker_input, financials_hist, dividends_hist)
+            fig = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
             if fig:
                 st.pyplot(fig)
                 st.subheader("Banderas Rojas (Red Flags)")
@@ -571,6 +648,4 @@ if st.button('Analizar Acción'):
                 else:
                     st.success("✅ No se han detectado banderas rojas significativas.")
             else:
-                st.warning("No se pudieron generar los gráficos históricos.")
-
-
+                st.warning("No se pudieron generar los gráficos financieros históricos.")
