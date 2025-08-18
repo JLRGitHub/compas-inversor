@@ -1,16 +1,3 @@
-# app.py
-# -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v52.1 (Cálculo Histórico Corregido)
-# -----------------------------------------------------------------------------
-#
-# Para ejecutar esta aplicación:
-# 1. Guarda este código como 'app.py'.
-# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
-# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
-#    streamlit run app.py
-#
-# -----------------------------------------------------------------------------
-
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -295,7 +282,20 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
+    # --- LÓGICA: SEÑAL DE VALOR BLUE CHIP ---
+    justificaciones['blue_chip_signal'] = "" # Dejarlo vacío por defecto
+    current_yield = datos.get('yield_dividendo')
+    historical_yield = hist_data.get('yield_hist')
+    current_per = datos.get('per')
+    historical_per = hist_data.get('per_hist')
+
+    # Comprobar que todos los datos necesarios existen
+    if current_yield and historical_yield and current_per and historical_per:
+        if current_yield > historical_yield and current_per < historical_per:
+            justificaciones['blue_chip_signal'] = "🟢 **Señal de Valor 'Blue Chip':** El Yield actual es superior a su media histórica Y el PER actual es inferior a su media. Potencialmente infravalorada."
+
     return puntuaciones, justificaciones, SECTOR_BENCHMARKS
+
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
 def crear_grafico_radar(puntuaciones):
@@ -464,13 +464,19 @@ def mostrar_metrica_informativa(label, value, is_percent=False):
 def get_recommendation_html(recommendation):
     rec_lower = recommendation.lower()
     color_class = "color-white"
+    display_text = recommendation  # Valor por defecto
+
     if any(term in rec_lower for term in ['buy', 'outperform', 'strong']):
         color_class = "color-green"
+        display_text = "Muy Interesante"
     elif any(term in rec_lower for term in ['sell', 'underperform']):
         color_class = "color-red"
+        display_text = "Poco Interesante"
     elif 'hold' in rec_lower:
         color_class = "color-orange"
-    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{recommendation}</div></div>'
+        display_text = "Neutral"
+    
+    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
 
 # --- ESTRUCTURA DE LA APLICACIÓN WEB ---
 st.title('El Analizador de Acciones de Sr. Outfit')
@@ -596,6 +602,11 @@ if st.button('Analizar Acción'):
                     with st.container(border=True):
                         st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
                         st.caption(justificaciones['dividendos'])
+                        
+                        # Muestra la señal de valor si existe
+                        if justificaciones.get('blue_chip_signal'):
+                            st.info(justificaciones['blue_chip_signal'])
+                            
                         div1, div2 = st.columns(2)
                         with div1: 
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
