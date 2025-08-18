@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v49.1 (Versión Corregida)
+# El Analizador de Acciones de Sr. Outfit - v51.0 (Lógica para REITs Mejorada)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -16,7 +16,7 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta # CORRECCIÓN: Añadido timedelta
+from datetime import datetime, timedelta
 
 # --- CONFIGURACIÓN DE LA PÁGINA WEB Y ESTILOS ---
 st.set_page_config(page_title="El Analizador de Acciones de Sr. Outfit", page_icon="📈", layout="wide")
@@ -39,13 +39,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- MEJORA: Benchmarks Centralizados ---
+# --- MEJORA: Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
-    'Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Healthcare': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'payout_bueno': 70, 'payout_aceptable': 90},
+    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'payout_bueno': 70, 'payout_aceptable': 90},
     'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
     'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'payout_bueno': 80, 'payout_aceptable': 95},
+    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 70, 'payout_aceptable': 85},
+    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 90, 'payout_aceptable': 100},
+    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
     'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80}
 }
 
@@ -96,76 +102,78 @@ def obtener_datos_completos(ticker):
 
 @st.cache_data(ttl=3600)
 def obtener_datos_historicos_y_tecnicos(ticker):
-    stock = yf.Ticker(ticker)
-    
-    financials_raw = stock.financials
-    balance_sheet_raw = stock.balance_sheet
-    cashflow_raw = stock.cashflow
-    
-    financials_for_charts, dividends_for_charts = None, None
-    
-    if not financials_raw.empty and not balance_sheet_raw.empty and not cashflow_raw.empty:
-        financials = financials_raw.T.sort_index(ascending=True).tail(4)
-        balance_sheet = balance_sheet_raw.T.sort_index(ascending=True).tail(4)
-        cashflow = cashflow_raw.T.sort_index(ascending=True).tail(4)
-        dividends_chart_data = stock.dividends.resample('YE').sum().tail(5)
+    try:
+        stock = yf.Ticker(ticker)
         
-        financials['Operating Margin'] = financials.get('Operating Income', 0) / financials.get('Total Revenue', 1)
-        financials['Total Debt'] = balance_sheet.get('Total Debt', 0)
-        financials['ROE'] = financials['Net Income'] / balance_sheet.get('Total Stockholder Equity', 1)
-        capex = cashflow.get('Capital Expenditure', cashflow.get('Capital Expenditures', 0))
-        op_cash = cashflow.get('Total Cash From Operating Activities', 0)
-        financials['Free Cash Flow'] = op_cash + capex
-        financials_for_charts, dividends_for_charts = financials, dividends_chart_data
-
-    hist_10y = stock.history(period="10y")
-    
-    pers, pfcfs = [], []
-    possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
-    share_key_found = next((key for key in possible_share_keys if key in balance_sheet_raw.index), None)
-    
-    if not financials_raw.empty and share_key_found:
-        for col_date in financials_raw.columns:
-            if col_date in balance_sheet_raw.columns and col_date in cashflow_raw.columns:
-                net_income = financials_raw.loc['Net Income', col_date]
-                fcf = cashflow_raw.loc['Free Cash Flow', col_date]
-                shares = balance_sheet_raw.loc[share_key_found, col_date]
-
-                if pd.notna(shares) and shares > 0:
-                    price_data = stock.history(start=col_date, end=col_date + pd.Timedelta(days=5), interval="1d")
-                    if not price_data.empty:
-                        price = price_data['Close'].iloc[0]
-                        market_cap = price * shares
-                        if pd.notna(net_income) and net_income > 0:
-                            per = market_cap / net_income
-                            if 0 < per < 100: pers.append(per)
-                        if pd.notna(fcf) and fcf > 0:
-                            pfcf = market_cap / fcf
-                            if 0 < pfcf < 100: pfcfs.append(pfcf)
-    
-    per_historico_10y = np.mean(pers) if pers else None
-    per_historico_5y = np.mean(pers[-5:]) if len(pers) >= 5 else per_historico_10y
-    pfcf_historico_10y = np.mean(pfcfs) if pfcfs else None
-    pfcf_historico_5y = np.mean(pfcfs[-5:]) if len(pfcfs) >= 5 else pfcf_historico_10y
-    
-    yield_historico_10y, yield_historico_5y = None, None
-    divs_10y = stock.dividends.loc[hist_10y.index[0]:]
-    
-    if not divs_10y.empty:
-        annual_dividends = divs_10y.resample('YE').sum()
-        annual_prices = hist_10y['Close'].resample('YE').mean()
+        financials_raw = stock.financials
+        balance_sheet_raw = stock.balance_sheet
+        cashflow_raw = stock.cashflow
         
-        df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
-        df_yield.columns = ['Dividends', 'Price']
+        financials_for_charts, dividends_for_charts = None, None
         
-        if not df_yield.empty:
-            annual_yields = (df_yield['Dividends'] / df_yield['Price']) * 100
-            yield_historico_10y = annual_yields.mean()
-            yield_historico_5y = annual_yields.tail(5).mean()
+        if not financials_raw.empty and not balance_sheet_raw.empty and not cashflow_raw.empty:
+            financials = financials_raw.T.sort_index(ascending=True).tail(4)
+            balance_sheet = balance_sheet_raw.T.sort_index(ascending=True).tail(4)
+            cashflow = cashflow_raw.T.sort_index(ascending=True).tail(4)
+            dividends_chart_data = stock.dividends.resample('YE').sum().tail(5)
+            
+            financials['Operating Margin'] = financials.get('Operating Income', 0) / financials.get('Total Revenue', 1)
+            financials['Total Debt'] = balance_sheet.get('Total Debt', 0)
+            financials['ROE'] = financials['Net Income'] / balance_sheet.get('Total Stockholder Equity', 1)
+            capex = cashflow.get('Capital Expenditure', cashflow.get('Capital Expenditures', 0))
+            op_cash = cashflow.get('Total Cash From Operating Activities', 0)
+            financials['Free Cash Flow'] = op_cash + capex
+            financials_for_charts, dividends_for_charts = financials, dividends_chart_data
 
-    start_date_1y = datetime.now() - timedelta(days=365)
-    hist_1y = hist_10y[hist_10y.index >= pd.to_datetime(start_date_1y.date())]
-    hist_1y = hist_1y.copy()
+        hist_10y = stock.history(period="10y")
+        
+        pers, pfcfs = [], []
+        possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
+        share_key_found = next((key for key in possible_share_keys if key in balance_sheet_raw.index), None)
+        
+        if not financials_raw.empty and share_key_found:
+            for col_date in financials_raw.columns:
+                if col_date in balance_sheet_raw.columns and col_date in cashflow_raw.columns:
+                    net_income = financials_raw.loc['Net Income', col_date]
+                    fcf = cashflow_raw.loc['Free Cash Flow', col_date]
+                    shares = balance_sheet_raw.loc[share_key_found, col_date]
+
+                    if pd.notna(shares) and shares > 0:
+                        price_data = stock.history(start=col_date, end=col_date + pd.Timedelta(days=5), interval="1d")
+                        if not price_data.empty:
+                            price = price_data['Close'].iloc[0]
+                            market_cap = price * shares
+                            if pd.notna(net_income) and net_income > 0:
+                                per = market_cap / net_income
+                                if 0 < per < 100: pers.append(per)
+                            if pd.notna(fcf) and fcf > 0:
+                                pfcf = market_cap / fcf
+                                if 0 < pfcf < 100: pfcfs.append(pfcf)
+        
+        per_historico_10y = np.mean(pers) if pers else None
+        per_historico_5y = np.mean(pers[-5:]) if len(pers) >= 5 else per_historico_10y
+        pfcf_historico_10y = np.mean(pfcfs) if pfcfs else None
+        pfcf_historico_5y = np.mean(pfcfs[-5:]) if len(pfcfs) >= 5 else pfcf_historico_10y
+        
+        yield_historico_10y, yield_historico_5y = None, None
+        divs_10y = stock.dividends.loc[hist_10y.index[0]:]
+        
+        if not divs_10y.empty:
+            annual_dividends = divs_10y.resample('YE').sum()
+            annual_prices = hist_10y['Close'].resample('YE').mean()
+            
+            df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
+            df_yield.columns = ['Dividends', 'Price']
+            
+            if not df_yield.empty:
+                annual_yields = (df_yield['Dividends'] / df_yield['Price']) * 100
+                yield_historico_10y = annual_yields.mean()
+                yield_historico_5y = annual_yields.tail(5).mean()
+
+    end_date_1y = hist_10y.index.max()
+    start_date_1y = end_date_1y - pd.DateOffset(days=365)
+    hist_1y = hist_10y[hist_10y.index >= start_date_1y].copy()
+    
     hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
     hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
     delta = hist_1y['Close'].diff()
@@ -200,9 +208,10 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     
     sector_bench = SECTOR_BENCHMARKS.get(sector, SECTOR_BENCHMARKS['Default'])
     
-    paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland']
-    paises_precaucion = ['Spain', 'Italy', 'South Korea', 'Taiwan', 'India']
-    paises_alto_riesgo = ['China', 'Brazil', 'Russia', 'Argentina', 'Turkey', 'Mexico']
+    paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland', 'Austria', 'Belgium', 'Luxembourg', 'Singapore', 'Hong Kong']
+    paises_precaucion = ['Spain', 'Italy', 'South Korea', 'Taiwan', 'India', 'Chile', 'Poland', 'Czech Republic', 'Portugal', 'Israel', 'United Arab Emirates', 'Qatar', 'Malaysia', 'Thailand', 'Saudi Arabia', 'Kuwait']
+    paises_alto_riesgo = ['China', 'Brazil', 'Russia', 'Argentina', 'Turkey', 'Mexico', 'South Africa', 'Indonesia', 'Vietnam', 'Nigeria', 'Egypt', 'Pakistan', 'Colombia', 'Peru', 'Philippines']
+    
     nota_geo, justificacion_geo, penalizador_geo = 10, "Jurisdicción estable y predecible.", 0
     if pais in paises_precaucion: nota_geo, justificacion_geo, penalizador_geo = 6, "PRECAUCIÓN: Jurisdicción con cierta volatilidad.", 1.5
     elif pais in paises_alto_riesgo: nota_geo, justificacion_geo, penalizador_geo = 2, "ALTO RIESGO: Jurisdicción con alta inestabilidad.", 3.0
@@ -223,7 +232,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     nota_salud = 0
     deuda_ratio = datos['deuda_patrimonio']
-    if sector in ['Financial Services', 'Utilities']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
+    if sector in ['Financials', 'Utilities']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
     elif isinstance(deuda_ratio, (int, float)):
         if deuda_ratio < 40: nota_salud = 8
         elif deuda_ratio < 80: nota_salud = 6
@@ -238,9 +247,14 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
+    # MEJORA: Lógica de valoración especial para REITs
     nota_multiplos = 0
-    if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
-    if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
+    if sector == 'Real Estate':
+        if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10 # P/FFO suele ser más bajo
+        elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos = 6
+    else:
+        if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
+        if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
     
     nota_analistas, margen_seguridad = 0, 0
     if datos['precio_actual'] and datos['precio_objetivo']:
@@ -571,8 +585,13 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_informativa("🌊 P/FCF Medio (10A)", hist_data.get('pfcf_10y'))
 
                     with st.expander("Ver Leyenda Detallada"):
-                        st.markdown(f"""
-                        - **Múltiplos:** Miden cuántas veces estás pagando los beneficios (PER) o el flujo de caja (P/FCF). Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}**. El **PER Adelantado** usa beneficios futuros esperados; si es menor que el PER actual, indica crecimiento y **suma un bonus a la nota**.
+                        if datos['sector'] == 'Real Estate':
+                            st.info("💡 **Análisis Especial para REITs:** Para el sector inmobiliario (REITs), el PER no es una métrica fiable debido al impacto de la depreciación. Por ello, la valoración por múltiplos se basa principalmente en el **P/FCF (Precio / Flujo de Caja Libre)**, que ofrece una visión más precisa de la capacidad del negocio para generar caja.")
+                        else:
+                            st.markdown(f"""
+                            - **Múltiplos:** Miden cuántas veces estás pagando los beneficios (PER) o el flujo de caja (P/FCF). Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}**. El **PER Adelantado** usa beneficios futuros esperados; si es menor que el PER actual, indica crecimiento y **suma un bonus a la nota**.
+                            """)
+                        st.markdown("""
                         - **Márgenes de Seguridad:** Miden el potencial de revalorización. El de **Expertos** se basa en el precio objetivo de los analistas (futuro), y el **Histórico** en si la acción volviera a su PER medio de los últimos 10 años (pasado).
                         - **Análisis Histórico:** Compara los múltiplos actuales con sus medias de 5 y 10 años para ver si la empresa está cara o barata respecto a su propia historia.
                         """)
