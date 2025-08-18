@@ -80,6 +80,7 @@ def obtener_datos_completos(ticker):
         "deuda_patrimonio": info.get('debtToEquity'), "ratio_corriente": info.get('currentRatio'), 
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'), 
         "p_fcf": p_fcf,
+        "raw_fcf": free_cash_flow, # Dato raw para chequear si es negativo
         "p_b": info.get('priceToBook'),
         "crecimiento_ingresos": info.get('revenueGrowth', 0) * 100,
         "yield_dividendo": div_yield * 100 if div_yield is not None else 0,
@@ -252,19 +253,23 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
-    # --- LÓGICA DE VALORACIÓN CON P/B INTEGRADO ---
+    # --- LÓGICA DE VALORACIÓN CON P/B Y FCF NEGATIVO ---
     nota_multiplos = 0
     if sector == 'Real Estate':
         if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10
         elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos = 6
     else:
         if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
-        if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 4
+        if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 3
         # Bonus por P/B bajo en sectores relevantes
         SECTORES_PB_RELEVANTES = ['Financials', 'Industrials', 'Materials', 'Energy', 'Utilities']
         if sector in SECTORES_PB_RELEVANTES and datos['p_b']:
-            if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 2
+            if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 3
             elif datos['p_b'] < sector_bench['pb_justo']: nota_multiplos += 1
+    
+    # Penalización por FCF Negativo
+    if datos.get('raw_fcf') is not None and datos['raw_fcf'] < 0:
+        nota_multiplos -= 3
 
     nota_analistas, margen_seguridad = 0, 0
     if datos['precio_actual'] and datos['precio_objetivo']:
@@ -631,7 +636,13 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
                             mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
                             mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
-                            mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
+                            
+                            raw_fcf = datos.get('raw_fcf')
+                            if raw_fcf is not None and raw_fcf < 0:
+                                st.markdown('<div class="metric-container"><div class="metric-label">🌊 P/FCF</div><div class="metric-value color-red">Negativo</div></div>', unsafe_allow_html=True)
+                            else:
+                                mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
+
                         with val2:
                             st.markdown("##### Márgenes de Seguridad")
                             mostrar_margen_seguridad("🛡️ Según Expertos (Futuro)", puntuaciones['margen_seguridad_analistas'])
@@ -649,7 +660,7 @@ if st.button('Analizar Acción'):
                         - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio. Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}** y se considera **caro si es > {sector_bench['per_justo']}**.
                         - **PER Adelantado (Forward PE):** Usa beneficios futuros esperados. Si es notablemente inferior al PER actual, indica crecimiento esperado y **otorga un bonus a la nota de valoración**.
                         - **P/B (Price-to-Book):** Compara el precio con el valor contable. Es útil en sectores con activos tangibles (Banca, Industria, etc.). Para **{datos['sector'].upper()}**, un **P/B atractivo es < {sector_bench['pb_barato']}**.
-                        - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor bajo (< 20) suele ser positivo.
+                        - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor bajo (< 20) suele ser positivo. Un valor **Negativo es una señal de alerta**, ya que indica que la empresa gasta más dinero del que genera.
                         - **Márgenes de Seguridad:** Calculan el potencial de revalorización.
                         """)
                 
