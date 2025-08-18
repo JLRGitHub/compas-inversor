@@ -535,7 +535,7 @@ def get_recommendation_html(recommendation):
     return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
 
 # --- ¡NUEVO! Función para generar leyendas dinámicas con resaltado ---
-def generar_leyenda_dinamica(datos, sector_bench):
+def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data):
     highlight_style = 'style="background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
 
     # --- Leyenda de Calidad ---
@@ -669,7 +669,16 @@ def generar_leyenda_dinamica(datos, sector_bench):
     - **Márgenes de Seguridad:** Calculan el potencial de revalorización.
     """
 
-    # --- Leyenda de Dividendos ---
+    # --- Leyenda de Dividendos (MEJORADA) ---
+    yield_div = datos.get('yield_dividendo', 0)
+    l_yield_exc_raw = "<strong>Excelente:</strong> > 3.5%"
+    l_yield_bueno_raw = "<strong>Bueno:</strong> > 2.0%"
+    l_yield_bajo_raw = "<strong>Bajo:</strong> < 2.0%"
+
+    l_yield_exc = f"<span {highlight_style}>{l_yield_exc_raw}</span>" if yield_div > 3.5 else l_yield_exc_raw
+    l_yield_bueno = f"<span {highlight_style}>{l_yield_bueno_raw}</span>" if 2.0 < yield_div <= 3.5 else l_yield_bueno_raw
+    l_yield_bajo = f"<span {highlight_style}>{l_yield_bajo_raw}</span>" if yield_div <= 2.0 else l_yield_bajo_raw
+
     payout = datos.get('payout_ratio', 0)
     l_pay_sal_raw = f"<strong>Saludable:</strong> < {sector_bench['payout_bueno']}%"
     l_pay_pre_raw = f"<strong>Precaución:</strong> > {sector_bench['payout_bueno']}%"
@@ -678,20 +687,109 @@ def generar_leyenda_dinamica(datos, sector_bench):
     l_pay_pre = f"<span {highlight_style}>{l_pay_pre_raw}</span>" if sector_bench['payout_bueno'] <= payout < sector_bench['payout_aceptable'] else l_pay_pre_raw
     l_pay_pel = f"<span {highlight_style}>{l_pay_pel_raw}</span>" if payout >= sector_bench['payout_aceptable'] else l_pay_pel_raw
 
+    # --- Leyenda para Análisis Blue Chip (MEJORADA) ---
+    blue_chip_status = justificaciones.get('blue_chip_analysis', {}).get('label', '')
+    l_bc_muy_int_raw = "<strong>🟢 Muy Interesante:</strong> PER actual < 80% del histórico Y Yield actual > 120% del histórico."
+    l_bc_int_raw = "<strong>🟡 Interesante:</strong> PER actual < histórico Y Yield actual > histórico."
+    l_bc_mixta_raw = "<strong>🔵 Señal Mixta:</strong> Solo una de las dos condiciones anteriores se cumple."
+    l_bc_neutral_raw = "<strong>⚪ Neutral:</strong> Ninguna de las condiciones anteriores se cumple."
+
+    l_bc_muy_int = f"<span {highlight_style}>{l_bc_muy_int_raw}</span>" if "Muy Interesante" in blue_chip_status else l_bc_muy_int_raw
+    l_bc_int = f"<span {highlight_style}>{l_bc_int_raw}</span>" if "Interesante" in blue_chip_status and "Muy" not in blue_chip_status else l_bc_int_raw
+    l_bc_mixta = f"<span {highlight_style}>{l_bc_mixta_raw}</span>" if "Mixta" in blue_chip_status else l_bc_mixta_raw
+    l_bc_neutral = f"<span {highlight_style}>{l_bc_neutral_raw}</span>" if not blue_chip_status or "Neutral" in blue_chip_status else l_bc_neutral_raw
+
     leyenda_dividendos = f"""
-    - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos. Un Yield > 3.5% se considera alto.
-    - **Ratio de Reparto (Payout):** Indica qué % del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, los rangos son:
+    - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos sobre el precio de la acción.
+        - {l_yield_exc}
+        - {l_yield_bueno}
+        - {l_yield_bajo}
+    - **Ratio de Reparto (Payout):** Indica qué % del beneficio se destina a pagar dividendos.
         - {l_pay_sal}
         - {l_pay_pre}
         - {l_pay_pel}
-    - **Análisis de Valor 'Blue Chip':** Compara el PER y Yield actuales con sus medias históricas para detectar posibles infravaloraciones.
+    - **Análisis de Valor 'Blue Chip':** Compara la valoración actual con su media histórica para detectar oportunidades.
+        - {l_bc_muy_int}
+        - {l_bc_int}
+        - {l_bc_mixta}
+        - {l_bc_neutral}
     """
     
+    # --- Leyenda de Análisis Técnico (MEJORADA) ---
+    leyenda_tecnico = ""
+    if tech_data is not None and not tech_data.empty:
+        last_price = tech_data['Close'].iloc[-1]
+        sma200 = tech_data['SMA200'].iloc[-1]
+        rsi = tech_data['RSI'].iloc[-1]
+
+        # Lógica de resaltado para Tendencia
+        tendencia_alcista = last_price > sma200
+        tendencia_bajista = last_price < sma200
+        
+        l_sma_alcista_raw = "<strong>Señal Alcista 🟢:</strong> El precio está <strong>por encima</strong> de la SMA200."
+        l_sma_bajista_raw = "<strong>Señal Bajista 🔴:</strong> El precio está <strong>por debajo</strong> de la SMA200."
+        
+        l_sma_alcista = f"<span {highlight_style}>{l_sma_alcista_raw}</span>" if tendencia_alcista else l_sma_alcista_raw
+        l_sma_bajista = f"<span {highlight_style}>{l_sma_bajista_raw}</span>" if tendencia_bajista else l_sma_bajista_raw
+
+        # Lógica de resaltado para RSI
+        rsi_sobreventa = rsi < 30
+        rsi_neutral = 30 <= rsi <= 70
+        rsi_sobrecompra = rsi > 70
+
+        l_rsi_sobreventa_raw = "<strong>Sobreventa (< 30) 🟢:</strong> Potencial señal de compra."
+        l_rsi_neutral_raw = "<strong>Neutral (30 - 70) 🟠:</strong> Sin señal clara."
+        l_rsi_sobrecompra_raw = "<strong>Sobrecompra (> 70) 🔴:</strong> Potencial señal de venta."
+
+        l_rsi_sobreventa = f"<span {highlight_style}>{l_rsi_sobreventa_raw}</span>" if rsi_sobreventa else l_rsi_sobreventa_raw
+        l_rsi_neutral = f"<span {highlight_style}>{l_rsi_neutral_raw}</span>" if rsi_neutral else l_rsi_neutral_raw
+        l_rsi_sobrecompra = f"<span {highlight_style}>{l_rsi_sobrecompra_raw}</span>" if rsi_sobrecompra else l_rsi_sobrecompra_raw
+
+        # Lógica de resaltado para Estrategia Combinada
+        escenario_1 = tendencia_alcista and rsi_sobreventa
+        escenario_2 = tendencia_alcista and rsi_neutral
+        escenario_3 = tendencia_alcista and rsi_sobrecompra
+        escenario_4 = tendencia_bajista and rsi_sobreventa
+        escenario_5 = tendencia_bajista and rsi_neutral
+        escenario_6 = tendencia_bajista and rsi_sobrecompra
+
+        l_esc_1_raw = "<strong>🟢+🟢 Oportunidad de Compra Óptima:</strong> Tendencia alcista con retroceso (RSI en sobreventa)."
+        l_esc_2_raw = "<strong>🟢+🟠 Continuación Alcista:</strong> Tendencia alcista con RSI neutral. Esperar retroceso para comprar."
+        l_esc_3_raw = "<strong>🟢+🔴 Riesgo de Corrección:</strong> Tendencia alcista pero con RSI sobrecomprado. Posible recogida de beneficios."
+        l_esc_4_raw = "<strong>🔴+🟢 Posible Rebote (Contra Tendencia):</strong> Tendencia bajista con RSI en sobreventa. Alto riesgo."
+        l_esc_5_raw = "<strong>🔴+🟠 Continuación Bajista:</strong> Tendencia bajista con RSI neutral. Evitar compras."
+        l_esc_6_raw = "<strong>🔴+🔴 Oportunidad de Venta Óptima:</strong> Tendencia bajista con rebote (RSI en sobrecompra)."
+
+        l_esc_1 = f"<span {highlight_style}>{l_esc_1_raw}</span>" if escenario_1 else l_esc_1_raw
+        l_esc_2 = f"<span {highlight_style}>{l_esc_2_raw}</span>" if escenario_2 else l_esc_2_raw
+        l_esc_3 = f"<span {highlight_style}>{l_esc_3_raw}</span>" if escenario_3 else l_esc_3_raw
+        l_esc_4 = f"<span {highlight_style}>{l_esc_4_raw}</span>" if escenario_4 else l_esc_4_raw
+        l_esc_5 = f"<span {highlight_style}>{l_esc_5_raw}</span>" if escenario_5 else l_esc_5_raw
+        l_esc_6 = f"<span {highlight_style}>{l_esc_6_raw}</span>" if escenario_6 else l_esc_6_raw
+
+        leyenda_tecnico = f"""
+        - **Medias Móviles (SMA):**
+            - {l_sma_alcista}
+            - {l_sma_bajista}
+        - **RSI (Índice de Fuerza Relativa):**
+            - {l_rsi_sobreventa}
+            - {l_rsi_neutral}
+            - {l_rsi_sobrecompra}
+        - **Estrategia Combinada:**
+            - {l_esc_1}
+            - {l_esc_2}
+            - {l_esc_3}
+            - {l_esc_4}
+            - {l_esc_5}
+            - {l_esc_6}
+        """
+
     return {
         'calidad': leyenda_calidad,
         'salud': leyenda_salud,
         'valoracion': leyenda_valoracion,
-        'dividendos': leyenda_dividendos
+        'dividendos': leyenda_dividendos,
+        'tecnico': leyenda_tecnico
     }
 
 
@@ -713,7 +811,8 @@ if st.button('Analizar Acción'):
                 puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
                 sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
                 
-                leyendas = generar_leyenda_dinamica(datos, sector_bench)
+                tech_data = hist_data.get('tech_data')
+                leyendas = generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data)
                 
                 pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
                 nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
@@ -853,7 +952,6 @@ if st.button('Analizar Acción'):
                 # --- SECCIÓN DE ANÁLISIS TÉCNICO MEJORADA ---
                 with st.container(border=True):
                     st.header("Análisis Técnico")
-                    tech_data = hist_data.get('tech_data')
                     if tech_data is not None and not tech_data.empty:
                         fig_tecnico = crear_grafico_tecnico(tech_data)
                         st.pyplot(fig_tecnico)
@@ -894,23 +992,7 @@ if st.button('Analizar Acción'):
 
                         # Leyenda de análisis técnico mejorada
                         with st.expander("Ver Leyenda Detallada"):
-                            st.markdown("""
-                            #### Interpretación del Análisis Técnico
-
-                            - **Medias Móviles (SMA):** Ayudan a identificar la tendencia principal del precio.
-                                - **SMA50 (naranja):** Tendencia a corto/medio plazo.
-                                - **SMA200 (roja):** Tendencia a largo plazo. Es el indicador de tendencia más importante.
-                                - **Señal Alcista 🟢:** El precio está **por encima** de la SMA200. La tendencia es más fuerte si la SMA50 también está por encima de la SMA200 (Cruce Dorado).
-                                - **Señal Bajista 🔴:** El precio está **por debajo** de la SMA200. La tendencia es más fuerte si la SMA50 también está por debajo de la SMA200 (Cruce de la Muerte).
-
-                            ---
-                            - **RSI (Índice de Fuerza Relativa):** Mide si una acción está "cara" (sobrecomprada) o "barata" (sobrevendida) en el corto plazo.
-                                - **Sobreventa (< 30) 🟢:** Indica que la presión vendedora ha sido muy fuerte y el precio podría estar a punto de rebotar al alza. Es una **potencial señal de compra**.
-                                - **Neutral (30 - 70) 🟠:** El precio se mueve sin una presión extrema en ninguna dirección.
-                                - **Sobrecompra (> 70) 🔴:** Indica que la presión compradora ha sido muy fuerte y el precio podría estar a punto de corregir a la baja. Es una **potencial señal de venta o de recogida de beneficios**.
-                            
-                            **Estrategia Combinada:** La señal más fiable ocurre cuando la tendencia y el RSI coinciden. Por ejemplo, buscar compras cuando la **tendencia es alcista** y el **RSI entra en sobreventa**, ya que indica una posible oportunidad de compra en una corrección dentro de una tendencia mayor.
-                            """)
+                            st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
                     else:
                         st.warning("No se pudieron generar los datos para el análisis técnico.")
 
