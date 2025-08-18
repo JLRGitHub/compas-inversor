@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v52.0 (Cálculo Histórico Corregido)
+# El Analizador de Acciones de Sr. Outfit - v52.1 (Cálculo Histórico Corregido)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -576,11 +576,9 @@ if st.button('Analizar Acción'):
                     with tab2:
                         h1, h2 = st.columns(2)
                         with h1:
-                            mostrar_metrica_informativa("🕰️ PER Medio (5A)", hist_data.get('per_5y'))
-                            mostrar_metrica_informativa("🕰️ PER Medio (10A)", hist_data.get('per_10y'))
+                            mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
                         with h2:
-                            mostrar_metrica_informativa("🌊 P/FCF Medio (5A)", hist_data.get('pfcf_5y'))
-                            mostrar_metrica_informativa("🌊 P/FCF Medio (10A)", hist_data.get('pfcf_10y'))
+                            mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
 
                     with st.expander("Ver Leyenda Detallada"):
                         if datos['sector'] == 'Real Estate':
@@ -590,8 +588,8 @@ if st.button('Analizar Acción'):
                             - **Múltiplos:** Miden cuántas veces estás pagando los beneficios (PER) o el flujo de caja (P/FCF). Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}**. El **PER Adelantado** usa beneficios futuros esperados; si es menor que el PER actual, indica crecimiento y **suma un bonus a la nota**.
                             """)
                         st.markdown("""
-                        - **Márgenes de Seguridad:** Miden el potencial de revalorización. El de **Expertos** se basa en el precio objetivo de los analistas (futuro), y el **Histórico** en si la acción volviera a su PER medio de los últimos 10 años (pasado).
-                        - **Análisis Histórico:** Compara los múltiplos actuales con sus medias de 5 y 10 años para ver si la empresa está cara o barata respecto a su propia historia.
+                        - **Márgenes de Seguridad:** Miden el potencial de revalorización. El de **Expertos** se basa en el precio objetivo de los analistas (futuro), y el **Histórico** en si la acción volviera a su PER medio histórico (pasado).
+                        - **Análisis Histórico:** Compara los múltiplos actuales con sus medias históricas para ver si la empresa está cara o barata respecto a su propia historia.
                         """)
 
                 if datos['yield_dividendo'] > 0:
@@ -603,13 +601,12 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                             mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                         with div2:
-                            mostrar_metrica_informativa("📈 Yield Medio (5A)", hist_data.get('yield_5y'), is_percent=True)
-                            mostrar_metrica_informativa("📈 Yield Medio (10A)", hist_data.get('yield_10y'), is_percent=True)
+                            mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(f"""
                             - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
                             - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
-                            - **Yield Medio (5A y 10A):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
+                            - **Yield Medio (Histórico):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
                             """)
                 
                 st.header("Análisis Gráfico Financiero y Banderas Rojas")
