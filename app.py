@@ -47,7 +47,9 @@ SECTOR_BENCHMARKS = {
 def obtener_datos_completos(ticker):
     stock = yf.Ticker(ticker)
     info = stock.info
-    if not info or info.get('longName') is None: return None
+    # --- ¡CORRECCIÓN! Comprobación más robusta para el objeto 'info' ---
+    if not info or info.get('longName') is None:
+        return None
     
     roe = info.get('returnOnEquity')
     op_margin = info.get('operatingMargins')
