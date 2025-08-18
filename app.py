@@ -1,3 +1,16 @@
+# app.py
+# -----------------------------------------------------------------------------
+# El Analizador de Acciones de Sr. Outfit - v53.4 (Filtro de Calidad sobre Valoración)
+# -----------------------------------------------------------------------------
+#
+# Para ejecutar esta aplicación:
+# 1. Guarda este código como 'app.py'.
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
+# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
+#    streamlit run app.py
+#
+# -----------------------------------------------------------------------------
+
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -297,6 +310,12 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
             nota_valoracion_base += 1
         elif per_adelantado > per_actual:
             nota_valoracion_base -= 1
+
+    # --- NUEVO FILTRO DE CALIDAD SOBRE VALORACIÓN ---
+    if puntuaciones['calidad'] < 3:
+        nota_valoracion_base *= 0.5 # Penalización del 50%
+    elif puntuaciones['calidad'] < 5:
+        nota_valoracion_base *= 0.75 # Penalización del 25%
 
     puntuaciones['valoracion'] = max(0, min(10, nota_valoracion_base))
     if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Valoración muy atractiva desde múltiples ángulos."
