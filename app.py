@@ -142,7 +142,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             for col_date in financials_raw.columns:
                 if col_date in balance_sheet_raw.columns and col_date in cashflow_raw.columns:
                     net_income = financials_raw.loc[net_income_key, col_date]
-                    # Usamos 'Free Cash Flow' directamente si está disponible, que es común
                     fcf = cashflow_raw.loc['Free Cash Flow', col_date] if 'Free Cash Flow' in cashflow_raw.index else None
                     shares = balance_sheet_raw.loc[share_key_found, col_date]
 
@@ -209,7 +208,8 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
     banderas = []
-    if datos['payout_ratio'] > 100:
+    # --- ¡CORRECCIÓN! El Payout para REITs puede ser > 100% y es normal ---
+    if datos.get('sector') != 'Real Estate' and datos.get('payout_ratio', 0) > 100:
         banderas.append("🔴 **Payout Peligroso:** El ratio de reparto de dividendos es superior al 100%.")
     if financials is not None and not financials.empty:
         if 'Operating Margin' in financials.columns and len(financials) >= 3 and (financials['Operating Margin'].diff().iloc[-2:] < 0).all():
@@ -276,19 +276,19 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     
     # --- LÓGICA DE VALORACIÓN CON P/B Y FCF NEGATIVO ---
     nota_multiplos = 0
+    # --- ¡CORRECCIÓN! Lógica especial para REITs (Real Estate) ---
     if sector == 'Real Estate':
-        if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10
-        elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos = 6
+        if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos += 8 # P/FFO (proxy) muy atractivo
+        elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos += 5 # P/FFO (proxy) razonable
     else:
         if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
         if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 3
-        # Bonus por P/B bajo en sectores relevantes
-        SECTORES_PB_RELEVANTES = ['Financial Services', 'Industrials', 'Materials', 'Energy', 'Utilities']
-        if sector in SECTORES_PB_RELEVANTES and datos['p_b']:
-            if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 3
-            elif datos['p_b'] < sector_bench['pb_justo']: nota_multiplos += 1
+        
+    SECTORES_PB_RELEVANTES = ['Financial Services', 'Industrials', 'Materials', 'Energy', 'Utilities', 'Real Estate']
+    if sector in SECTORES_PB_RELEVANTES and datos['p_b']:
+        if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 3
+        elif datos['p_b'] < sector_bench['pb_justo']: nota_multiplos += 1
     
-    # Penalización por FCF Negativo
     if datos.get('raw_fcf') is not None and datos['raw_fcf'] < 0:
         nota_multiplos -= 3
 
@@ -300,15 +300,23 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         else: nota_analistas = 5
     puntuaciones['margen_seguridad_analistas'] = margen_seguridad
 
-    nota_historica, potencial_per = 0, 0
+    # --- ¡CORRECCIÓN! Dos márgenes de seguridad históricos ---
+    potencial_per, potencial_yield = 0, 0
     per_historico = hist_data.get('per_hist')
     if per_historico and datos['per'] and datos['per'] > 0:
         potencial_per = ((per_historico / datos['per']) - 1) * 100
-        if potencial_per > 30: nota_historica = 10
-        elif potencial_per > 15: nota_historica = 8
-        else: nota_historica = 5
-    puntuaciones['margen_seguridad_historico'] = potencial_per
+    puntuaciones['margen_seguridad_per'] = potencial_per
+
+    yield_historico = hist_data.get('yield_hist')
+    if yield_historico and datos['yield_dividendo'] and yield_historico > 0:
+        potencial_yield = ((datos['yield_dividendo'] / yield_historico) - 1) * 100
+    puntuaciones['margen_seguridad_yield'] = potencial_yield
     
+    nota_historica = 0
+    if potencial_per > 15: nota_historica += 4
+    if potencial_yield > 15: nota_historica += 4
+    nota_historica = min(10, nota_historica)
+
     nota_valoracion_base = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
     
     per_actual = datos.get('per')
@@ -319,11 +327,10 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         elif per_adelantado > per_actual:
             nota_valoracion_base -= 1
 
-    # --- NUEVO FILTRO DE CALIDAD SOBRE VALORACIÓN ---
     if puntuaciones['calidad'] < 3:
-        nota_valoracion_base *= 0.5 # Penalización del 50%
+        nota_valoracion_base *= 0.5
     elif puntuaciones['calidad'] < 5:
-        nota_valoracion_base *= 0.75 # Penalización del 25%
+        nota_valoracion_base *= 0.75
 
     puntuaciones['valoracion'] = max(0, min(10, nota_valoracion_base))
     if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Valoración muy atractiva desde múltiples ángulos."
@@ -339,7 +346,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
-    # --- LÓGICA: ANÁLISIS DE VALOR BLUE CHIP (CUALITATIVO) ---
     justificaciones['blue_chip_analysis'] = None
     current_yield = datos.get('yield_dividendo')
     historical_yield = hist_data.get('yield_hist')
@@ -351,8 +357,8 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         yield_is_higher = current_yield > historical_yield
         
         if per_is_lower and yield_is_higher:
-            per_is_much_lower = current_per < historical_per * 0.8  # 20% de descuento
-            yield_is_much_higher = current_yield > historical_yield * 1.2 # 20% de prima
+            per_is_much_lower = current_per < historical_per * 0.8
+            yield_is_much_higher = current_yield > historical_yield * 1.2
 
             if per_is_much_lower and yield_is_much_higher:
                 analysis = "🟢 Muy Interesante"
@@ -622,7 +628,7 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
     l_rev_lento_raw = f"<strong>Lento/Negativo:</strong> < {sector_bench['rev_growth_bueno']}%"
 
     l_rev_exc = f"<span {highlight_style}>{l_rev_exc_raw}</span>" if rev_growth > sector_bench['rev_growth_excelente'] else l_rev_exc_raw
-    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_bueno_raw
+    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_lento_raw
     l_rev_lento = f"<span {highlight_style}>{l_rev_lento_raw}</span>" if rev_growth <= sector_bench['rev_growth_bueno'] else l_rev_lento_raw
 
     leyenda_calidad = f"""
@@ -722,8 +728,13 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
 
     # --- Leyenda de Valoración ---
     per = datos.get('per')
+    p_fcf = datos.get('p_fcf')
     leyenda_per = ""
-    if isinstance(per, (int, float)):
+    leyenda_pfcf = ""
+
+    if datos.get('sector') == 'Real Estate':
+        leyenda_per = "- **PER (Price-to-Earnings):** No es la métrica principal para REITs. Se prefiere el P/FFO (usamos P/FCF como proxy)."
+    elif isinstance(per, (int, float)):
         l_per_atr_raw = f"<strong>Atractivo:</strong> < {sector_bench['per_barato']}"
         l_per_jus_raw = f"<strong>Justo:</strong> {sector_bench['per_barato']} - {sector_bench['per_justo']}"
         l_per_car_raw = f"<strong>Caro:</strong> > {sector_bench['per_justo']}"
@@ -734,6 +745,27 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_per_atr}
         - {l_per_jus}
         - {l_per_car}"""
+
+    if isinstance(p_fcf, (int, float)):
+        l_pfcf_atr_raw = "<strong>Atractivo:</strong> < 20"
+        l_pfcf_jus_raw = "<strong>Justo:</strong> 20 - 30"
+        l_pfcf_car_raw = "<strong>Caro:</strong> > 30"
+        if datos.get('sector') == 'Real Estate':
+            l_pfcf_atr_raw = "<strong>Atractivo (P/FFO):</strong> < 16"
+            l_pfcf_jus_raw = "<strong>Justo (P/FFO):</strong> 16 - 22"
+            l_pfcf_car_raw = "<strong>Caro (P/FFO):</strong> > 22"
+            l_pfcf_atr = f"<span {highlight_style}>{l_pfcf_atr_raw}</span>" if p_fcf < 16 else l_pfcf_atr_raw
+            l_pfcf_jus = f"<span {highlight_style}>{l_pfcf_jus_raw}</span>" if 16 <= p_fcf <= 22 else l_pfcf_jus_raw
+            l_pfcf_car = f"<span {highlight_style}>{l_pfcf_car_raw}</span>" if p_fcf > 22 else l_pfcf_car_raw
+        else:
+            l_pfcf_atr = f"<span {highlight_style}>{l_pfcf_atr_raw}</span>" if p_fcf < 20 else l_pfcf_atr_raw
+            l_pfcf_jus = f"<span {highlight_style}>{l_pfcf_jus_raw}</span>" if 20 <= p_fcf <= 30 else l_pfcf_jus_raw
+            l_pfcf_car = f"<span {highlight_style}>{l_pfcf_car_raw}</span>" if p_fcf > 30 else l_pfcf_car_raw
+        
+        leyenda_pfcf = f"""- **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor **Negativo es una señal de alerta**.
+        - {l_pfcf_atr}
+        - {l_pfcf_jus}
+        - {l_pfcf_car}"""
 
     pb = datos.get('p_b')
     leyenda_pb = ""
@@ -752,9 +784,8 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
     leyenda_valoracion = f"""
     {leyenda_per}
     - **PER Adelantado (Forward PE):** Usa beneficios futuros esperados. Si es inferior al PER actual, indica crecimiento y **otorga un bonus a la nota**.
+    {leyenda_pfcf}
     {leyenda_pb}
-    - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor **Negativo es una señal de alerta**, ya que indica que la empresa gasta más dinero del que genera.
-    - **Márgenes de Seguridad:** Calculan el potencial de revalorización.
     """
 
     # --- Leyenda de Dividendos (MEJORADA) ---
@@ -775,6 +806,13 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
     l_pay_pre = f"<span {highlight_style}>{l_pay_pre_raw}</span>" if sector_bench['payout_bueno'] <= payout < sector_bench['payout_aceptable'] else l_pay_pre_raw
     l_pay_pel = f"<span {highlight_style}>{l_pay_pel_raw}</span>" if payout >= sector_bench['payout_aceptable'] else l_pay_pel_raw
 
+    # --- ¡CORRECCIÓN! Leyenda de Payout Ratio dinámica por sector ---
+    SECTORES_ALTO_PAYOUT = ['Utilities', 'Real Estate', 'Financial Services', 'Consumer Staples', 'Communication Services']
+    if datos['sector'] in SECTORES_ALTO_PAYOUT:
+        leyenda_payout_intro = f"Indica qué % del beneficio se destina a dividendos. Para el sector **{datos['sector'].upper()}**, que tiene flujos de caja estables o una estructura de reparto especial (ej. REITs), se aceptan ratios más altos:"
+    else:
+        leyenda_payout_intro = f"Indica qué % del beneficio se destina a dividendos. Para el sector **{datos['sector'].upper()}**, los rangos son:"
+
     # --- Leyenda para Análisis Blue Chip (MEJORADA) ---
     blue_chip_status = justificaciones.get('blue_chip_analysis', {}).get('label', '')
     l_bc_muy_int_raw = "<strong>🟢 Muy Interesante:</strong> PER actual < 80% del histórico Y Yield actual > 120% del histórico."
@@ -792,7 +830,7 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_yield_exc}
         - {l_yield_bueno}
         - {l_yield_bajo}
-    - **Ratio de Reparto (Payout):** Indica qué % del beneficio se destina a pagar dividendos.
+    - **Ratio de Reparto (Payout):** {leyenda_payout_intro}
         - {l_pay_sal}
         - {l_pay_pre}
         - {l_pay_pel}
@@ -899,7 +937,6 @@ if st.button('Analizar Acción'):
             else:
                 hist_data = obtener_datos_historicos_y_tecnicos(ticker_input)
                 
-                # --- ¡NUEVA CORRECCIÓN! Comprobar si hist_data tiene datos antes de continuar ---
                 if not hist_data:
                     st.error(f"No se pudieron obtener datos históricos para '{ticker_input}'. El análisis no puede continuar.")
                 else:
@@ -961,9 +998,21 @@ if st.button('Analizar Acción'):
                         with st.container(border=True):
                             st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
                             st.caption(justificaciones['salud'])
+                            
+                            # --- ¡CORRECCIÓN! Lógica de umbrales de deuda movida aquí para la visualización ---
+                            SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
+                            if datos['sector'] in SECTORES_ALTA_DEUDA:
+                                deuda_umbral_bueno = 150
+                                deuda_umbral_malo = 250
+                            else:
+                                deuda_umbral_bueno = 40
+                                deuda_umbral_malo = 80
+                            
                             s1, s2 = st.columns(2)
-                            with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
-                            with s2: mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
+                            with s1: 
+                                mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], deuda_umbral_bueno, deuda_umbral_malo, lower_is_better=True)
+                            with s2: 
+                                mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['salud'], unsafe_allow_html=True)
 
@@ -974,11 +1023,11 @@ if st.button('Analizar Acción'):
                         tab1, tab2 = st.tabs(["Resumen y Potencial", "Análisis Histórico"])
                         
                         with tab1:
-                            val1, val2 = st.columns(2)
+                            val1, val2, val3 = st.columns(3) # --- ¡NUEVO! Tres columnas para los márgenes ---
                             with val1:
                                 st.markdown("##### Múltiplos (Presente)")
                                 mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
-                                mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per', 999), datos.get('per', 999), lower_is_better=True)
+                                mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per_adelantado'), datos.get('per'), lower_is_better=True)
                                 mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
                                 
                                 raw_fcf = datos.get('raw_fcf')
@@ -989,9 +1038,13 @@ if st.button('Analizar Acción'):
 
                             with val2:
                                 st.markdown("##### Márgenes de Seguridad")
-                                mostrar_margen_seguridad("🛡️ Según Expertos (Futuro)", puntuaciones['margen_seguridad_analistas'])
-                                mostrar_margen_seguridad("📈 Según Histórico (Pasado)", puntuaciones['margen_seguridad_historico'])
-                        
+                                mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
+                                mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
+                            
+                            with val3:
+                                st.markdown("##### &nbsp;") # Espacio para alinear
+                                mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
+
                         with tab2:
                             h1, h2 = st.columns(2)
                             with h1:
