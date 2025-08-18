@@ -1,16 +1,3 @@
-# app.py
-# -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v52.0 (Lógica por Sector Mejorada)
-# -----------------------------------------------------------------------------
-#
-# Para ejecutar esta aplicación:
-# 1. Guarda este código como 'app.py'.
-# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
-# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
-#    streamlit run app.py
-#
-# -----------------------------------------------------------------------------
-
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -41,18 +28,18 @@ st.markdown("""
 
 # --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
-    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90},
-    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95},
-    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85},
-    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3.5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 90, 'payout_aceptable': 100},
-    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80}
+    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'payout_bueno': 70, 'payout_aceptable': 90},
+    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'payout_bueno': 80, 'payout_aceptable': 95},
+    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 70, 'payout_aceptable': 85},
+    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 90, 'payout_aceptable': 100},
+    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80}
 }
 
 # --- BLOQUE 1: OBTENCIÓN DE DATOS ---
@@ -93,7 +80,6 @@ def obtener_datos_completos(ticker):
         "deuda_patrimonio": info.get('debtToEquity'), "ratio_corriente": info.get('currentRatio'), 
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'), 
         "p_fcf": p_fcf,
-        "pb_ratio": info.get('priceToBook'),
         "crecimiento_ingresos": info.get('revenueGrowth', 0) * 100,
         "yield_dividendo": div_yield * 100 if div_yield is not None else 0,
         "payout_ratio": payout * 100 if payout is not None else 0,
@@ -232,7 +218,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     nota_salud = 0
     deuda_ratio = datos['deuda_patrimonio']
-    if sector in ['Financials', 'Utilities', 'Real Estate', 'Communication Services']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
+    if sector in ['Financials', 'Utilities']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
     elif isinstance(deuda_ratio, (int, float)):
         if deuda_ratio < 40: nota_salud = 8
         elif deuda_ratio < 80: nota_salud = 6
@@ -251,9 +237,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     if sector == 'Real Estate':
         if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10
         elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos = 6
-    elif sector == 'Financials':
-        if datos['pb_ratio'] and datos['pb_ratio'] < sector_bench['pb_barato']: nota_multiplos += 5
-        if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
     else:
         if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
         if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
@@ -299,7 +282,40 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
+    # --- LÓGICA: ANÁLISIS DE VALOR BLUE CHIP (CUALITATIVO) ---
+    justificaciones['blue_chip_analysis'] = None
+    current_yield = datos.get('yield_dividendo')
+    historical_yield = hist_data.get('yield_hist')
+    current_per = datos.get('per')
+    historical_per = hist_data.get('per_hist')
+
+    if current_yield and historical_yield and current_per and historical_per:
+        per_is_lower = current_per < historical_per
+        yield_is_higher = current_yield > historical_yield
+        
+        if per_is_lower and yield_is_higher:
+            per_is_much_lower = current_per < historical_per * 0.8  # 20% de descuento
+            yield_is_much_higher = current_yield > historical_yield * 1.2 # 20% de prima
+
+            if per_is_much_lower and yield_is_much_higher:
+                analysis = "🟢 Muy Interesante"
+                description = "Tanto el PER está significativamente por debajo de su media como el Yield está muy por encima. Señal de valoración muy atractiva."
+            else:
+                analysis = "🟡 Interesante"
+                description = "El PER está por debajo de su media y el Yield por encima. Señal de valoración atractiva."
+            
+            justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
+
+        elif per_is_lower or yield_is_higher:
+            analysis = "🔵 Señal Mixta"
+            if per_is_lower:
+                description = "El PER es inferior a su media, pero el Yield no es superior. Señal de valoración parcialmente positiva."
+            else:
+                description = "El Yield es superior a su media, pero el PER no es inferior. Señal de valoración parcialmente positiva."
+            justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
+
     return puntuaciones, justificaciones, SECTOR_BENCHMARKS
+
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
 def crear_grafico_radar(puntuaciones):
@@ -468,13 +484,19 @@ def mostrar_metrica_informativa(label, value, is_percent=False):
 def get_recommendation_html(recommendation):
     rec_lower = recommendation.lower()
     color_class = "color-white"
+    display_text = recommendation  # Valor por defecto
+
     if any(term in rec_lower for term in ['buy', 'outperform', 'strong']):
         color_class = "color-green"
+        display_text = "Muy Interesante"
     elif any(term in rec_lower for term in ['sell', 'underperform']):
         color_class = "color-red"
+        display_text = "Poco Interesante"
     elif 'hold' in rec_lower:
         color_class = "color-orange"
-    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{recommendation}</div></div>'
+        display_text = "Neutral"
+    
+    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
 
 # --- ESTRUCTURA DE LA APLICACIÓN WEB ---
 st.title('El Analizador de Acciones de Sr. Outfit')
@@ -600,17 +622,33 @@ if st.button('Analizar Acción'):
                     with st.container(border=True):
                         st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
                         st.caption(justificaciones['dividendos'])
+                        
+                        # --- NUEVO BLOQUE: ANÁLISIS DE VALOR BLUE CHIP (CUALITATIVO) ---
+                        blue_chip_analysis = justificaciones.get('blue_chip_analysis')
+                        if blue_chip_analysis:
+                            st.markdown("---")
+                            st.markdown(f"#### Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
+                            bc1, bc2 = st.columns(2)
+                            with bc1:
+                                st.metric("Yield Actual vs Histórico", f"{datos.get('yield_dividendo', 0):.2f}%", f"vs {hist_data.get('yield_hist', 0):.2f}%")
+                            with bc2:
+                                st.metric("PER Actual vs Histórico", f"{datos.get('per', 0):.2f}", f"vs {hist_data.get('per_hist', 0):.2f}")
+                            st.caption(blue_chip_analysis['description'])
+                        
+                        st.markdown("---") # Separador visual
                         div1, div2 = st.columns(2)
                         with div1: 
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                             mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                         with div2:
                             mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
+                        
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(f"""
                             - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
                             - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
                             - **Yield Medio (Histórico):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
+                            - **Análisis de Valor 'Blue Chip':** Esta métrica especial se activa si la empresa cotiza a un PER inferior y/o a un Yield superior a su media histórica. Se clasifica en: **Muy Interesante** (ambas condiciones se cumplen con un margen amplio), **Interesante** (ambas se cumplen), o **Señal Mixta** (solo una se cumple).
                             """)
                 
                 st.header("Análisis Gráfico Financiero y Banderas Rojas")
