@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v51.0 (Lógica para REITs Mejorada)
+# El Analizador de Acciones de Sr. Outfit - v51.1 (Versión Definitiva Corregida)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -170,25 +170,27 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                 yield_historico_10y = annual_yields.mean()
                 yield_historico_5y = annual_yields.tail(5).mean()
 
-    end_date_1y = hist_10y.index.max()
-    start_date_1y = end_date_1y - pd.DateOffset(days=365)
-    hist_1y = hist_10y[hist_10y.index >= start_date_1y].copy()
-    
-    hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
-    hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
-    delta = hist_1y['Close'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-    rs = gain / loss
-    hist_1y['RSI'] = 100 - (100 / (1 + rs))
+        end_date_1y = hist_10y.index.max()
+        start_date_1y = end_date_1y - pd.DateOffset(days=365)
+        hist_1y = hist_10y[hist_10y.index >= start_date_1y].copy()
+        
+        hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
+        hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
+        delta = hist_1y['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        hist_1y['RSI'] = 100 - (100 / (1 + rs))
 
-    return {
-        "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
-        "per_5y": per_historico_5y, "per_10y": per_historico_10y,
-        "pfcf_5y": pfcf_historico_5y, "pfcf_10y": pfcf_historico_10y,
-        "yield_5y": yield_historico_5y, "yield_10y": yield_historico_10y,
-        "tech_data": hist_1y
-    }
+        return {
+            "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
+            "per_5y": per_historico_5y, "per_10y": per_historico_10y,
+            "pfcf_5y": pfcf_historico_5y, "pfcf_10y": pfcf_historico_10y,
+            "yield_5y": yield_historico_5y, "yield_10y": yield_historico_10y,
+            "tech_data": hist_1y
+        }
+    except Exception:
+        return {}
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
@@ -247,10 +249,9 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
-    # MEJORA: Lógica de valoración especial para REITs
     nota_multiplos = 0
     if sector == 'Real Estate':
-        if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10 # P/FFO suele ser más bajo
+        if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10
         elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos = 6
     else:
         if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
