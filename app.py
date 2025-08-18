@@ -282,17 +282,24 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
-    # --- LÓGICA: SEÑAL DE VALOR BLUE CHIP ---
-    justificaciones['blue_chip_signal'] = "" # Dejarlo vacío por defecto
+    # --- LÓGICA: PUNTUACIÓN DE VALOR BLUE CHIP ---
+    puntuaciones['blue_chip_score'] = 0
     current_yield = datos.get('yield_dividendo')
     historical_yield = hist_data.get('yield_hist')
     current_per = datos.get('per')
     historical_per = hist_data.get('per_hist')
 
-    # Comprobar que todos los datos necesarios existen
-    if current_yield and historical_yield and current_per and historical_per:
+    if current_yield and historical_yield and current_per and historical_per and historical_yield > 0 and historical_per > 0:
         if current_yield > historical_yield and current_per < historical_per:
-            justificaciones['blue_chip_signal'] = "🟢 **Señal de Valor 'Blue Chip':** El Yield actual es superior a su media histórica Y el PER actual es inferior a su media. Potencialmente infravalorada."
+            # Puntuación por prima de Yield (hasta 5 puntos)
+            yield_premium_ratio = current_yield / historical_yield
+            score_yield = min(5, (yield_premium_ratio - 1) * 10) # Ej: un 20% de prima (1.2 ratio) da 2 puntos
+
+            # Puntuación por descuento de PER (hasta 5 puntos)
+            per_discount_ratio = historical_per / current_per
+            score_per = min(5, (per_discount_ratio - 1) * 10) # Ej: un 20% de descuento (1.2 ratio) da 2 puntos
+
+            puntuaciones['blue_chip_score'] = max(0, score_yield + score_per)
 
     return puntuaciones, justificaciones, SECTOR_BENCHMARKS
 
@@ -603,21 +610,31 @@ if st.button('Analizar Acción'):
                         st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
                         st.caption(justificaciones['dividendos'])
                         
-                        # Muestra la señal de valor si existe
-                        if justificaciones.get('blue_chip_signal'):
-                            st.info(justificaciones['blue_chip_signal'])
-                            
+                        # --- NUEVO BLOQUE: PUNTUACIÓN DE VALOR BLUE CHIP ---
+                        if puntuaciones['blue_chip_score'] > 0:
+                            st.markdown("---")
+                            st.markdown(f"#### 🟢 Puntuación de Valor 'Blue Chip': **{puntuaciones['blue_chip_score']:.1f} / 10**")
+                            bc1, bc2 = st.columns(2)
+                            with bc1:
+                                st.metric("Yield Actual vs Histórico", f"{datos.get('yield_dividendo', 0):.2f}%", f"vs {hist_data.get('yield_hist', 0):.2f}%")
+                            with bc2:
+                                st.metric("PER Actual vs Histórico", f"{datos.get('per', 0):.2f}", f"vs {hist_data.get('per_hist', 0):.2f}")
+                            st.caption("Esta puntuación indica que la empresa podría estar infravalorada respecto a su propia historia.")
+                        
+                        st.markdown("---") # Separador visual
                         div1, div2 = st.columns(2)
                         with div1: 
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                             mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                         with div2:
                             mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
+                        
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(f"""
                             - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
                             - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
                             - **Yield Medio (Histórico):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
+                            - **Puntuación de Valor 'Blue Chip':** Esta métrica especial (de 0 a 10) se activa solo si la empresa cumple dos condiciones: **(1)** su Yield por dividendo actual es superior a su media histórica y **(2)** su PER actual es inferior a su media histórica. Una puntuación alta sugiere que una empresa de calidad podría estar cotizando a un precio atractivo en comparación con su propia historia.
                             """)
                 
                 st.header("Análisis Gráfico Financiero y Banderas Rojas")
