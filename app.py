@@ -23,6 +23,14 @@ st.markdown("""
     .color-red { color: #dc3545; }
     .color-orange { color: #fd7e14; }
     .color-white { color: #FAFAFA; }
+
+    /* Estilo para el subrayado amarillo */
+    .highlight {
+        background-color: #D4AF37;
+        color: #0E1117;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -599,20 +607,43 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
                             mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'], is_percent=True)
                         with st.expander("Ver Leyenda Detallada"):
+                            # --- LÓGICA DE RESALTADO PARA CALIDAD ---
+                            # ROE
+                            roe_actual = datos.get('roe', 0)
+                            roe_excelente_val = sector_bench['roe_excelente']
+                            roe_bueno_val = sector_bench['roe_bueno']
+                            roe_excelente_md = f"**Excelente:** > {roe_excelente_val}%"
+                            roe_bueno_md = f"**Bueno:** > {roe_bueno_val}%"
+                            roe_alerta_md = f"**Alerta:** < {roe_bueno_val}%"
+                            if roe_actual > roe_excelente_val: roe_excelente_md = f'<span class="highlight">{roe_excelente_md}</span>'
+                            elif roe_actual > roe_bueno_val: roe_bueno_md = f'<span class="highlight">{roe_bueno_md}</span>'
+                            else: roe_alerta_md = f'<span class="highlight">{roe_alerta_md}</span>'
+                            
+                            # Crecimiento Ingresos
+                            crec_actual = datos.get('crecimiento_ingresos', 0)
+                            crec_excelente_val = sector_bench['rev_growth_excelente']
+                            crec_bueno_val = sector_bench['rev_growth_bueno']
+                            crec_excelente_md = f"**Excelente:** > {crec_excelente_val}%"
+                            crec_bueno_md = f"**Bueno:** > {crec_bueno_val}%"
+                            crec_alerta_md = f"**Lento/Negativo:** < {crec_bueno_val}%"
+                            if crec_actual > crec_excelente_val: crec_excelente_md = f'<span class="highlight">{crec_excelente_md}</span>'
+                            elif crec_actual > crec_bueno_val: crec_bueno_md = f'<span class="highlight">{crec_bueno_md}</span>'
+                            else: crec_alerta_md = f'<span class="highlight">{crec_alerta_md}</span>'
+
                             st.markdown(f"""
                             - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, los rangos son:
-                                - **Excelente:** > {sector_bench['roe_excelente']}%
-                                - **Bueno:** > {sector_bench['roe_bueno']}%
-                                - **Alerta:** < {sector_bench['roe_bueno']}%
+                                - {roe_excelente_md}
+                                - {roe_bueno_md}
+                                - {roe_alerta_md}
                             - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para el sector **{datos['sector'].upper()}**:
                                 - **Margen Operativo Excelente:** > {sector_bench['margen_excelente']}%
                                 - **Margen Neto Excelente:** > {sector_bench['margen_neto_excelente']}%
                                 - **Alerta:** Márgenes por debajo del rango 'Bueno' ({sector_bench['margen_bueno']}% Op. y {sector_bench['margen_neto_bueno']}% Neto) pueden indicar problemas de rentabilidad.
                             - **Crecimiento Ingresos (YoY):** Mide el crecimiento de las ventas año a año. Para el sector **{datos['sector'].upper()}**, los rangos son:
-                                - **Excelente:** > {sector_bench['rev_growth_excelente']}%
-                                - **Bueno:** > {sector_bench['rev_growth_bueno']}%
-                                - **Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%
-                            """)
+                                - {crec_excelente_md}
+                                - {crec_bueno_md}
+                                - {crec_alerta_md}
+                            """, unsafe_allow_html=True)
                 with col2:
                     with st.container(border=True):
                         st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
@@ -621,32 +652,57 @@ if st.button('Analizar Acción'):
                         with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
                         with s2: mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
                         with st.expander("Ver Leyenda Detallada"):
+                            # --- LÓGICA DE RESALTADO PARA SALUD FINANCIERA ---
+                            # Deuda / Patrimonio
+                            deuda_actual = datos.get('deuda_patrimonio')
                             SECTORES_ALTA_DEUDA = ['Financials', 'Utilities', 'Communication Services', 'Real Estate']
+                            deuda_md = ""
                             if datos['sector'] in SECTORES_ALTA_DEUDA:
-                                st.markdown(f"""
-                                - **Deuda / Patrimonio:** Para el sector **{datos['sector'].upper()}**, que opera con alta deuda, los rangos son:
-                                    - **Manejable:** < 250
-                                    - **Elevado:** > 250
-                                """)
+                                manejable_md = "**Manejable:** < 250"
+                                elevado_md = "**Elevado:** > 250"
+                                if deuda_actual is not None and deuda_actual < 250: manejable_md = f'<span class="highlight">{manejable_md}</span>'
+                                else: elevado_md = f'<span class="highlight">{elevado_md}</span>'
+                                deuda_md = f"""- **Deuda / Patrimonio:** Para el sector **{datos['sector'].upper()}**, que opera con alta deuda, los rangos son:
+                                    - {manejable_md}
+                                    - {elevado_md}"""
                             else:
-                                st.markdown(f"""
-                                - **Deuda / Patrimonio:** Para el sector **{datos['sector'].upper()}**, los rangos son:
-                                    - **Ideal:** < 40
-                                    - **Manejable:** < 80
-                                    - **Elevado:** > 80
-                                """)
-                            st.markdown("""
+                                ideal_md = "**Ideal:** < 40"
+                                manejable_md = "**Manejable:** < 80"
+                                elevado_md = "**Elevado:** > 80"
+                                if deuda_actual is not None:
+                                    if deuda_actual < 40: ideal_md = f'<span class="highlight">{ideal_md}</span>'
+                                    elif deuda_actual < 80: manejable_md = f'<span class="highlight">{manejable_md}</span>'
+                                    else: elevado_md = f'<span class="highlight">{elevado_md}</span>'
+                                deuda_md = f"""- **Deuda / Patrimonio:** Para el sector **{datos['sector'].upper()}**, los rangos son:
+                                    - {ideal_md}
+                                    - {manejable_md}
+                                    - {elevado_md}"""
+                            
+                            # Ratio Corriente
+                            rc_actual = datos.get('ratio_corriente')
+                            rc_excelente_md = "**Excelente:** > 2.0"
+                            rc_saludable_md = "**Saludable:** > 1.5"
+                            rc_aceptable_md = "**Aceptable:** > 1.0"
+                            rc_riesgo_md = "**Zona de Riesgo:** < 1.0"
+                            if rc_actual is not None:
+                                if rc_actual > 2.0: rc_excelente_md = f'<span class="highlight">{rc_excelente_md}</span>'
+                                elif rc_actual > 1.5: rc_saludable_md = f'<span class="highlight">{rc_saludable_md}</span>'
+                                elif rc_actual > 1.0: rc_aceptable_md = f'<span class="highlight">{rc_aceptable_md}</span>'
+                                else: rc_riesgo_md = f'<span class="highlight">{rc_riesgo_md}</span>'
+
+                            st.markdown(f"""
+                            {deuda_md}
                             - **Ratio Corriente (Liquidez):** Mide la capacidad de pagar deudas a corto plazo.
-                                - **Excelente:** > 2.0
-                                - **Saludable:** > 1.5
-                                - **Aceptable:** > 1.0
-                                - **Zona de Riesgo:** < 1.0
+                                - {rc_excelente_md}
+                                - {rc_saludable_md}
+                                - {rc_aceptable_md}
+                                - {rc_riesgo_md}
                             - **Interpretación Combinada:**
                                 - **Baja Deuda / Alta Liquidez:** Fortaleza financiera. El mejor escenario.
                                 - **Alta Deuda / Alta Liquidez:** Puede pagar sus deudas, pero el apalancamiento es un riesgo a vigilar.
                                 - **Baja Deuda / Baja Liquidez:** Balance conservador, pero podría tener problemas de liquidez a corto plazo.
                                 - **Alta Deuda / Baja Liquidez:** El peor escenario. Riesgo de solvencia.
-                            """)
+                            """, unsafe_allow_html=True)
 
                 with st.container(border=True):
                     st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
@@ -681,19 +737,44 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
 
                     with st.expander("Ver Leyenda Detallada"):
+                        # --- LÓGICA DE RESALTADO PARA VALORACIÓN ---
+                        # PER
+                        per_actual = datos.get('per')
+                        per_barato_val = sector_bench['per_barato']
+                        per_justo_val = sector_bench['per_justo']
+                        atractivo_md = f"**Atractivo:** < {per_barato_val}"
+                        justo_md = f"**Justo:** {per_barato_val} - {per_justo_val}"
+                        caro_md = f"**Caro:** > {per_justo_val}"
+                        if per_actual is not None and isinstance(per_actual, (int, float)):
+                            if per_actual < per_barato_val: atractivo_md = f'<span class="highlight">{atractivo_md}</span>'
+                            elif per_barato_val <= per_actual <= per_justo_val: justo_md = f'<span class="highlight">{justo_md}</span>'
+                            else: caro_md = f'<span class="highlight">{caro_md}</span>'
+
+                        # P/B
+                        pb_actual = datos.get('p_b')
+                        pb_barato_val = sector_bench['pb_barato']
+                        pb_justo_val = sector_bench['pb_justo']
+                        pb_atractivo_md = f"**Atractivo:** < {pb_barato_val}"
+                        pb_justo_md = f"**Justo:** {pb_barato_val} - {pb_justo_val}"
+                        pb_caro_md = f"**Caro:** > {pb_justo_val}"
+                        if pb_actual is not None and isinstance(pb_actual, (int, float)):
+                            if pb_actual < pb_barato_val: pb_atractivo_md = f'<span class="highlight">{pb_atractivo_md}</span>'
+                            elif pb_barato_val <= pb_actual <= pb_justo_val: pb_justo_md = f'<span class="highlight">{pb_justo_md}</span>'
+                            else: pb_caro_md = f'<span class="highlight">{pb_caro_md}</span>'
+
                         st.markdown(f"""
                         - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio anual. Para el sector **{datos['sector'].upper()}**, los rangos son:
-                            - **Atractivo:** < {sector_bench['per_barato']}
-                            - **Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}
-                            - **Caro:** > {sector_bench['per_justo']}
+                            - {atractivo_md}
+                            - {justo_md}
+                            - {caro_md}
                         - **PER Adelantado (Forward PE):** Usa beneficios futuros esperados. Si es inferior al PER actual, indica crecimiento y **otorga un bonus a la nota**.
                         - **P/B (Price-to-Book):** Compara el precio con el valor contable. Es útil en sectores con activos tangibles (Banca, Industria, etc.). Para **{datos['sector'].upper()}**, los rangos son:
-                            - **Atractivo:** < {sector_bench['pb_barato']}
-                            - **Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}
-                            - **Caro:** > {sector_bench['pb_justo']}
+                            - {pb_atractivo_md}
+                            - {pb_justo_md}
+                            - {pb_caro_md}
                         - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor **Negativo es una señal de alerta**, ya que indica que la empresa gasta más dinero del que genera.
                         - **Márgenes de Seguridad:** Calculan el potencial de revalorización.
-                        """)
+                        """, unsafe_allow_html=True)
                 
                 if datos['yield_dividendo'] > 0:
                     with st.container(border=True):
@@ -720,14 +801,26 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
                         
                         with st.expander("Ver Leyenda Detallada"):
+                            # --- LÓGICA DE RESALTADO PARA DIVIDENDOS ---
+                            payout_actual = datos.get('payout_ratio')
+                            payout_bueno_val = sector_bench['payout_bueno']
+                            payout_aceptable_val = sector_bench['payout_aceptable']
+                            payout_saludable_md = f"**Saludable:** < {payout_bueno_val}%"
+                            payout_precaucion_md = f"**Precaución:** > {payout_bueno_val}%"
+                            payout_peligroso_md = f"**Peligroso:** > {payout_aceptable_val}%"
+                            if payout_actual is not None:
+                                if 0 < payout_actual < payout_bueno_val: payout_saludable_md = f'<span class="highlight">{payout_saludable_md}</span>'
+                                elif payout_actual < payout_aceptable_val: payout_precaucion_md = f'<span class="highlight">{payout_precaucion_md}</span>'
+                                else: payout_peligroso_md = f'<span class="highlight">{payout_peligroso_md}</span>'
+
                             st.markdown(f"""
                             - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos. Un Yield > 3.5% se considera alto.
                             - **Ratio de Reparto (Payout):** Indica qué % del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, los rangos son:
-                                - **Saludable:** < {sector_bench['payout_bueno']}%
-                                - **Precaución:** > {sector_bench['payout_bueno']}%
-                                - **Peligroso:** > {sector_bench['payout_aceptable']}%
+                                - {payout_saludable_md}
+                                - {payout_precaucion_md}
+                                - {payout_peligroso_md}
                             - **Análisis de Valor 'Blue Chip':** Compara el PER y Yield actuales con sus medias históricas para detectar posibles infravaloraciones.
-                            """)
+                            """, unsafe_allow_html=True)
                 
                 st.header("Análisis Gráfico Financiero y Banderas Rojas")
                 financials_hist = hist_data.get('financials_charts')
