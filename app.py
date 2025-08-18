@@ -534,6 +534,35 @@ def get_recommendation_html(recommendation):
     
     return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
 
+# --- ¡NUEVO! Función para mostrar métricas de Blue Chip con colores ---
+def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent=False, lower_is_better=False):
+    color_class = "color-orange" # Neutral/orange for equal values
+    
+    is_comparable = isinstance(current_value, (int, float)) and isinstance(historical_value, (int, float))
+
+    if is_comparable:
+        if lower_is_better:
+            if current_value < historical_value: color_class = "color-green"
+            elif current_value > historical_value: color_class = "color-red"
+        else: # higher is better
+            if current_value > historical_value: color_class = "color-green"
+            elif current_value < historical_value: color_class = "color-red"
+
+    if is_percent:
+        formatted_current = f"{current_value:.2f}%" if isinstance(current_value, (int, float)) else "N/A"
+        formatted_historical = f"vs {historical_value:.2f}%" if isinstance(historical_value, (int, float)) else ""
+    else:
+        formatted_current = f"{current_value:.2f}" if isinstance(current_value, (int, float)) else "N/A"
+        formatted_historical = f"vs {historical_value:.2f}" if isinstance(historical_value, (int, float)) else ""
+
+    st.markdown(f'''
+    <div class="metric-container">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value {color_class}">{formatted_current}</div>
+        <div class="metric-label" style="line-height: 1;">{formatted_historical}</div>
+    </div>
+    ''', unsafe_allow_html=True)
+
 # --- ¡NUEVO! Función para generar leyendas dinámicas con resaltado ---
 def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data):
     highlight_style = 'style="background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
@@ -562,7 +591,7 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
     l_rev_lento_raw = f"<strong>Lento/Negativo:</strong> < {sector_bench['rev_growth_bueno']}%"
 
     l_rev_exc = f"<span {highlight_style}>{l_rev_exc_raw}</span>" if rev_growth > sector_bench['rev_growth_excelente'] else l_rev_exc_raw
-    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_bueno_raw
+    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_lento_raw
     l_rev_lento = f"<span {highlight_style}>{l_rev_lento_raw}</span>" if rev_growth <= sector_bench['rev_growth_bueno'] else l_rev_lento_raw
 
     leyenda_calidad = f"""
@@ -580,7 +609,7 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_rev_lento}
     """
 
-    # --- Leyenda de Salud Financiera ---
+    # --- Leyenda de Salud Financiera (MEJORADA) ---
     deuda_ratio = datos.get('deuda_patrimonio')
     SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
     leyenda_deuda = ""
@@ -621,15 +650,39 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_liq_sal}
         - {l_liq_ace}
         - {l_liq_rie}"""
+    
+    # Lógica de resaltado para Interpretación Combinada
+    is_high_debt_sector = datos['sector'] in SECTORES_ALTA_DEUDA
+    baja_deuda = False
+    alta_liquidez = False
+    if isinstance(deuda_ratio, (int, float)):
+        baja_deuda = (deuda_ratio < 250) if is_high_debt_sector else (deuda_ratio < 80)
+    if isinstance(ratio_corriente, (int, float)):
+        alta_liquidez = ratio_corriente > 1.5
+
+    esc_baja_d_alta_l = baja_deuda and alta_liquidez
+    esc_alta_d_alta_l = not baja_deuda and alta_liquidez
+    esc_baja_d_baja_l = baja_deuda and not alta_liquidez
+    esc_alta_d_baja_l = not baja_deuda and not alta_liquidez
+
+    l_ic_1_raw = "<strong>Baja Deuda / Alta Liquidez:</strong> Fortaleza financiera. El mejor escenario."
+    l_ic_2_raw = "<strong>Alta Deuda / Alta Liquidez:</strong> Puede pagar sus deudas, pero el apalancamiento es un riesgo a vigilar."
+    l_ic_3_raw = "<strong>Baja Deuda / Baja Liquidez:</strong> Balance conservador, pero podría tener problemas de liquidez a corto plazo."
+    l_ic_4_raw = "<strong>Alta Deuda / Baja Liquidez:</strong> El peor escenario. Riesgo de solvencia."
+
+    l_ic_1 = f"<span {highlight_style}>{l_ic_1_raw}</span>" if esc_baja_d_alta_l else l_ic_1_raw
+    l_ic_2 = f"<span {highlight_style}>{l_ic_2_raw}</span>" if esc_alta_d_alta_l else l_ic_2_raw
+    l_ic_3 = f"<span {highlight_style}>{l_ic_3_raw}</span>" if esc_baja_d_baja_l else l_ic_3_raw
+    l_ic_4 = f"<span {highlight_style}>{l_ic_4_raw}</span>" if esc_alta_d_baja_l else l_ic_4_raw
 
     leyenda_salud = f"""
     {leyenda_deuda}
     {leyenda_liquidez}
     - **Interpretación Combinada:**
-        - **Baja Deuda / Alta Liquidez:** Fortaleza financiera. El mejor escenario.
-        - **Alta Deuda / Alta Liquidez:** Puede pagar sus deudas, pero el apalancamiento es un riesgo a vigilar.
-        - **Baja Deuda / Baja Liquidez:** Balance conservador, pero podría tener problemas de liquidez a corto plazo.
-        - **Alta Deuda / Baja Liquidez:** El peor escenario. Riesgo de solvencia.
+        - {l_ic_1}
+        - {l_ic_2}
+        - {l_ic_3}
+        - {l_ic_4}
     """
 
     # --- Leyenda de Valoración ---
@@ -768,10 +821,12 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         l_esc_6 = f"<span {highlight_style}>{l_esc_6_raw}</span>" if escenario_6 else l_esc_6_raw
 
         leyenda_tecnico = f"""
-        - **Medias Móviles (SMA):**
+        - **Medias Móviles (SMA):** Suavizan el precio para mostrar la tendencia. El número (50 o 200) se refiere a los **últimos días de cotización** (sesiones) que usa para calcular la media.
+            - **SMA50 (naranja):** Media de los últimos 50 días. Refleja la tendencia a corto/medio plazo.
+            - **SMA200 (roja):** Media de los últimos 200 días. Es el indicador más importante para la tendencia a largo plazo.
             - {l_sma_alcista}
             - {l_sma_bajista}
-        - **RSI (Índice de Fuerza Relativa):**
+        - **RSI (Índice de Fuerza Relativa):** Es un **oscilador de momentum** que mide la velocidad y la fuerza de los cambios en el precio. Su utilidad principal es detectar condiciones de **sobrecompra** (el precio ha subido mucho y rápido, posible corrección) o **sobreventa** (el precio ha caído mucho y rápido, posible rebote).
             - {l_rsi_sobreventa}
             - {l_rsi_neutral}
             - {l_rsi_sobrecompra}
@@ -918,9 +973,11 @@ if st.button('Analizar Acción'):
                             st.markdown(f"#### Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
                             bc1, bc2 = st.columns(2)
                             with bc1:
-                                st.metric("Yield Actual vs Histórico", f"{datos.get('yield_dividendo', 0):.2f}%", f"vs {hist_data.get('yield_hist', 0):.2f}%")
+                                # ¡NUEVO! Usar la función con colores dinámicos
+                                mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
                             with bc2:
-                                st.metric("PER Actual vs Histórico", f"{datos.get('per', 0):.2f}", f"vs {hist_data.get('per_hist', 0):.2f}")
+                                # ¡NUEVO! Usar la función con colores dinámicos
+                                mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
                             st.caption(blue_chip_analysis['description'])
                         
                         st.markdown("---")
