@@ -28,18 +28,18 @@ st.markdown("""
 
 # --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
-    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'payout_bueno': 70, 'payout_aceptable': 90},
-    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'payout_bueno': 80, 'payout_aceptable': 95},
-    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 70, 'payout_aceptable': 85},
-    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 90, 'payout_aceptable': 100},
-    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80}
+    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90},
+    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95},
+    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85},
+    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100},
+    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80}
 }
 
 # --- BLOQUE 1: OBTENCIÓN DE DATOS ---
@@ -80,6 +80,7 @@ def obtener_datos_completos(ticker):
         "deuda_patrimonio": info.get('debtToEquity'), "ratio_corriente": info.get('currentRatio'), 
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'), 
         "p_fcf": p_fcf,
+        "p_b": info.get('priceToBook'),
         "crecimiento_ingresos": info.get('revenueGrowth', 0) * 100,
         "yield_dividendo": div_yield * 100 if div_yield is not None else 0,
         "payout_ratio": payout * 100 if payout is not None else 0,
@@ -216,14 +217,25 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['calidad'] = min(10, nota_calidad)
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
+    # --- LÓGICA DE DEUDA INTELIGENTE POR SECTOR ---
     nota_salud = 0
     deuda_ratio = datos['deuda_patrimonio']
-    if sector in ['Financials', 'Utilities']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
-    elif isinstance(deuda_ratio, (int, float)):
-        if deuda_ratio < 40: nota_salud = 8
-        elif deuda_ratio < 80: nota_salud = 6
+    SECTORES_ALTA_DEUDA = ['Financials', 'Utilities', 'Communication Services', 'Real Estate']
+    
+    if sector in SECTORES_ALTA_DEUDA:
+        # Umbrales más flexibles para sectores intensivos en capital/deuda
+        if isinstance(deuda_ratio, (int, float)):
+            if deuda_ratio < 150: nota_salud = 8
+            elif deuda_ratio < 250: nota_salud = 6
+            else: nota_salud = 4
         else: nota_salud = 4
-    else: nota_salud = 4
+    else:
+        # Umbrales conservadores para el resto de sectores
+        if isinstance(deuda_ratio, (int, float)):
+            if deuda_ratio < 40: nota_salud = 8
+            elif deuda_ratio < 80: nota_salud = 6
+            else: nota_salud = 4
+        else: nota_salud = 4
     
     ratio_corriente = datos['ratio_corriente']
     if isinstance(ratio_corriente, (int, float)):
@@ -233,14 +245,20 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
+    # --- LÓGICA DE VALORACIÓN CON P/B INTEGRADO ---
     nota_multiplos = 0
     if sector == 'Real Estate':
         if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10
         elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos = 6
     else:
-        if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
-        if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
-    
+        if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
+        if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 4
+        # Bonus por P/B bajo en sectores relevantes
+        SECTORES_PB_RELEVANTES = ['Financials', 'Industrials', 'Materials', 'Energy', 'Utilities']
+        if sector in SECTORES_PB_RELEVANTES and datos['p_b']:
+            if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 2
+            elif datos['p_b'] < sector_bench['pb_justo']: nota_multiplos += 1
+
     nota_analistas, margen_seguridad = 0, 0
     if datos['precio_actual'] and datos['precio_objetivo']:
         margen_seguridad = ((datos['precio_objetivo'] - datos['precio_actual']) / datos['precio_actual']) * 100
@@ -557,15 +575,15 @@ if st.button('Analizar Acción'):
                         st.caption(justificaciones['calidad'])
                         c1, c2 = st.columns(2)
                         with c1:
-                            mostrar_metrica_con_color("📈 ROE", datos['roe'], 20, 15, is_percent=True)
-                            mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], 15, 10, is_percent=True)
+                            mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
+                            mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
                         with c2:
-                            mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], 20, 15, is_percent=True)
+                            mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
                             mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], 15, 8, is_percent=True)
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(f"""
                             - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, se considera **Excelente > {sector_bench['roe_excelente']}%**. Un ROE muy alto (>50%) puede estar 'inflado' por una deuda elevada.
-                            - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para este sector, un **Margen Operativo Excelente es > {sector_bench['margen_excelente']}%** y un **Margen Neto Excelente es > {sector_bench['margen_neto_excelente']}%**. Es una señal de alerta si el Margen Neto es superior al Operativo, ya que puede indicar beneficios extraordinarios no recurrentes.
+                            - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para este sector, un **Margen Operativo Excelente es > {sector_bench['margen_excelente']}%** y un **Margen Neto Excelente es > {sector_bench['margen_neto_excelente']}%**.
                             - **Crecimiento Ingresos:** Mide el crecimiento de las ventas. Un crecimiento de doble dígito (>10%) es una señal muy positiva.
                             """)
                 with col2:
@@ -577,8 +595,8 @@ if st.button('Analizar Acción'):
                         with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown("""
-                            - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda con los fondos propios. Un valor bajo (< 40) indica un balance muy conservador. **Esta nota se combina con el Ratio Corriente para la puntuación final.**
-                            - **Ratio Corriente (Current Ratio):** Mide la capacidad de pagar deudas a corto plazo. Un valor > 1.5 es muy saludable y **aporta puntos extra a la nota de salud financiera.**
+                            - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda con los fondos propios. Los umbrales varían por sector; para industrias como **Finanzas o Utilities** se permiten ratios más altos. Un valor bajo es ideal para la mayoría de sectores.
+                            - **Ratio Corriente (Current Ratio):** Mide la capacidad de pagar deudas a corto plazo. Un valor > 1.5 es muy saludable y **aporta puntos extra a la nota.**
                             """)
 
                 with st.container(border=True):
@@ -592,7 +610,7 @@ if st.button('Analizar Acción'):
                         with val1:
                             st.markdown("##### Múltiplos (Presente)")
                             mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
-                            mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
+                            mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
                             mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
                         with val2:
                             st.markdown("##### Márgenes de Seguridad")
@@ -607,23 +625,18 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
 
                     with st.expander("Ver Leyenda Detallada"):
-                        if datos['sector'] == 'Real Estate':
-                            st.info("💡 **Análisis Especial para REITs:** Para el sector inmobiliario (REITs), el PER no es una métrica fiable debido al impacto de la depreciación. Por ello, la valoración por múltiplos se basa principalmente en el **P/FCF (Precio / Flujo de Caja Libre)**, que ofrece una visión más precisa de la capacidad del negocio para generar caja.")
-                        else:
-                            st.markdown(f"""
-                            - **Múltiplos:** Miden cuántas veces estás pagando los beneficios (PER) o el flujo de caja (P/FCF). Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}**. El **PER Adelantado** usa beneficios futuros esperados; si es menor que el PER actual, indica crecimiento y **suma un bonus a la nota**.
-                            """)
-                        st.markdown("""
-                        - **Márgenes de Seguridad:** Miden el potencial de revalorización. El de **Expertos** se basa en el precio objetivo de los analistas (futuro), y el **Histórico** en si la acción volviera a su PER medio histórico (pasado).
-                        - **Análisis Histórico:** Compara los múltiplos actuales con sus medias históricas para ver si la empresa está cara o barata respecto a su propia historia.
+                        st.markdown(f"""
+                        - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio. Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}**.
+                        - **P/B (Price-to-Book):** Compara el precio con el valor contable de la empresa. Es especialmente útil en sectores como **Banca, Industria o Energía**. Para este sector, un **P/B atractivo es < {sector_bench['pb_barato']}**.
+                        - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre, una medida más difícil de manipular.
+                        - **Márgenes de Seguridad:** Calculan el potencial de revalorización comparando el precio actual con el precio objetivo de los analistas (futuro) y con su valoración histórica media (pasado).
                         """)
-
+                
                 if datos['yield_dividendo'] > 0:
                     with st.container(border=True):
                         st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
                         st.caption(justificaciones['dividendos'])
                         
-                        # --- NUEVO BLOQUE: ANÁLISIS DE VALOR BLUE CHIP (CUALITATIVO) ---
                         blue_chip_analysis = justificaciones.get('blue_chip_analysis')
                         if blue_chip_analysis:
                             st.markdown("---")
@@ -635,7 +648,7 @@ if st.button('Analizar Acción'):
                                 st.metric("PER Actual vs Histórico", f"{datos.get('per', 0):.2f}", f"vs {hist_data.get('per_hist', 0):.2f}")
                             st.caption(blue_chip_analysis['description'])
                         
-                        st.markdown("---") # Separador visual
+                        st.markdown("---")
                         div1, div2 = st.columns(2)
                         with div1: 
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
@@ -647,7 +660,6 @@ if st.button('Analizar Acción'):
                             st.markdown(f"""
                             - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
                             - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
-                            - **Yield Medio (Histórico):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
                             - **Análisis de Valor 'Blue Chip':** Esta métrica especial se activa si la empresa cotiza a un PER inferior y/o a un Yield superior a su media histórica. Se clasifica en: **Muy Interesante** (ambas condiciones se cumplen con un margen amplio), **Interesante** (ambas se cumplen), o **Señal Mixta** (solo una se cumple).
                             """)
                 
@@ -693,8 +705,8 @@ if st.button('Analizar Acción'):
 
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown("""
-                            - **Medias Móviles (SMA):** Suavizan el precio para mostrar la tendencia subyacente. La **SMA50** (naranja) indica la tendencia a corto plazo y la **SMA200** (roja) la de largo plazo. Una tendencia es claramente alcista cuando el precio está por encima de ambas medias y la SMA50 está por encima de la SMA200.
-                            - **RSI (Índice de Fuerza Relativa):** Es un oscilador que mide la velocidad y el cambio de los movimientos del precio. Un valor **> 70** indica que la acción puede estar "sobrecomprada" y podría corregir a la baja. Un valor **< 30** indica que puede estar "sobrevendida" y podría rebotar al alza.
+                            - **Medias Móviles (SMA):** Suavizan el precio para mostrar la tendencia subyacente. La **SMA50** (naranja) indica la tendencia a corto plazo y la **SMA200** (roja) la de largo plazo.
+                            - **RSI (Índice de Fuerza Relativa):** Es un oscilador que mide la fuerza del precio. Un valor **> 70** indica "sobrecompra" y un valor **< 30** indica "sobreventa".
                             """)
                     else:
                         st.warning("No se pudieron generar los datos para el análisis técnico.")
