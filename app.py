@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v53.6 (Leyendas Definitivas y Claras)
+# El Analizador de Acciones de Sr. Outfit - v53.7 (Leyendas y Lógica Definitivas)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -634,15 +634,31 @@ if st.button('Analizar Acción'):
                         with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
                         with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                         with st.expander("Ver Leyenda Detallada"):
-                            st.markdown(f"""
-                            - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda con los fondos propios. Los umbrales varían por sector.
-                                - Para el sector **{datos['sector'].upper()}**, que **NO** es de alta deuda, los rangos son: **Ideal < 40**, **Manejable < 80**, **Elevado > 80**.
-                                - Para sectores como **Financials, Utilities, Real Estate y Communication Services**, se aceptan ratios más altos: **Manejable < 250**, **Elevado > 250**.
-                            - **Ratio Corriente (Current Ratio):** Mide la liquidez a corto plazo (Activos Corrientes / Pasivos Corrientes).
-                                - **Excelente:** > 2.0 (Mucha solvencia)
-                                - **Saludable:** > 1.5 (Buen colchón de seguridad)
-                                - **Aceptable:** > 1.0 (Cubre sus deudas)
-                                - **Zona de Riesgo:** < 1.0 (Podría tener problemas para pagar)
+                            SECTORES_ALTA_DEUDA = ['Financials', 'Utilities', 'Communication Services', 'Real Estate']
+                            if datos['sector'] in SECTORES_ALTA_DEUDA:
+                                st.markdown(f"""
+                                - **Deuda / Patrimonio:** Para el sector **{datos['sector'].upper()}**, que opera con alta deuda, los rangos son:
+                                    - **Manejable:** < 250
+                                    - **Elevado:** > 250
+                                """)
+                            else:
+                                st.markdown(f"""
+                                - **Deuda / Patrimonio:** Para el sector **{datos['sector'].upper()}**, los rangos son:
+                                    - **Ideal:** < 40
+                                    - **Manejable:** < 80
+                                    - **Elevado:** > 80
+                                """)
+                            st.markdown("""
+                            - **Ratio Corriente:** Mide la liquidez a corto plazo.
+                                - **Excelente:** > 2.0
+                                - **Saludable:** > 1.5
+                                - **Aceptable:** > 1.0
+                                - **Zona de Riesgo:** < 1.0
+                            - **Interpretación Combinada:**
+                                - **Baja Deuda / Alta Liquidez:** Fortaleza financiera. El mejor escenario.
+                                - **Alta Deuda / Alta Liquidez:** Puede pagar sus deudas, pero el apalancamiento es un riesgo a vigilar.
+                                - **Baja Deuda / Baja Liquidez:** Balance conservador, pero podría tener problemas de liquidez a corto plazo.
+                                - **Alta Deuda / Baja Liquidez:** El peor escenario. Riesgo de solvencia.
                             """)
 
                 with st.container(border=True):
@@ -679,10 +695,16 @@ if st.button('Analizar Acción'):
 
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(f"""
-                        - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio. Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}** y se considera **caro si es > {sector_bench['per_justo']}**.
-                        - **PER Adelantado (Forward PE):** Usa beneficios futuros esperados. Si es notablemente inferior al PER actual, indica crecimiento esperado y **otorga un bonus a la nota de valoración**.
-                        - **P/B (Price-to-Book):** Compara el precio con el valor contable. Es útil en sectores con activos tangibles (Banca, Industria, etc.). Para **{datos['sector'].upper()}**, un **P/B atractivo es < {sector_bench['pb_barato']}**.
-                        - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor bajo (< 20) suele ser positivo. Un valor **Negativo es una señal de alerta**, ya que indica que la empresa gasta más dinero del que genera.
+                        - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio. Para el sector **{datos['sector'].upper()}**, los rangos son:
+                            - **Atractivo:** < {sector_bench['per_barato']}
+                            - **Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}
+                            - **Caro:** > {sector_bench['per_justo']}
+                        - **PER Adelantado (Forward PE):** Usa beneficios futuros esperados. Si es inferior al PER actual, indica crecimiento y **otorga un bonus a la nota**.
+                        - **P/B (Price-to-Book):** Compara el precio con el valor contable. Es útil en sectores con activos tangibles (Banca, Industria, etc.). Para **{datos['sector'].upper()}**, los rangos son:
+                            - **Atractivo:** < {sector_bench['pb_barato']}
+                            - **Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}
+                            - **Caro:** > {sector_bench['pb_justo']}
+                        - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor **Negativo es una señal de alerta**, ya que indica que la empresa gasta más dinero del que genera.
                         - **Márgenes de Seguridad:** Calculan el potencial de revalorización.
                         """)
                 
