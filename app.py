@@ -1,16 +1,3 @@
-# app.py
-# -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v53.7 (Leyendas y Lógica Definitivas)
-# -----------------------------------------------------------------------------
-#
-# Para ejecutar esta aplicación:
-# 1. Guarda este código como 'app.py'.
-# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
-# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
-#    streamlit run app.py
-#
-# -----------------------------------------------------------------------------
-
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -621,7 +608,7 @@ if st.button('Analizar Acción'):
                                 - **Margen Operativo Excelente:** > {sector_bench['margen_excelente']}%
                                 - **Margen Neto Excelente:** > {sector_bench['margen_neto_excelente']}%
                                 - **Alerta:** Márgenes por debajo del rango 'Bueno' ({sector_bench['margen_bueno']}% Op. y {sector_bench['margen_neto_bueno']}% Neto) pueden indicar problemas de rentabilidad.
-                            - **Crecimiento Ingresos (YoY):** Mide el crecimiento de las ventas. Para el sector **{datos['sector'].upper()}**, los rangos son:
+                            - **Crecimiento Ingresos (YoY):** Mide el crecimiento de las ventas año a año. Para el sector **{datos['sector'].upper()}**, los rangos son:
                                 - **Excelente:** > {sector_bench['rev_growth_excelente']}%
                                 - **Bueno:** > {sector_bench['rev_growth_bueno']}%
                                 - **Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%
@@ -632,7 +619,7 @@ if st.button('Analizar Acción'):
                         st.caption(justificaciones['salud'])
                         s1, s2 = st.columns(2)
                         with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
-                        with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
+                        with s2: mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
                         with st.expander("Ver Leyenda Detallada"):
                             SECTORES_ALTA_DEUDA = ['Financials', 'Utilities', 'Communication Services', 'Real Estate']
                             if datos['sector'] in SECTORES_ALTA_DEUDA:
@@ -649,7 +636,7 @@ if st.button('Analizar Acción'):
                                     - **Elevado:** > 80
                                 """)
                             st.markdown("""
-                            - **Ratio Corriente:** Mide la liquidez a corto plazo.
+                            - **Ratio Corriente (Liquidez):** Mide la capacidad de pagar deudas a corto plazo.
                                 - **Excelente:** > 2.0
                                 - **Saludable:** > 1.5
                                 - **Aceptable:** > 1.0
@@ -695,7 +682,7 @@ if st.button('Analizar Acción'):
 
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(f"""
-                        - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio. Para el sector **{datos['sector'].upper()}**, los rangos son:
+                        - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio anual. Para el sector **{datos['sector'].upper()}**, los rangos son:
                             - **Atractivo:** < {sector_bench['per_barato']}
                             - **Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}
                             - **Caro:** > {sector_bench['per_justo']}
