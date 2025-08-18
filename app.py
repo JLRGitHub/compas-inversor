@@ -599,13 +599,22 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
     l_roe_bueno = f"<span {highlight_style}>{l_roe_bueno_raw}</span>" if sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'] else l_roe_bueno_raw
     l_roe_alerta = f"<span {highlight_style}>{l_roe_alerta_raw}</span>" if roe <= sector_bench['roe_bueno'] else l_roe_alerta_raw
 
+    # --- ¡CORRECCIÓN! Lógica de márgenes separada y mejorada ---
     margen_op = datos.get('margen_operativo', 0)
-    l_mop_exc_raw = f"<strong>Margen Operativo Excelente:</strong> > {sector_bench['margen_excelente']}%"
+    l_mop_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['margen_excelente']}%"
+    l_mop_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['margen_bueno']}%"
+    l_mop_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['margen_bueno']}%"
     l_mop_exc = f"<span {highlight_style}>{l_mop_exc_raw}</span>" if margen_op > sector_bench['margen_excelente'] else l_mop_exc_raw
-
+    l_mop_bueno = f"<span {highlight_style}>{l_mop_bueno_raw}</span>" if sector_bench['margen_bueno'] < margen_op <= sector_bench['margen_excelente'] else l_mop_bueno_raw
+    l_mop_alerta = f"<span {highlight_style}>{l_mop_alerta_raw}</span>" if margen_op <= sector_bench['margen_bueno'] else l_mop_alerta_raw
+    
     margen_neto = datos.get('margen_beneficio', 0)
-    l_mneto_exc_raw = f"<strong>Margen Neto Excelente:</strong> > {sector_bench['margen_neto_excelente']}%"
+    l_mneto_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['margen_neto_excelente']}%"
+    l_mneto_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['margen_neto_bueno']}%"
+    l_mneto_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['margen_neto_bueno']}%"
     l_mneto_exc = f"<span {highlight_style}>{l_mneto_exc_raw}</span>" if margen_neto > sector_bench['margen_neto_excelente'] else l_mneto_exc_raw
+    l_mneto_bueno = f"<span {highlight_style}>{l_mneto_bueno_raw}</span>" if sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'] else l_mneto_bueno_raw
+    l_mneto_alerta = f"<span {highlight_style}>{l_mneto_alerta_raw}</span>" if margen_neto <= sector_bench['margen_neto_bueno'] else l_mneto_alerta_raw
 
     rev_growth = datos.get('crecimiento_ingresos', 0)
     l_rev_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['rev_growth_excelente']}%"
@@ -613,7 +622,7 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
     l_rev_lento_raw = f"<strong>Lento/Negativo:</strong> < {sector_bench['rev_growth_bueno']}%"
 
     l_rev_exc = f"<span {highlight_style}>{l_rev_exc_raw}</span>" if rev_growth > sector_bench['rev_growth_excelente'] else l_rev_exc_raw
-    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_lento_raw
+    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_bueno_raw
     l_rev_lento = f"<span {highlight_style}>{l_rev_lento_raw}</span>" if rev_growth <= sector_bench['rev_growth_bueno'] else l_rev_lento_raw
 
     leyenda_calidad = f"""
@@ -621,10 +630,14 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_roe_exc}
         - {l_roe_bueno}
         - {l_roe_alerta}
-    - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para el sector **{datos['sector'].upper()}**:
+    - **Margen Operativo:** Mide el beneficio de la actividad principal de la empresa, antes de impuestos e intereses.
         - {l_mop_exc}
+        - {l_mop_bueno}
+        - {l_mop_alerta}
+    - **Margen Neto:** Mide el beneficio final que queda para el accionista después de todos los gastos, impuestos e intereses.
         - {l_mneto_exc}
-        - **Alerta:** Márgenes por debajo del rango 'Bueno' ({sector_bench['margen_bueno']}% Op. y {sector_bench['margen_neto_bueno']}% Neto) pueden indicar problemas de rentabilidad.
+        - {l_mneto_bueno}
+        - {l_mneto_alerta}
     - **Crecimiento Ingresos (YoY):** Mide el crecimiento de las ventas año a año. Para el sector **{datos['sector'].upper()}**, los rangos son:
         - {l_rev_exc}
         - {l_rev_bueno}
@@ -965,7 +978,7 @@ if st.button('Analizar Acción'):
                             with val1:
                                 st.markdown("##### Múltiplos (Presente)")
                                 mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
-                                mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
+                                mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per', 999), datos.get('per', 999), lower_is_better=True)
                                 mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
                                 
                                 raw_fcf = datos.get('raw_fcf')
