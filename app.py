@@ -555,11 +555,12 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
         formatted_current = f"{current_value:.2f}" if isinstance(current_value, (int, float)) else "N/A"
         formatted_historical = f"vs {historical_value:.2f}" if isinstance(historical_value, (int, float)) else ""
 
+    # CORRECCIÓN: Se añade color blanco al valor histórico para mejorar la visibilidad
     st.markdown(f'''
     <div class="metric-container">
         <div class="metric-label">{label}</div>
         <div class="metric-value {color_class}">{formatted_current}</div>
-        <div class="metric-label" style="line-height: 1;">{formatted_historical}</div>
+        <div class="metric-label" style="line-height: 1; color: #FAFAFA;">{formatted_historical}</div>
     </div>
     ''', unsafe_allow_html=True)
 
