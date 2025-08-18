@@ -1,16 +1,3 @@
-# app.py
-# -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v53.2 (Leyendas Sectoriales Detalladas)
-# -----------------------------------------------------------------------------
-#
-# Para ejecutar esta aplicación:
-# 1. Guarda este código como 'app.py'.
-# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
-# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
-#    streamlit run app.py
-#
-# -----------------------------------------------------------------------------
-
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -140,16 +127,23 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                     shares = balance_sheet_raw.loc[share_key_found, col_date]
 
                     if pd.notna(shares) and shares > 0:
-                        price_data = stock.history(start=col_date, end=col_date + pd.Timedelta(days=5), interval="1d")
-                        if not price_data.empty:
-                            price = price_data['Close'].iloc[0]
-                            market_cap = price * shares
+                        start_of_year = col_date - pd.DateOffset(years=1)
+                        price_data_year = stock.history(start=start_of_year, end=col_date, interval="1d")
+
+                        if not price_data_year.empty:
+                            average_price_for_year = price_data_year['Close'].mean()
+                            
                             if pd.notna(net_income) and net_income > 0:
-                                per = market_cap / net_income
-                                if 0 < per < 100: pers.append(per)
+                                eps = net_income / shares
+                                per_for_year = average_price_for_year / eps
+                                if 0 < per_for_year < 100:
+                                    pers.append(per_for_year)
+                            
                             if pd.notna(fcf) and fcf > 0:
-                                pfcf = market_cap / fcf
-                                if 0 < pfcf < 100: pfcfs.append(pfcf)
+                                fcf_per_share = fcf / shares
+                                pfcf_for_year = average_price_for_year / fcf_per_share
+                                if 0 < pfcf_for_year < 100:
+                                    pfcfs.append(pfcf_for_year)
         
         per_historico = np.mean(pers) if pers else None
         pfcf_historico = np.mean(pfcfs) if pfcfs else None
