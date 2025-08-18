@@ -233,8 +233,9 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     
     sector_bench = SECTOR_BENCHMARKS.get(sector, SECTOR_BENCHMARKS['Default'])
     
-    paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland', 'Austria', 'Belgium', 'Luxembourg', 'Singapore', 'Hong Kong']
-    paises_precaucion = ['Spain', 'Italy', 'South Korea', 'Taiwan', 'India', 'Chile', 'Poland', 'Czech Republic', 'Portugal', 'Israel', 'United Arab Emirates', 'Qatar', 'Malaysia', 'Thailand', 'Saudi Arabia', 'Kuwait']
+    # --- ¡CORRECCIÓN! Hong Kong movido a la lista de 'PRECAUCIÓN' ---
+    paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland', 'Austria', 'Belgium', 'Luxembourg', 'Singapore']
+    paises_precaucion = ['Spain', 'Italy', 'South Korea', 'Taiwan', 'India', 'Chile', 'Poland', 'Czech Republic', 'Portugal', 'Israel', 'United Arab Emirates', 'Qatar', 'Malaysia', 'Thailand', 'Saudi Arabia', 'Kuwait', 'Hong Kong']
     paises_alto_riesgo = ['China', 'Brazil', 'Russia', 'Argentina', 'Turkey', 'Mexico', 'South Africa', 'Indonesia', 'Vietnam', 'Nigeria', 'Egypt', 'Pakistan', 'Colombia', 'Peru', 'Philippines']
     
     nota_geo, justificacion_geo, penalizador_geo = 10, "Jurisdicción estable y predecible.", 0
@@ -571,7 +572,7 @@ def get_recommendation_html(recommendation):
         color_class = "color-orange"
         display_text = "Neutral"
     
-    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
+    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>', unsafe_allow_html=True)
 
 def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent=False, lower_is_better=False):
     color_class = "color-orange" # Neutral/orange for equal values
@@ -975,7 +976,6 @@ if st.button('Analizar Acción'):
                         if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
                         else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
                         
-                        # --- ¡NUEVO! Advertencia para China/Hong Kong ---
                         if datos['pais'] in ['China', 'Hong Kong']:
                             st.warning("⚠️ **Riesgo Regulatorio (ADR/VIE):** Invertir en empresas chinas a través de ADRs conlleva riesgos adicionales relacionados con la estructura legal (VIE) y posibles cambios regulatorios del gobierno chino que podrían afectar el valor de la inversión.")
 
@@ -1083,13 +1083,15 @@ if st.button('Analizar Acción'):
                     # --- ¡NUEVO! Sección de Márgenes de Seguridad ---
                     with st.container(border=True):
                         st.subheader("Potencial de Revalorización (Márgenes de Seguridad)")
-                        ms1, ms2, ms3 = st.columns(3)
+                        ms1, ms2, ms3, ms4 = st.columns(4)
                         with ms1:
                             mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
                         with ms2:
                             mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
                         with ms3:
                             mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
+                        with ms4:
+                            mostrar_margen_seguridad("📚 Según su P/B Histórico", puntuaciones['margen_seguridad_pb'])
                         st.caption("El margen por Yield es más relevante en empresas con dividendos estables o crecientes. El margen por P/B es útil en sectores con activos tangibles (Banca, Industria, etc.).")
 
 
