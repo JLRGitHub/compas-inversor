@@ -95,8 +95,9 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         stock = yf.Ticker(ticker)
         info = stock.info
         
-        # --- ¡CORRECCIÓN! Añadir comprobación de seguridad para el objeto 'info' ---
-        if not info or info.get('financialCurrency') is None:
+        # --- ¡CORRECCIÓN REFORZADA! Comprobar si 'info' es un diccionario válido.
+        if not isinstance(info, dict) or not info:
+            st.warning(f"No se pudo obtener la información básica para {ticker}. El ticker podría no ser válido o estar delistado.")
             return {}
 
         financials_raw = stock.financials
@@ -121,6 +122,15 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 
         hist_10y = stock.history(period="10y")
         
+        # --- ¡NUEVA CORRECCIÓN! Manejar el caso de no tener historial de precios. ---
+        if hist_10y.empty:
+            st.warning(f"No se encontraron datos históricos de precios para {ticker}. El análisis técnico y de valoración histórica no estará disponible.")
+            return {
+                "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
+                "per_hist": None, "pfcf_hist": None, "yield_hist": None,
+                "tech_data": pd.DataFrame()
+            }
+
         # --- CÁLCULO DE PER Y P/FCF HISTÓRICO (CORREGIDO) ---
         pers, pfcfs = [], []
         
@@ -897,195 +907,196 @@ if st.button('Analizar Acción'):
                 st.error(f"Error: No se pudo encontrar el ticker '{ticker_input}'. Verifica que sea correcto.")
             else:
                 hist_data = obtener_datos_historicos_y_tecnicos(ticker_input)
-                puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
-                sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
                 
-                tech_data = hist_data.get('tech_data')
-                leyendas = generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data)
-                
-                pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
-                nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
-                nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
-
-                st.header(f"Análisis Fundamental: {datos['nombre']} ({ticker_input})")
-                
-                st.markdown(f"### 🧭 Veredicto del Analizador: **{nota_final:.1f} / 10**")
-                if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
-                elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
-                else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
-
-                col_gauge, col_radar = st.columns([0.7, 1])
-                with col_gauge:
-                    st.subheader("Nota Global")
-                    fig_gauge = crear_grafico_gauge(nota_final)
-                    st.pyplot(fig_gauge)
-                with col_radar:
-                    st.subheader("Resumen de Fortalezas")
-                    fig_radar = crear_grafico_radar(puntuaciones)
-                    st.pyplot(fig_radar)
-
-                with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
-                    st.write(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
-                    geo_nota = puntuaciones['geopolitico']
-                    if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
-                    else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
-                    st.caption(justificaciones['geopolitico'])
-                    st.write(f"**Descripción:** {datos['descripcion']}")
-                
-                with st.container(border=True):
-                    st.subheader("Consenso de Analistas")
-                    recomendacion_str = datos.get('recomendacion_analistas', 'N/A').replace('_', ' ').title()
-                    st.markdown(get_recommendation_html(recomendacion_str), unsafe_allow_html=True)
-
-                col1, col2 = st.columns(2)
-                with col1:
-                    with st.container(border=True):
-                        st.subheader(f"Calidad del Negocio [{puntuaciones['calidad']}/10]")
-                        st.caption(justificaciones['calidad'])
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
-                            mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
-                        with c2:
-                            mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
-                            mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'], is_percent=True)
-                        with st.expander("Ver Leyenda Detallada"):
-                            st.markdown(leyendas['calidad'], unsafe_allow_html=True)
-                with col2:
-                    with st.container(border=True):
-                        st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
-                        st.caption(justificaciones['salud'])
-                        s1, s2 = st.columns(2)
-                        with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
-                        with s2: mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
-                        with st.expander("Ver Leyenda Detallada"):
-                            st.markdown(leyendas['salud'], unsafe_allow_html=True)
-
-                with st.container(border=True):
-                    st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
-                    st.caption(justificaciones['valoracion'])
-                    
-                    tab1, tab2 = st.tabs(["Resumen y Potencial", "Análisis Histórico"])
-                    
-                    with tab1:
-                        val1, val2 = st.columns(2)
-                        with val1:
-                            st.markdown("##### Múltiplos (Presente)")
-                            mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
-                            mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
-                            mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
-                            
-                            raw_fcf = datos.get('raw_fcf')
-                            if raw_fcf is not None and raw_fcf < 0:
-                                st.markdown('<div class="metric-container"><div class="metric-label">🌊 P/FCF</div><div class="metric-value color-red">Negativo</div></div>', unsafe_allow_html=True)
-                            else:
-                                mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
-
-                        with val2:
-                            st.markdown("##### Márgenes de Seguridad")
-                            mostrar_margen_seguridad("🛡️ Según Expertos (Futuro)", puntuaciones['margen_seguridad_analistas'])
-                            mostrar_margen_seguridad("📈 Según Histórico (Pasado)", puntuaciones['margen_seguridad_historico'])
-                    
-                    with tab2:
-                        h1, h2 = st.columns(2)
-                        with h1:
-                            mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
-                        with h2:
-                            mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
-
-                    with st.expander("Ver Leyenda Detallada"):
-                        st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
-                
-                if datos['yield_dividendo'] > 0:
-                    with st.container(border=True):
-                        st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
-                        st.caption(justificaciones['dividendos'])
-                        
-                        blue_chip_analysis = justificaciones.get('blue_chip_analysis')
-                        if blue_chip_analysis:
-                            st.markdown("---")
-                            st.markdown(f"#### Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
-                            bc1, bc2 = st.columns(2)
-                            with bc1:
-                                # ¡NUEVO! Usar la función con colores dinámicos
-                                mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
-                            with bc2:
-                                # ¡NUEVO! Usar la función con colores dinámicos
-                                mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
-                            st.caption(blue_chip_analysis['description'])
-                        
-                        st.markdown("---")
-                        div1, div2 = st.columns(2)
-                        with div1: 
-                            mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
-                            mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
-                        with div2:
-                            mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
-                        
-                        with st.expander("Ver Leyenda Detallada"):
-                            st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
-                
-                st.header("Análisis Gráfico Financiero y Banderas Rojas")
-                financials_hist = hist_data.get('financials_charts')
-                dividends_hist = hist_data.get('dividends_charts')
-                fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
-                if fig_financieros:
-                    st.pyplot(fig_financieros)
-                    st.subheader("Banderas Rojas (Red Flags)")
-                    banderas = analizar_banderas_rojas(datos, financials_hist)
-                    if banderas:
-                        for bandera in banderas: st.warning(bandera)
-                    else:
-                        st.success("✅ No se han detectado banderas rojas significativas.")
+                # --- ¡NUEVA CORRECCIÓN! Comprobar si hist_data tiene datos antes de continuar ---
+                if not hist_data:
+                    st.error(f"No se pudieron obtener datos históricos para '{ticker_input}'. El análisis no puede continuar.")
                 else:
-                    st.warning("No se pudieron generar los gráficos financieros históricos.")
-                
-                # --- SECCIÓN DE ANÁLISIS TÉCNICO MEJORADA ---
-                with st.container(border=True):
-                    st.header("Análisis Técnico")
-                    if tech_data is not None and not tech_data.empty:
-                        fig_tecnico = crear_grafico_tecnico(tech_data)
-                        st.pyplot(fig_tecnico)
+                    puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
+                    sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
+                    
+                    tech_data = hist_data.get('tech_data')
+                    leyendas = generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data)
+                    
+                    pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
+                    nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
+                    nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
+
+                    st.header(f"Análisis Fundamental: {datos['nombre']} ({ticker_input})")
+                    
+                    st.markdown(f"### 🧭 Veredicto del Analizador: **{nota_final:.1f} / 10**")
+                    if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
+                    elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
+                    else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
+
+                    col_gauge, col_radar = st.columns([0.7, 1])
+                    with col_gauge:
+                        st.subheader("Nota Global")
+                        fig_gauge = crear_grafico_gauge(nota_final)
+                        st.pyplot(fig_gauge)
+                    with col_radar:
+                        st.subheader("Resumen de Fortalezas")
+                        fig_radar = crear_grafico_radar(puntuaciones)
+                        st.pyplot(fig_radar)
+
+                    with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
+                        st.write(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
+                        geo_nota = puntuaciones['geopolitico']
+                        if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
+                        else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
+                        st.caption(justificaciones['geopolitico'])
+                        st.write(f"**Descripción:** {datos['descripcion']}")
+                    
+                    with st.container(border=True):
+                        st.subheader("Consenso de Analistas")
+                        recomendacion_str = datos.get('recomendacion_analistas', 'N/A').replace('_', ' ').title()
+                        st.markdown(get_recommendation_html(recomendacion_str), unsafe_allow_html=True)
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        with st.container(border=True):
+                            st.subheader(f"Calidad del Negocio [{puntuaciones['calidad']}/10]")
+                            st.caption(justificaciones['calidad'])
+                            c1, c2 = st.columns(2)
+                            with c1:
+                                mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
+                                mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
+                            with c2:
+                                mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
+                                mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'], is_percent=True)
+                            with st.expander("Ver Leyenda Detallada"):
+                                st.markdown(leyendas['calidad'], unsafe_allow_html=True)
+                    with col2:
+                        with st.container(border=True):
+                            st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
+                            st.caption(justificaciones['salud'])
+                            s1, s2 = st.columns(2)
+                            with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
+                            with s2: mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
+                            with st.expander("Ver Leyenda Detallada"):
+                                st.markdown(leyendas['salud'], unsafe_allow_html=True)
+
+                    with st.container(border=True):
+                        st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
+                        st.caption(justificaciones['valoracion'])
                         
-                        last_price = tech_data['Close'].iloc[-1]
-                        sma50 = tech_data['SMA50'].iloc[-1]
-                        sma200 = tech_data['SMA200'].iloc[-1]
-                        rsi = tech_data['RSI'].iloc[-1]
+                        tab1, tab2 = st.tabs(["Resumen y Potencial", "Análisis Histórico"])
                         
-                        # Lógica de tendencia y RSI mejorada
-                        tendencia_texto = "Lateral 🟠"
-                        tendencia_color = "color-orange"
-                        if last_price > sma50 and sma50 > sma200:
-                            tendencia_texto = "Alcista Fuerte 🟢"
-                            tendencia_color = "color-green"
-                        elif last_price > sma200:
-                            tendencia_texto = "Alcista 🟢"
-                            tendencia_color = "color-green"
-                        elif last_price < sma50 and sma50 < sma200:
-                            tendencia_texto = "Bajista Fuerte 🔴"
-                            tendencia_color = "color-red"
-                        elif last_price < sma200:
-                            tendencia_texto = "Bajista 🔴"
-                            tendencia_color = "color-red"
+                        with tab1:
+                            val1, val2 = st.columns(2)
+                            with val1:
+                                st.markdown("##### Múltiplos (Presente)")
+                                mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
+                                mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
+                                mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
+                                
+                                raw_fcf = datos.get('raw_fcf')
+                                if raw_fcf is not None and raw_fcf < 0:
+                                    st.markdown('<div class="metric-container"><div class="metric-label">🌊 P/FCF</div><div class="metric-value color-red">Negativo</div></div>', unsafe_allow_html=True)
+                                else:
+                                    mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
 
-                        st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
+                            with val2:
+                                st.markdown("##### Márgenes de Seguridad")
+                                mostrar_margen_seguridad("🛡️ Según Expertos (Futuro)", puntuaciones['margen_seguridad_analistas'])
+                                mostrar_margen_seguridad("📈 Según Histórico (Pasado)", puntuaciones['margen_seguridad_historico'])
+                        
+                        with tab2:
+                            h1, h2 = st.columns(2)
+                            with h1:
+                                mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
+                            with h2:
+                                mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
 
-                        rsi_texto = f"{rsi:.2f} (Neutral 🟠)"
-                        rsi_color = "color-orange"
-                        if rsi > 70:
-                            rsi_texto = f"{rsi:.2f} (Sobrecompra 🔴)"
-                            rsi_color = "color-red"
-                        elif rsi < 30:
-                            rsi_texto = f"{rsi:.2f} (Sobreventa 🟢)"
-                            rsi_color = "color-green"
-
-                        st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
-
-                        # Leyenda de análisis técnico mejorada
                         with st.expander("Ver Leyenda Detallada"):
-                            st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
+                            st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
+                    
+                    if datos['yield_dividendo'] > 0:
+                        with st.container(border=True):
+                            st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
+                            st.caption(justificaciones['dividendos'])
+                            
+                            blue_chip_analysis = justificaciones.get('blue_chip_analysis')
+                            if blue_chip_analysis:
+                                st.markdown("---")
+                                st.markdown(f"#### Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
+                                bc1, bc2 = st.columns(2)
+                                with bc1:
+                                    mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
+                                with bc2:
+                                    mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
+                                st.caption(blue_chip_analysis['description'])
+                            
+                            st.markdown("---")
+                            div1, div2 = st.columns(2)
+                            with div1: 
+                                mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
+                                mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
+                            with div2:
+                                mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
+                            
+                            with st.expander("Ver Leyenda Detallada"):
+                                st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
+                    
+                    st.header("Análisis Gráfico Financiero y Banderas Rojas")
+                    financials_hist = hist_data.get('financials_charts')
+                    dividends_hist = hist_data.get('dividends_charts')
+                    fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
+                    if fig_financieros:
+                        st.pyplot(fig_financieros)
+                        st.subheader("Banderas Rojas (Red Flags)")
+                        banderas = analizar_banderas_rojas(datos, financials_hist)
+                        if banderas:
+                            for bandera in banderas: st.warning(bandera)
+                        else:
+                            st.success("✅ No se han detectado banderas rojas significativas.")
                     else:
-                        st.warning("No se pudieron generar los datos para el análisis técnico.")
+                        st.warning("No se pudieron generar los gráficos financieros históricos.")
+                    
+                    # --- SECCIÓN DE ANÁLISIS TÉCNICO MEJORADA ---
+                    with st.container(border=True):
+                        st.header("Análisis Técnico")
+                        if tech_data is not None and not tech_data.empty:
+                            fig_tecnico = crear_grafico_tecnico(tech_data)
+                            st.pyplot(fig_tecnico)
+                            
+                            last_price = tech_data['Close'].iloc[-1]
+                            sma50 = tech_data['SMA50'].iloc[-1]
+                            sma200 = tech_data['SMA200'].iloc[-1]
+                            rsi = tech_data['RSI'].iloc[-1]
+                            
+                            tendencia_texto = "Lateral 🟠"
+                            tendencia_color = "color-orange"
+                            if last_price > sma50 and sma50 > sma200:
+                                tendencia_texto = "Alcista Fuerte 🟢"
+                                tendencia_color = "color-green"
+                            elif last_price > sma200:
+                                tendencia_texto = "Alcista 🟢"
+                                tendencia_color = "color-green"
+                            elif last_price < sma50 and sma50 < sma200:
+                                tendencia_texto = "Bajista Fuerte 🔴"
+                                tendencia_color = "color-red"
+                            elif last_price < sma200:
+                                tendencia_texto = "Bajista 🔴"
+                                tendencia_color = "color-red"
+
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
+
+                            rsi_texto = f"{rsi:.2f} (Neutral 🟠)"
+                            rsi_color = "color-orange"
+                            if rsi > 70:
+                                rsi_texto = f"{rsi:.2f} (Sobrecompra 🔴)"
+                                rsi_color = "color-red"
+                            elif rsi < 30:
+                                rsi_texto = f"{rsi:.2f} (Sobreventa 🟢)"
+                                rsi_color = "color-green"
+
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
+
+                            with st.expander("Ver Leyenda Detallada"):
+                                st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
+                        else:
+                            st.warning("No se pudieron generar los datos para el análisis técnico.")
 
         except TypeError as e:
             st.error(f"Error al procesar los datos para '{ticker_input}'. Es posible que los datos de Yahoo Finance para este ticker estén incompletos o no disponibles temporalmente.")
