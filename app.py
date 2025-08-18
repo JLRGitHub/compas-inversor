@@ -1,3 +1,16 @@
+# app.py
+# -----------------------------------------------------------------------------
+# El Analizador de Acciones de Sr. Outfit - v53.2 (Leyendas Sectoriales Detalladas)
+# -----------------------------------------------------------------------------
+#
+# Para ejecutar esta aplicación:
+# 1. Guarda este código como 'app.py'.
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
+# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
+#    streamlit run app.py
+#
+# -----------------------------------------------------------------------------
+
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -582,8 +595,14 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], 15, 8, is_percent=True)
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(f"""
-                            - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, se considera **Excelente > {sector_bench['roe_excelente']}%**. Un ROE muy alto (>50%) puede estar 'inflado' por una deuda elevada.
-                            - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para este sector, un **Margen Operativo Excelente es > {sector_bench['margen_excelente']}%** y un **Margen Neto Excelente es > {sector_bench['margen_neto_excelente']}%**.
+                            - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, los rangos son:
+                                - **Excelente:** > {sector_bench['roe_excelente']}%
+                                - **Bueno:** > {sector_bench['roe_bueno']}%
+                                - **Alerta:** < {sector_bench['roe_bueno']}%
+                            - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para el sector **{datos['sector'].upper()}**:
+                                - **Margen Operativo Excelente:** > {sector_bench['margen_excelente']}%
+                                - **Margen Neto Excelente:** > {sector_bench['margen_neto_excelente']}%
+                                - **Alerta:** Márgenes por debajo del rango 'Bueno' ({sector_bench['margen_bueno']}% Op. y {sector_bench['margen_neto_bueno']}% Neto) pueden indicar problemas de rentabilidad.
                             - **Crecimiento Ingresos:** Mide el crecimiento de las ventas. Un crecimiento de doble dígito (>10%) es una señal muy positiva.
                             """)
                 with col2:
@@ -594,9 +613,15 @@ if st.button('Analizar Acción'):
                         with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
                         with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                         with st.expander("Ver Leyenda Detallada"):
-                            st.markdown("""
-                            - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda con los fondos propios. Los umbrales varían por sector; para industrias como **Finanzas o Utilities** se permiten ratios más altos. Un valor bajo es ideal para la mayoría de sectores.
-                            - **Ratio Corriente (Current Ratio):** Mide la capacidad de pagar deudas a corto plazo. Un valor > 1.5 es muy saludable y **aporta puntos extra a la nota.**
+                            st.markdown(f"""
+                            - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda con los fondos propios. Los umbrales varían por sector.
+                                - Para el sector **{datos['sector'].upper()}**, que **NO** es de alta deuda, los rangos son: **Ideal < 40**, **Manejable < 80**, **Elevado > 80**.
+                                - Para sectores como **Financials, Utilities, Real Estate y Communication Services**, se aceptan ratios más altos: **Manejable < 250**, **Elevado > 250**.
+                            - **Ratio Corriente (Current Ratio):** Mide la liquidez a corto plazo (Activos Corrientes / Pasivos Corrientes).
+                                - **Excelente:** > 2.0 (Mucha solvencia)
+                                - **Saludable:** > 1.5 (Buen colchón de seguridad)
+                                - **Aceptable:** > 1.0 (Cubre sus deudas)
+                                - **Zona de Riesgo:** < 1.0 (Podría tener problemas para pagar)
                             """)
 
                 with st.container(border=True):
@@ -610,6 +635,7 @@ if st.button('Analizar Acción'):
                         with val1:
                             st.markdown("##### Múltiplos (Presente)")
                             mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
+                            mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
                             mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
                             mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
                         with val2:
@@ -626,10 +652,11 @@ if st.button('Analizar Acción'):
 
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(f"""
-                        - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio. Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}**.
-                        - **P/B (Price-to-Book):** Compara el precio con el valor contable de la empresa. Es especialmente útil en sectores como **Banca, Industria o Energía**. Para este sector, un **P/B atractivo es < {sector_bench['pb_barato']}**.
-                        - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre, una medida más difícil de manipular.
-                        - **Márgenes de Seguridad:** Calculan el potencial de revalorización comparando el precio actual con el precio objetivo de los analistas (futuro) y con su valoración histórica media (pasado).
+                        - **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio. Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}** y se considera **caro si es > {sector_bench['per_justo']}**.
+                        - **PER Adelantado (Forward PE):** Usa beneficios futuros esperados. Si es notablemente inferior al PER actual, indica crecimiento esperado y **otorga un bonus a la nota de valoración**.
+                        - **P/B (Price-to-Book):** Compara el precio con el valor contable. Es útil en sectores con activos tangibles (Banca, Industria, etc.). Para **{datos['sector'].upper()}**, un **P/B atractivo es < {sector_bench['pb_barato']}**.
+                        - **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor bajo (< 20) suele ser positivo.
+                        - **Márgenes de Seguridad:** Calculan el potencial de revalorización.
                         """)
                 
                 if datos['yield_dividendo'] > 0:
@@ -658,9 +685,12 @@ if st.button('Analizar Acción'):
                         
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(f"""
-                            - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
-                            - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
-                            - **Análisis de Valor 'Blue Chip':** Esta métrica especial se activa si la empresa cotiza a un PER inferior y/o a un Yield superior a su media histórica. Se clasifica en: **Muy Interesante** (ambas condiciones se cumplen con un margen amplio), **Interesante** (ambas se cumplen), o **Señal Mixta** (solo una se cumple).
+                            - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos. Un Yield > 3.5% se considera alto.
+                            - **Ratio de Reparto (Payout):** Indica qué % del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, los rangos son:
+                                - **Saludable:** < {sector_bench['payout_bueno']}%
+                                - **Precaución:** > {sector_bench['payout_bueno']}%
+                                - **Peligroso:** > {sector_bench['payout_aceptable']}%
+                            - **Análisis de Valor 'Blue Chip':** Compara el PER y Yield actuales con sus medias históricas para detectar posibles infravaloraciones.
                             """)
                 
                 st.header("Análisis Gráfico Financiero y Banderas Rojas")
