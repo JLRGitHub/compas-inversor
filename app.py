@@ -1,6 +1,6 @@
 # app.py
 # -----------------------------------------------------------------------------
-# El Analizador de Acciones de Sr. Outfit - v51.3 (Versión Definitiva Corregida)
+# El Analizador de Acciones de Sr. Outfit - v52.0 (Lógica por Sector Mejorada)
 # -----------------------------------------------------------------------------
 #
 # Para ejecutar esta aplicación:
@@ -39,20 +39,20 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- MEJORA: Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
+# --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
-    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'payout_bueno': 70, 'payout_aceptable': 90},
-    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'payout_bueno': 80, 'payout_aceptable': 95},
-    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 70, 'payout_aceptable': 85},
-    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 90, 'payout_aceptable': 100},
-    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80}
+    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90},
+    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95},
+    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85},
+    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3.5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 90, 'payout_aceptable': 100},
+    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80}
 }
 
 # --- BLOQUE 1: OBTENCIÓN DE DATOS ---
@@ -93,6 +93,7 @@ def obtener_datos_completos(ticker):
         "deuda_patrimonio": info.get('debtToEquity'), "ratio_corriente": info.get('currentRatio'), 
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'), 
         "p_fcf": p_fcf,
+        "pb_ratio": info.get('priceToBook'),
         "crecimiento_ingresos": info.get('revenueGrowth', 0) * 100,
         "yield_dividendo": div_yield * 100 if div_yield is not None else 0,
         "payout_ratio": payout * 100 if payout is not None else 0,
@@ -150,12 +151,10 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                                 pfcf = market_cap / fcf
                                 if 0 < pfcf < 100: pfcfs.append(pfcf)
         
-        per_historico_10y = np.mean(pers) if pers else None
-        per_historico_5y = np.mean(pers[-5:]) if len(pers) >= 5 else per_historico_10y
-        pfcf_historico_10y = np.mean(pfcfs) if pfcfs else None
-        pfcf_historico_5y = np.mean(pfcfs[-5:]) if len(pfcfs) >= 5 else pfcf_historico_10y
+        per_historico = np.mean(pers) if pers else None
+        pfcf_historico = np.mean(pfcfs) if pfcfs else None
         
-        yield_historico_10y, yield_historico_5y = None, None
+        yield_historico = None
         divs_10y = stock.dividends.loc[hist_10y.index[0]:]
         
         if not divs_10y.empty:
@@ -167,8 +166,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             
             if not df_yield.empty:
                 annual_yields = (df_yield['Dividends'] / df_yield['Price']) * 100
-                yield_historico_10y = annual_yields.mean()
-                yield_historico_5y = annual_yields.tail(5).mean()
+                yield_historico = annual_yields.mean()
 
         end_date_1y = hist_10y.index.max()
         start_date_1y = end_date_1y - pd.DateOffset(days=365)
@@ -184,9 +182,9 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 
         return {
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
-            "per_5y": per_historico_5y, "per_10y": per_historico_10y,
-            "pfcf_5y": pfcf_historico_5y, "pfcf_10y": pfcf_historico_10y,
-            "yield_5y": yield_historico_5y, "yield_10y": yield_historico_10y,
+            "per_hist": per_historico,
+            "pfcf_hist": pfcf_historico,
+            "yield_hist": yield_historico,
             "tech_data": hist_1y
         }
     except Exception:
@@ -234,7 +232,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     nota_salud = 0
     deuda_ratio = datos['deuda_patrimonio']
-    if sector in ['Financials', 'Utilities']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
+    if sector in ['Financials', 'Utilities', 'Real Estate', 'Communication Services']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
     elif isinstance(deuda_ratio, (int, float)):
         if deuda_ratio < 40: nota_salud = 8
         elif deuda_ratio < 80: nota_salud = 6
@@ -253,6 +251,9 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     if sector == 'Real Estate':
         if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10
         elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos = 6
+    elif sector == 'Financials':
+        if datos['pb_ratio'] and datos['pb_ratio'] < sector_bench['pb_barato']: nota_multiplos += 5
+        if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
     else:
         if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
         if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
@@ -266,7 +267,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['margen_seguridad_analistas'] = margen_seguridad
 
     nota_historica, potencial_per = 0, 0
-    per_historico = hist_data.get('per_10y')
+    per_historico = hist_data.get('per_hist')
     if per_historico and datos['per'] and datos['per'] > 0:
         potencial_per = ((per_historico / datos['per']) - 1) * 100
         if potencial_per > 30: nota_historica = 10
@@ -293,7 +294,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     elif datos['yield_dividendo'] > 2: nota_dividendos += 2
     if 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 4
     elif 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
-    if hist_data.get('yield_10y') and datos['yield_dividendo'] > hist_data['yield_10y']:
+    if hist_data.get('yield_hist') and datos['yield_dividendo'] > hist_data['yield_hist']:
         nota_dividendos += 2
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
