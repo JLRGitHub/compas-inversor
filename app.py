@@ -1,3 +1,16 @@
+# app.py
+# -----------------------------------------------------------------------------
+# El Analizador de Acciones de Sr. Outfit - v51.3 (Versión Definitiva Corregida)
+# -----------------------------------------------------------------------------
+#
+# Para ejecutar esta aplicación:
+# 1. Guarda este código como 'app.py'.
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
+# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
+#    streamlit run app.py
+#
+# -----------------------------------------------------------------------------
+
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -26,7 +39,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
+# --- MEJORA: Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
     'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
     'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
@@ -137,10 +150,12 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                                 pfcf = market_cap / fcf
                                 if 0 < pfcf < 100: pfcfs.append(pfcf)
         
-        per_historico = np.mean(pers) if pers else None
-        pfcf_historico = np.mean(pfcfs) if pfcfs else None
+        per_historico_10y = np.mean(pers) if pers else None
+        per_historico_5y = np.mean(pers[-5:]) if len(pers) >= 5 else per_historico_10y
+        pfcf_historico_10y = np.mean(pfcfs) if pfcfs else None
+        pfcf_historico_5y = np.mean(pfcfs[-5:]) if len(pfcfs) >= 5 else pfcf_historico_10y
         
-        yield_historico = None
+        yield_historico_10y, yield_historico_5y = None, None
         divs_10y = stock.dividends.loc[hist_10y.index[0]:]
         
         if not divs_10y.empty:
@@ -152,7 +167,8 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             
             if not df_yield.empty:
                 annual_yields = (df_yield['Dividends'] / df_yield['Price']) * 100
-                yield_historico = annual_yields.mean()
+                yield_historico_10y = annual_yields.mean()
+                yield_historico_5y = annual_yields.tail(5).mean()
 
         end_date_1y = hist_10y.index.max()
         start_date_1y = end_date_1y - pd.DateOffset(days=365)
@@ -168,9 +184,9 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 
         return {
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
-            "per_hist": per_historico,
-            "pfcf_hist": pfcf_historico,
-            "yield_hist": yield_historico,
+            "per_5y": per_historico_5y, "per_10y": per_historico_10y,
+            "pfcf_5y": pfcf_historico_5y, "pfcf_10y": pfcf_historico_10y,
+            "yield_5y": yield_historico_5y, "yield_10y": yield_historico_10y,
             "tech_data": hist_1y
         }
     except Exception:
@@ -250,7 +266,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['margen_seguridad_analistas'] = margen_seguridad
 
     nota_historica, potencial_per = 0, 0
-    per_historico = hist_data.get('per_hist')
+    per_historico = hist_data.get('per_10y')
     if per_historico and datos['per'] and datos['per'] > 0:
         potencial_per = ((per_historico / datos['per']) - 1) * 100
         if potencial_per > 30: nota_historica = 10
@@ -277,45 +293,12 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     elif datos['yield_dividendo'] > 2: nota_dividendos += 2
     if 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 4
     elif 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
-    if hist_data.get('yield_hist') and datos['yield_dividendo'] > hist_data['yield_hist']:
+    if hist_data.get('yield_10y') and datos['yield_dividendo'] > hist_data['yield_10y']:
         nota_dividendos += 2
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
-    # --- LÓGICA: ANÁLISIS DE VALOR BLUE CHIP (CUALITATIVO) ---
-    justificaciones['blue_chip_analysis'] = None
-    current_yield = datos.get('yield_dividendo')
-    historical_yield = hist_data.get('yield_hist')
-    current_per = datos.get('per')
-    historical_per = hist_data.get('per_hist')
-
-    if current_yield and historical_yield and current_per and historical_per:
-        per_is_lower = current_per < historical_per
-        yield_is_higher = current_yield > historical_yield
-        
-        if per_is_lower and yield_is_higher:
-            per_is_much_lower = current_per < historical_per * 0.8  # 20% de descuento
-            yield_is_much_higher = current_yield > historical_yield * 1.2 # 20% de prima
-
-            if per_is_much_lower and yield_is_much_higher:
-                analysis = "🟢 Muy Interesante"
-                description = "Tanto el PER está significativamente por debajo de su media como el Yield está muy por encima. Señal de valoración muy atractiva."
-            else:
-                analysis = "🟡 Interesante"
-                description = "El PER está por debajo de su media y el Yield por encima. Señal de valoración atractiva."
-            
-            justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
-
-        elif per_is_lower or yield_is_higher:
-            analysis = "🔵 Señal Mixta"
-            if per_is_lower:
-                description = "El PER es inferior a su media, pero el Yield no es superior. Señal de valoración parcialmente positiva."
-            else:
-                description = "El Yield es superior a su media, pero el PER no es inferior. Señal de valoración parcialmente positiva."
-            justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
-
     return puntuaciones, justificaciones, SECTOR_BENCHMARKS
-
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
 def crear_grafico_radar(puntuaciones):
@@ -484,19 +467,13 @@ def mostrar_metrica_informativa(label, value, is_percent=False):
 def get_recommendation_html(recommendation):
     rec_lower = recommendation.lower()
     color_class = "color-white"
-    display_text = recommendation  # Valor por defecto
-
     if any(term in rec_lower for term in ['buy', 'outperform', 'strong']):
         color_class = "color-green"
-        display_text = "Muy Interesante"
     elif any(term in rec_lower for term in ['sell', 'underperform']):
         color_class = "color-red"
-        display_text = "Poco Interesante"
     elif 'hold' in rec_lower:
         color_class = "color-orange"
-        display_text = "Neutral"
-    
-    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
+    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{recommendation}</div></div>'
 
 # --- ESTRUCTURA DE LA APLICACIÓN WEB ---
 st.title('El Analizador de Acciones de Sr. Outfit')
@@ -622,33 +599,17 @@ if st.button('Analizar Acción'):
                     with st.container(border=True):
                         st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
                         st.caption(justificaciones['dividendos'])
-                        
-                        # --- NUEVO BLOQUE: ANÁLISIS DE VALOR BLUE CHIP (CUALITATIVO) ---
-                        blue_chip_analysis = justificaciones.get('blue_chip_analysis')
-                        if blue_chip_analysis:
-                            st.markdown("---")
-                            st.markdown(f"#### Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
-                            bc1, bc2 = st.columns(2)
-                            with bc1:
-                                st.metric("Yield Actual vs Histórico", f"{datos.get('yield_dividendo', 0):.2f}%", f"vs {hist_data.get('yield_hist', 0):.2f}%")
-                            with bc2:
-                                st.metric("PER Actual vs Histórico", f"{datos.get('per', 0):.2f}", f"vs {hist_data.get('per_hist', 0):.2f}")
-                            st.caption(blue_chip_analysis['description'])
-                        
-                        st.markdown("---") # Separador visual
                         div1, div2 = st.columns(2)
                         with div1: 
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                             mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                         with div2:
                             mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
-                        
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(f"""
                             - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
                             - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
                             - **Yield Medio (Histórico):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
-                            - **Análisis de Valor 'Blue Chip':** Esta métrica especial se activa si la empresa cotiza a un PER inferior y/o a un Yield superior a su media histórica. Se clasifica en: **Muy Interesante** (ambas condiciones se cumplen con un margen amplio), **Interesante** (ambas se cumplen), o **Señal Mixta** (solo una se cumple).
                             """)
                 
                 st.header("Análisis Gráfico Financiero y Banderas Rojas")
