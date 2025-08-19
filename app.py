@@ -385,11 +385,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     div_accion = datos.get('dividendo_por_accion')
     yield_hist = hist_data.get('yield_hist')
 
-    puntuaciones['valor_graham'] = None
-    if bpa and bpa > 0 and crecimiento_yoy is not None:
-        g = min(crecimiento_yoy * 100, 20) if crecimiento_yoy > 0 else 0
-        puntuaciones['valor_graham'] = bpa * (8.5 + 2 * g)
-
     puntuaciones['peg_lynch'] = None
     if per and per > 0 and crecimiento_yoy is not None and crecimiento_yoy > 0:
         puntuaciones['peg_lynch'] = per / (crecimiento_yoy * 100)
@@ -699,7 +694,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
     else:
         leyenda_salud += " - *No aplicable o datos no disponibles.*"
     
-    leyenda_salud += "<br><br>- **Ratio Corriente (Liquidez):** Mide la capacidad de pagar deudas a corto plazo (en menos de un año) con sus activos a corto plazo.<br>"
+    leyenda_salud += "<br><br>- **Ratio Corriente (Liquidez):** Mide la capacidad de pagar deudas a corto plazo (en menos de un año) con sus activos a corto plazo. Es una métrica de liquidez a corto plazo, menos decisiva para el inversor a largo plazo si la empresa tiene un flujo de caja fuerte y una deuda controlada.<br>"
     if ratio_corriente is not None:
         leyenda_salud += f"""
         - {highlight(ratio_corriente > 2.0, "**Excelente:** > 2.0")}<br>
@@ -719,10 +714,9 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
     per = datos.get('per')
     p_fcf = datos.get('p_fcf')
     pb = datos.get('p_b')
-    valor_graham = puntuaciones.get('valor_graham')
-    precio_actual = datos.get('precio_actual')
     peg = puntuaciones.get('peg_lynch')
     valor_weiss = puntuaciones.get('valor_weiss')
+    precio_actual = datos.get('precio_actual')
     
     leyenda_valoracion = ""
     if datos.get('sector') == 'Real Estate':
@@ -741,12 +735,6 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
         - {highlight(p_fcf > p_fcf_justo, f"**Caro:** > {p_fcf_justo}")}"""
     
     leyenda_valoracion += "<br><br>---<br><b>Fórmulas Clásicas de Valoración:</b>"
-    leyenda_valoracion += f"<br>- **Valor Intrínseco (B. Graham):** Estima el valor 'real' de una acción basado en sus beneficios y crecimiento esperado."
-    if valor_graham and precio_actual:
-        leyenda_valoracion += f'<br>  - {highlight(precio_actual < valor_graham, "Infravalorada: Precio actual por debajo del valor intrínseco.")}'
-        leyenda_valoracion += f'<br>  - {highlight(precio_actual >= valor_graham, "Sobrevalorada: Precio actual por encima del valor intrínseco.")}'
-    else:
-        leyenda_valoracion += f'<br>  - {highlight(True, "No aplicable: Requiere beneficios y crecimiento positivos.")}'
         
     leyenda_valoracion += f"<br>- **Ratio PEG (Peter Lynch):** Relaciona el PER con el crecimiento de los beneficios."
     if peg:
@@ -952,7 +940,6 @@ if st.button('Analizar Acción'):
                             st.metric("Precio Actual", f"{precio_actual:.2f}" if precio_actual else "N/A")
                             st.markdown("---")
                             
-                            mostrar_valor_formula("Valor Intrínseco (Graham)", "BPA * (8.5 + 2 * Crecimiento)", puntuaciones.get('valor_graham'), precio_actual)
                             mostrar_valor_formula("Valor por Dividendo (Weiss)", "Dividendo / Yield Histórico", puntuaciones.get('valor_weiss'), precio_actual)
 
                             peg_lynch = puntuaciones.get('peg_lynch')
