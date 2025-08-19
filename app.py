@@ -28,18 +28,18 @@ st.markdown("""
 
 # --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
-    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'rev_growth_excelente': 15, 'rev_growth_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'rev_growth_excelente': 10, 'rev_growth_bueno': 6, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90},
-    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 5, 'rev_growth_bueno': 3, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95},
-    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 7, 'rev_growth_bueno': 4, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85},
-    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 8, 'rev_growth_bueno': 0, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100},
-    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80}
+    'Information Technology': {'roic_excelente': 20, 'roic_bueno': 15, 'conversion_caja_excelente': 100, 'conversion_caja_bueno': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_precaucion': 3, 'cobertura_intereses_excelente': 10, 'cobertura_intereses_bueno': 6, 'margen_excelente': 25, 'margen_bueno': 18, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Health Care': {'roic_excelente': 15, 'roic_bueno': 12, 'conversion_caja_excelente': 90, 'conversion_caja_bueno': 70, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_precaucion': 4, 'cobertura_intereses_excelente': 8, 'cobertura_intereses_bueno': 5, 'margen_excelente': 20, 'margen_bueno': 15, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Financial Services': {'roic_excelente': 10, 'roic_bueno': 8, 'conversion_caja_excelente': 0, 'conversion_caja_bueno': 0, 'deuda_ebitda_bueno': 0, 'deuda_ebitda_precaucion': 0, 'cobertura_intereses_excelente': 0, 'cobertura_intereses_bueno': 0, 'margen_excelente': 15, 'margen_bueno': 10, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90},
+    'Industrials': {'roic_excelente': 12, 'roic_bueno': 9, 'conversion_caja_excelente': 90, 'conversion_caja_bueno': 70, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_precaucion': 4.5, 'cobertura_intereses_excelente': 7, 'cobertura_intereses_bueno': 4, 'margen_excelente': 15, 'margen_bueno': 10, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Utilities': {'roic_excelente': 7, 'roic_bueno': 5, 'conversion_caja_excelente': 70, 'conversion_caja_bueno': 50, 'deuda_ebitda_bueno': 4, 'deuda_ebitda_precaucion': 6, 'cobertura_intereses_excelente': 4, 'cobertura_intereses_bueno': 2, 'margen_excelente': 15, 'margen_bueno': 12, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95},
+    'Consumer Discretionary': {'roic_excelente': 15, 'roic_bueno': 12, 'conversion_caja_excelente': 90, 'conversion_caja_bueno': 70, 'deuda_ebitda_bueno': 3.5, 'deuda_ebitda_precaucion': 5, 'cobertura_intereses_excelente': 7, 'cobertura_intereses_bueno': 4, 'margen_excelente': 12, 'margen_bueno': 8, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Consumer Staples': {'roic_excelente': 18, 'roic_bueno': 13, 'conversion_caja_excelente': 100, 'conversion_caja_bueno': 80, 'deuda_ebitda_bueno': 3.5, 'deuda_ebitda_precaucion': 5, 'cobertura_intereses_excelente': 8, 'cobertura_intereses_bueno': 5, 'margen_excelente': 15, 'margen_bueno': 10, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85},
+    'Energy': {'roic_excelente': 12, 'roic_bueno': 8, 'conversion_caja_excelente': 100, 'conversion_caja_bueno': 70, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_precaucion': 4, 'cobertura_intereses_excelente': 8, 'cobertura_intereses_bueno': 5, 'margen_excelente': 10, 'margen_bueno': 7, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Materials': {'roic_excelente': 12, 'roic_bueno': 9, 'conversion_caja_excelente': 80, 'conversion_caja_bueno': 60, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_precaucion': 4.5, 'cobertura_intereses_excelente': 7, 'cobertura_intereses_bueno': 4, 'margen_excelente': 12, 'margen_bueno': 8, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Real Estate': {'roic_excelente': 6, 'roic_bueno': 4, 'conversion_caja_excelente': 0, 'conversion_caja_bueno': 0, 'deuda_ebitda_bueno': 6, 'deuda_ebitda_precaucion': 8, 'cobertura_intereses_excelente': 3, 'cobertura_intereses_bueno': 1.5, 'margen_excelente': 20, 'margen_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100},
+    'Communication Services': {'roic_excelente': 14, 'roic_bueno': 10, 'conversion_caja_excelente': 90, 'conversion_caja_bueno': 70, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_precaucion': 4.5, 'cobertura_intereses_excelente': 6, 'cobertura_intereses_bueno': 4, 'margen_excelente': 18, 'margen_bueno': 12, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Default': {'roic_excelente': 12, 'roic_bueno': 10, 'conversion_caja_excelente': 80, 'conversion_caja_bueno': 60, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_precaucion': 5, 'cobertura_intereses_excelente': 6, 'cobertura_intereses_bueno': 4, 'margen_excelente': 15, 'margen_bueno': 10, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80}
 }
 
 # --- BLOQUE 1: OBTENCIÓN DE DATOS ---
@@ -50,15 +50,18 @@ def obtener_datos_completos(ticker):
     if not info or info.get('longName') is None:
         return None
     
+    # Datos básicos
     roe = info.get('returnOnEquity')
     op_margin = info.get('operatingMargins')
     payout = info.get('payoutRatio')
-    div_yield = 0
     dividend_rate = info.get('dividendRate')
     precio = info.get('currentPrice')
+    market_cap = info.get('marketCap')
+    free_cash_flow = info.get('freeCashflow')
+    net_income = info.get('netIncomeToCommon')
     
-    if dividend_rate and precio and precio > 0:
-        div_yield = (dividend_rate / precio)
+    # Cálculos derivados
+    div_yield = (dividend_rate / precio) if dividend_rate and precio and precio > 0 else 0
         
     if payout is not None and (payout > 1.5 or payout < 0):
         trailing_eps = info.get('trailingEps')
@@ -67,15 +70,46 @@ def obtener_datos_completos(ticker):
         else:
             payout = None
     
-    free_cash_flow = info.get('freeCashflow')
-    market_cap = info.get('marketCap')
     p_fcf = (market_cap / free_cash_flow) if market_cap and free_cash_flow and free_cash_flow > 0 else None
 
+    # --- NUEVOS DATOS ---
+    ebit = info.get('ebit')
+    total_debt = info.get('totalDebt')
+    total_equity = info.get('totalStockholderEquity')
+    tax_rate = info.get('effectiveTaxRate')
+    interest_expense = info.get('interestExpense')
     net_debt = info.get('netDebt')
     ebitda = info.get('ebitda')
-    deuda_ebitda = None
-    if net_debt and ebitda and ebitda > 0:
-        deuda_ebitda = net_debt / ebitda
+    
+    # ROIC
+    roic = None
+    if ebit and total_debt and total_equity and tax_rate:
+        invested_capital = total_debt + total_equity
+        if invested_capital > 0:
+            nopat = ebit * (1 - tax_rate)
+            roic = (nopat / invested_capital) * 100
+
+    # Cobertura de Intereses
+    interest_coverage = None
+    if ebit and interest_expense and interest_expense != 0:
+        interest_coverage = abs(ebit / interest_expense)
+
+    # Deuda Neta / EBITDA
+    deuda_ebitda = (net_debt / ebitda) if net_debt and ebitda and ebitda > 0 else None
+
+    # Conversión de Caja
+    cash_conversion = (free_cash_flow / net_income * 100) if free_cash_flow and net_income and net_income > 0 else 0
+
+    # Rentabilidad por Recompra
+    buybacks = None
+    try:
+        cashflow_df = stock.cashflow
+        if not cashflow_df.empty and 'Repurchase Of Stock' in cashflow_df.index:
+            buybacks = cashflow_df.loc['Repurchase Of Stock'].iloc[0] * -1 # Es un valor negativo
+    except Exception:
+        buybacks = None # Si falla, lo dejamos como None
+
+    buyback_yield = (buybacks / market_cap * 100) if buybacks and market_cap else 0
 
     descripcion_completa = info.get('longBusinessSummary', 'No disponible.')
     descripcion_corta = 'No disponible.'
@@ -106,7 +140,11 @@ def obtener_datos_completos(ticker):
         "bpa": info.get('trailingEps'),
         "crecimiento_beneficios": info.get('earningsGrowth'),
         "dividendo_por_accion": info.get('dividendRate'),
-        "deuda_ebitda": deuda_ebitda
+        "deuda_ebitda": deuda_ebitda,
+        "roic": roic,
+        "cobertura_intereses": interest_coverage,
+        "conversion_caja": cash_conversion,
+        "buyback_yield": buyback_yield
     }
 
 @st.cache_data(ttl=3600)
@@ -137,6 +175,13 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             capex = cashflow.get('Capital Expenditure', cashflow.get('Capital Expenditures', 0))
             op_cash = cashflow.get('Total Cash From Operating Activities', 0)
             financials['Free Cash Flow'] = op_cash + capex
+            shares_key = next((key for key in ['Basic Average Shares', 'Share Issued', 'Ordinary Shares Number'] if key in balance_sheet_raw.index), None)
+            if shares_key:
+                shares = balance_sheet.get(shares_key, 0)
+                financials['EPS'] = financials['Net Income'] / shares
+            else:
+                financials['EPS'] = 0
+
             financials_for_charts, dividends_for_charts = financials, dividends_chart_data
 
         hist_10y = stock.history(period="10y")
@@ -252,45 +297,45 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['geopolitico'], justificaciones['geopolitico'], puntuaciones['penalizador_geo'] = nota_geo, justificacion_geo, penalizador_geo
 
     nota_calidad = 0
-    if datos['roe'] > sector_bench['roe_excelente']: nota_calidad += 3
-    elif datos['roe'] > sector_bench['roe_bueno']: nota_calidad += 2
-    if datos['margen_operativo'] > sector_bench['margen_excelente']: nota_calidad += 3
-    elif datos['margen_operativo'] > sector_bench['margen_bueno']: nota_calidad += 2
-    if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): nota_calidad += 2
-    elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): nota_calidad += 1
-    if datos['crecimiento_ingresos'] > sector_bench['rev_growth_excelente']: nota_calidad += 2
-    elif datos['crecimiento_ingresos'] > sector_bench['rev_growth_bueno']: nota_calidad += 1
+    if datos.get('roic', 0) > sector_bench['roic_excelente']: nota_calidad += 3
+    elif datos.get('roic', 0) > sector_bench['roic_bueno']: nota_calidad += 2
+    if datos['margen_operativo'] > sector_bench['margen_excelente']: nota_calidad += 2
+    elif datos['margen_operativo'] > sector_bench['margen_bueno']: nota_calidad += 1
+    if datos.get('conversion_caja', 0) > sector_bench['conversion_caja_excelente']: nota_calidad += 3
+    elif datos.get('conversion_caja', 0) > sector_bench['conversion_caja_bueno']: nota_calidad += 2
+    if datos.get('crecimiento_ingresos', 0) > sector_bench.get('rev_growth_excelente', 10): nota_calidad += 2
+    elif datos.get('crecimiento_ingresos', 0) > sector_bench.get('rev_growth_bueno', 5): nota_calidad += 1
     puntuaciones['calidad'] = min(10, nota_calidad)
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
-    # --- LÓGICA DE SALUD FINANCIERA REBALANCEADA ---
     nota_salud = 0
     deuda_ratio = datos.get('deuda_patrimonio')
     SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
     
-    # Puntuación Deuda/Patrimonio (Max 4 puntos)
     if sector in SECTORES_ALTA_DEUDA:
         if isinstance(deuda_ratio, (int, float)):
-            if deuda_ratio < 150: nota_salud += 4
-            elif deuda_ratio < 250: nota_salud += 2
+            if deuda_ratio < 150: nota_salud += 3
+            elif deuda_ratio < 250: nota_salud += 1
     else:
         if isinstance(deuda_ratio, (int, float)):
-            if deuda_ratio < 40: nota_salud += 4
+            if deuda_ratio < 40: nota_salud += 3
             elif deuda_ratio < 80: nota_salud += 2
     
-    # Puntuación Ratio Corriente (Max 3 puntos)
     ratio_corriente = datos.get('ratio_corriente')
     if isinstance(ratio_corriente, (int, float)):
-        if ratio_corriente > 2.0: nota_salud += 3
-        elif ratio_corriente > 1.5: nota_salud += 2
-        elif ratio_corriente > 1.0: nota_salud += 1
+        if ratio_corriente > 2.0: nota_salud += 2
+        elif ratio_corriente > 1.5: nota_salud += 1
 
-    # Puntuación Deuda Neta/EBITDA (Max 3 puntos)
     deuda_ebitda = datos.get('deuda_ebitda')
-    if isinstance(deuda_ebitda, (int, float)):
-        if deuda_ebitda < 3: nota_salud += 3
-        elif deuda_ebitda < 5: nota_salud += 1
+    if isinstance(deuda_ebitda, (int, float)) and sector != 'Financial Services':
+        if deuda_ebitda < sector_bench['deuda_ebitda_bueno']: nota_salud += 3
+        elif deuda_ebitda < sector_bench['deuda_ebitda_precaucion']: nota_salud += 1
     
+    cobertura_intereses = datos.get('cobertura_intereses')
+    if isinstance(cobertura_intereses, (int, float)) and sector != 'Financial Services':
+        if cobertura_intereses > sector_bench['cobertura_intereses_excelente']: nota_salud += 2
+        elif cobertura_intereses > sector_bench['cobertura_intereses_bueno']: nota_salud += 1
+
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
@@ -353,46 +398,17 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Valoración muy atractiva desde múltiples ángulos."
     else: justificaciones['valoracion'] = "Valoración razonable o exigente."
 
-    nota_dividendos = 0
-    if datos['yield_dividendo'] > 3.5: nota_dividendos += 4
-    elif datos['yield_dividendo'] > 2: nota_dividendos += 2
-    if 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 4
-    elif 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
+    nota_retorno = 0
+    if datos['yield_dividendo'] > 3.5: nota_retorno += 3
+    elif datos['yield_dividendo'] > 2: nota_retorno += 2
+    if 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_retorno += 3
+    elif 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_retorno += 1
+    if datos.get('buyback_yield', 0) > 2: nota_retorno += 2
+    elif datos.get('buyback_yield', 0) > 0: nota_retorno += 1
     if hist_data.get('yield_hist') and datos['yield_dividendo'] > hist_data['yield_hist']:
-        nota_dividendos += 2
-    puntuaciones['dividendos'] = min(10, nota_dividendos)
-    justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
-    
-    justificaciones['blue_chip_analysis'] = None
-    current_yield = datos.get('yield_dividendo')
-    historical_yield = hist_data.get('yield_hist')
-    current_per = datos.get('per')
-    historical_per = hist_data.get('per_hist')
-
-    if current_yield and historical_yield and current_per and historical_per:
-        per_is_lower = current_per < historical_per
-        yield_is_higher = current_yield > historical_yield
-        
-        if per_is_lower and yield_is_higher:
-            per_is_much_lower = current_per < historical_per * 0.8
-            yield_is_much_higher = current_yield > historical_yield * 1.2
-
-            if per_is_much_lower and yield_is_much_higher:
-                analysis = "🟢 Muy Interesante"
-                description = "Tanto el PER está significativamente por debajo de su media como el Yield está muy por encima. Señal de valoración muy atractiva."
-            else:
-                analysis = "🟡 Interesante"
-                description = "El PER está por debajo de su media y el Yield por encima. Señal de valoración atractiva."
-            
-            justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
-
-        elif per_is_lower or yield_is_higher:
-            analysis = "🔵 Señal Mixta"
-            if per_is_lower:
-                description = "El PER es inferior a su media, pero el Yield no es superior. Señal de valoración parcialmente positiva."
-            else:
-                description = "El Yield es superior a su media, pero el PER no es inferior. Señal de valoración parcialmente positiva."
-            justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
+        nota_retorno += 2
+    puntuaciones['retorno_accionista'] = min(10, nota_retorno)
+    justificaciones['retorno_accionista'] = "Excelente retorno al accionista (dividendos y recompras)." if puntuaciones['retorno_accionista'] >= 8 else "Sólido retorno al accionista."
     
     bpa = datos.get('bpa')
     crecimiento = datos.get('crecimiento_beneficios')
@@ -418,12 +434,12 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
 def crear_grafico_radar(puntuaciones, score):
-    labels = ['Calidad', 'Valoración', 'Salud Fin.', 'Dividendos']
+    labels = ['Calidad', 'Valoración', 'Salud Fin.', 'Retorno Acc.']
     stats = [
         puntuaciones.get('calidad', 0), 
         puntuaciones.get('valoracion', 0), 
         puntuaciones.get('salud', 0), 
-        puntuaciones.get('dividendos', 0)
+        puntuaciones.get('retorno_accionista', 0)
     ]
 
     angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
@@ -505,9 +521,8 @@ def crear_graficos_financieros(ticker, financials, dividends):
         ax2.set_title('2. Rentabilidad')
         ax2.legend(handles=[line1, line2])
 
-        axs[1, 0].bar(años, financials['Net Income'] / 1e9, label='Beneficio Neto (B)', color='royalblue')
-        axs[1, 0].plot(años, financials['Free Cash Flow'] / 1e9, label='FCF (B)', color='green', marker='o', linestyle='--')
-        axs[1, 0].set_title('3. Beneficio vs. Caja Real'); axs[1, 0].legend()
+        axs[1, 0].bar(años, financials['EPS'], label='BPA/EPS', color='lightgreen')
+        axs[1, 0].set_title('3. Evolución del Beneficio por Acción'); axs[1, 0].legend()
 
         if dividends is not None and not dividends.empty:
             axs[1, 1].bar(dividends.index.year, dividends, label='Dividendo/Acción', color='orange')
@@ -632,14 +647,14 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     highlight_style = 'style="background-color: #FFFF00; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
 
     # --- Leyenda de Calidad ---
-    roe = datos.get('roe', 0)
-    l_roe_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['roe_excelente']}%"
-    l_roe_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['roe_bueno']}%"
-    l_roe_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['roe_bueno']}%"
+    roic = datos.get('roic', 0)
+    l_roic_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['roic_excelente']}%"
+    l_roic_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['roic_bueno']}%"
+    l_roic_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['roic_bueno']}%"
     
-    l_roe_exc = f"<span {highlight_style}>{l_roe_exc_raw}</span>" if roe > sector_bench['roe_excelente'] else l_roe_exc_raw
-    l_roe_bueno = f"<span {highlight_style}>{l_roe_bueno_raw}</span>" if sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'] else l_roe_bueno_raw
-    l_roe_alerta = f"<span {highlight_style}>{l_roe_alerta_raw}</span>" if roe <= sector_bench['roe_bueno'] else l_roe_alerta_raw
+    l_roic_exc = f"<span {highlight_style}>{l_roic_exc_raw}</span>" if roic > sector_bench['roic_excelente'] else l_roic_exc_raw
+    l_roic_bueno = f"<span {highlight_style}>{l_roic_bueno_raw}</span>" if sector_bench['roic_bueno'] < roic <= sector_bench['roic_excelente'] else l_roic_bueno_raw
+    l_roic_alerta = f"<span {highlight_style}>{l_roic_alerta_raw}</span>" if roic <= sector_bench['roic_bueno'] else l_roic_alerta_raw
 
     margen_op = datos.get('margen_operativo', 0)
     l_mop_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['margen_excelente']}%"
@@ -649,40 +664,27 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     l_mop_bueno = f"<span {highlight_style}>{l_mop_bueno_raw}</span>" if sector_bench['margen_bueno'] < margen_op <= sector_bench['margen_excelente'] else l_mop_bueno_raw
     l_mop_alerta = f"<span {highlight_style}>{l_mop_alerta_raw}</span>" if margen_op <= sector_bench['margen_bueno'] else l_mop_alerta_raw
     
-    margen_neto = datos.get('margen_beneficio', 0)
-    l_mneto_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['margen_neto_excelente']}%"
-    l_mneto_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['margen_neto_bueno']}%"
-    l_mneto_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['margen_neto_bueno']}%"
-    l_mneto_exc = f"<span {highlight_style}>{l_mneto_exc_raw}</span>" if margen_neto > sector_bench['margen_neto_excelente'] else l_mneto_exc_raw
-    l_mneto_bueno = f"<span {highlight_style}>{l_mneto_bueno_raw}</span>" if sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'] else l_mneto_bueno_raw
-    l_mneto_alerta = f"<span {highlight_style}>{l_mneto_alerta_raw}</span>" if margen_neto <= sector_bench['margen_neto_bueno'] else l_mneto_alerta_raw
-
-    rev_growth = datos.get('crecimiento_ingresos', 0)
-    l_rev_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['rev_growth_excelente']}%"
-    l_rev_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['rev_growth_bueno']}%"
-    l_rev_lento_raw = f"<strong>Lento/Negativo:</strong> < {sector_bench['rev_growth_bueno']}%"
-
-    l_rev_exc = f"<span {highlight_style}>{l_rev_exc_raw}</span>" if rev_growth > sector_bench['rev_growth_excelente'] else l_rev_exc_raw
-    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_lento_raw
-    l_rev_lento = f"<span {highlight_style}>{l_rev_lento_raw}</span>" if rev_growth <= sector_bench['rev_growth_bueno'] else l_rev_lento_raw
+    conversion_caja = datos.get('conversion_caja', 0)
+    l_cc_exc_raw = "<strong>Excelente:</strong> > 100%"
+    l_cc_bueno_raw = "<strong>Bueno:</strong> > 80%"
+    l_cc_alerta_raw = "<strong>Alerta:</strong> < 80%"
+    l_cc_exc = f"<span {highlight_style}>{l_cc_exc_raw}</span>" if conversion_caja > 100 else l_cc_exc_raw
+    l_cc_bueno = f"<span {highlight_style}>{l_cc_bueno_raw}</span>" if 80 < conversion_caja <= 100 else l_cc_bueno_raw
+    l_cc_alerta = f"<span {highlight_style}>{l_cc_alerta_raw}</span>" if conversion_caja <= 80 else l_cc_alerta_raw
 
     leyenda_calidad = f"""
-    - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, los rangos son:
-        - {l_roe_exc}
-        - {l_roe_bueno}
-        - {l_roe_alerta}
-    - **Margen Operativo:** Mide el beneficio de la actividad principal de la empresa, antes de impuestos e intereses.
+    - **ROIC (Retorno sobre Capital Invertido):** Mide la rentabilidad real del negocio sobre todo el capital (deuda + patrimonio). Es un indicador clave de calidad.
+        - {l_roic_exc}
+        - {l_roic_bueno}
+        - {l_roic_alerta}
+    - **Margen Operativo:** Mide el beneficio de la actividad principal de la empresa.
         - {l_mop_exc}
         - {l_mop_bueno}
         - {l_mop_alerta}
-    - **Margen Neto:** Mide el beneficio final que queda para el accionista después de todos los gastos, impuestos e intereses.
-        - {l_mneto_exc}
-        - {l_mneto_bueno}
-        - {l_mneto_alerta}
-    - **Crecimiento Ingresos (YoY):** Mide el crecimiento de las ventas año a año. Para el sector **{datos['sector'].upper()}**, los rangos son:
-        - {l_rev_exc}
-        - {l_rev_bueno}
-        - {l_rev_lento}
+    - **Conversión de Caja (FCF/Beneficio):** Mide qué % del beneficio se convierte en dinero real.
+        - {l_cc_exc}
+        - {l_cc_bueno}
+        - {l_cc_alerta}
     """
 
     deuda_ratio = datos.get('deuda_patrimonio')
@@ -740,10 +742,26 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         - {l_de_precaucion}
         - {l_de_riesgo}"""
 
+    cobertura_intereses = datos.get('cobertura_intereses')
+    leyenda_cobertura = ""
+    if isinstance(cobertura_intereses, (int, float)):
+        l_ci_excelente_raw = "<strong>Excelente:</strong> > 8x"
+        l_ci_buena_raw = "<strong>Buena:</strong> > 4x"
+        l_ci_alerta_raw = "<strong>Alerta:</strong> < 4x"
+        l_ci_excelente = f"<span {highlight_style}>{l_ci_excelente_raw}</span>" if cobertura_intereses > 8 else l_ci_excelente_raw
+        l_ci_buena = f"<span {highlight_style}>{l_ci_buena_raw}</span>" if 4 < cobertura_intereses <= 8 else l_ci_buena_raw
+        l_ci_alerta = f"<span {highlight_style}>{l_ci_alerta_raw}</span>" if cobertura_intereses <= 4 else l_ci_alerta_raw
+        leyenda_cobertura = f"""- **Cobertura de Intereses:** Mide cuántas veces puede pagar los intereses de su deuda con su beneficio operativo.
+        - {l_ci_excelente}
+        - {l_ci_buena}
+        - {l_ci_alerta}"""
+
+
     leyenda_salud = f"""
     {leyenda_deuda}
     {leyenda_liquidez}
     {leyenda_deuda_ebitda}
+    {leyenda_cobertura}
     """
 
     per = datos.get('per')
@@ -872,19 +890,6 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     else:
         leyenda_payout_intro = f"Indica qué % del beneficio se destina a dividendos. Para el sector **{datos['sector'].upper()}**, los rangos son:"
 
-    blue_chip_analysis_data = justificaciones.get('blue_chip_analysis') or {}
-    blue_chip_status = blue_chip_analysis_data.get('label', '')
-    
-    l_bc_muy_int_raw = "<strong>🟢 Muy Interesante:</strong> PER actual < 80% del histórico Y Yield actual > 120% del histórico."
-    l_bc_int_raw = "<strong>🟡 Interesante:</strong> PER actual < histórico Y Yield actual > histórico."
-    l_bc_mixta_raw = "<strong>🔵 Señal Mixta:</strong> Solo una de las dos condiciones anteriores se cumple."
-    l_bc_neutral_raw = "<strong>⚪ Neutral:</strong> Ninguna de las condiciones anteriores se cumple."
-
-    l_bc_muy_int = f"<span {highlight_style}>{l_bc_muy_int_raw}</span>" if "Muy Interesante" in blue_chip_status else l_bc_muy_int_raw
-    l_bc_int = f"<span {highlight_style}>{l_bc_int_raw}</span>" if "Interesante" in blue_chip_status and "Muy" not in blue_chip_status else l_bc_int_raw
-    l_bc_mixta = f"<span {highlight_style}>{l_bc_mixta_raw}</span>" if "Mixta" in blue_chip_status else l_bc_mixta_raw
-    l_bc_neutral = f"<span {highlight_style}>{l_bc_neutral_raw}</span>" if not blue_chip_status or "Neutral" in blue_chip_status else l_bc_neutral_raw
-
     leyenda_dividendos = f"""
     - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos sobre el precio de la acción.
         - {l_yield_exc}
@@ -894,11 +899,6 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         - {l_pay_sal}
         - {l_pay_pre}
         - {l_pay_pel}
-    - **Análisis de Valor 'Blue Chip':** Compara la valoración actual con su media histórica para detectar oportunidades.
-        - {l_bc_muy_int}
-        - {l_bc_int}
-        - {l_bc_mixta}
-        - {l_bc_neutral}
     """
     
     leyenda_tecnico = ""
@@ -1038,7 +1038,7 @@ if st.button('Analizar Acción'):
                     tech_data = hist_data.get('tech_data')
                     leyendas = generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones, tech_data)
                     
-                    pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
+                    pesos = {'calidad': 0.35, 'valoracion': 0.25, 'salud': 0.25, 'retorno_accionista': 0.15}
                     nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
                     nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
 
@@ -1079,11 +1079,11 @@ if st.button('Analizar Acción'):
                             st.caption(justificaciones['calidad'])
                             c1, c2 = st.columns(2)
                             with c1:
-                                mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
-                                mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
-                            with c2:
+                                mostrar_metrica_con_color("🏆 ROIC", datos['roic'], sector_bench['roic_excelente'], sector_bench['roic_bueno'], is_percent=True)
                                 mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
-                                mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'], is_percent=True)
+                            with c2:
+                                mostrar_metrica_con_color("💵 Conversión de Caja", datos['conversion_caja'], sector_bench['conversion_caja_excelente'], sector_bench['conversion_caja_bueno'], is_percent=True)
+                                mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos.get('crecimiento_ingresos', 0), sector_bench.get('rev_growth_excelente', 10), sector_bench.get('rev_growth_bueno', 5), is_percent=True)
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['calidad'], unsafe_allow_html=True)
                     with col2:
@@ -1097,7 +1097,10 @@ if st.button('Analizar Acción'):
                             with s2: 
                                 mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                             with s3:
-                                mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], 3, 5, lower_is_better=True)
+                                mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_precaucion'], lower_is_better=True)
+                            
+                            st.markdown("---")
+                            mostrar_metrica_con_color("🛡️ Cobertura de Intereses", datos['cobertura_intereses'], sector_bench['cobertura_intereses_excelente'], sector_bench['cobertura_intereses_bueno'])
 
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['salud'], unsafe_allow_html=True)
@@ -1159,20 +1162,21 @@ if st.button('Analizar Acción'):
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
                     
-                    if datos['yield_dividendo'] > 0:
-                        with st.container(border=True):
-                            st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
-                            st.caption(justificaciones['dividendos'])
-                            
-                            div1, div2 = st.columns(2)
-                            with div1: 
-                                mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
-                                mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
-                            with div2:
-                                mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
-                            
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
+                    with st.container(border=True):
+                        st.subheader(f"Retorno al Accionista [{puntuaciones['retorno_accionista']}/10]")
+                        st.caption(justificaciones['retorno_accionista'])
+                        
+                        div1, div2 = st.columns(2)
+                        with div1: 
+                            mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
+                            mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
+                        with div2:
+                            mostrar_metrica_con_color("🛍️ Rent. por Recompra", datos['buyback_yield'], 2, 0, is_percent=True)
+                            total_yield = datos.get('yield_dividendo', 0) + datos.get('buyback_yield', 0)
+                            mostrar_metrica_con_color("📈 Retorno Total", total_yield, 5, 3, is_percent=True)
+                        
+                        with st.expander("Ver Leyenda Detallada"):
+                            st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
                     
                     with st.container(border=True):
                         st.subheader("Potencial de Revalorización (Márgenes de Seguridad)")
