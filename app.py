@@ -233,7 +233,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     
     sector_bench = SECTOR_BENCHMARKS.get(sector, SECTOR_BENCHMARKS['Default'])
     
-    # --- ¡CORRECCIÓN! Hong Kong movido a la lista de 'PRECAUCIÓN' ---
     paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland', 'Austria', 'Belgium', 'Luxembourg', 'Singapore']
     paises_precaucion = ['Spain', 'Italy', 'South Korea', 'Taiwan', 'India', 'Chile', 'Poland', 'Czech Republic', 'Portugal', 'Israel', 'United Arab Emirates', 'Qatar', 'Malaysia', 'Thailand', 'Saudi Arabia', 'Kuwait', 'Hong Kong']
     paises_alto_riesgo = ['China', 'Brazil', 'Russia', 'Argentina', 'Turkey', 'Mexico', 'South Africa', 'Indonesia', 'Vietnam', 'Nigeria', 'Egypt', 'Pakistan', 'Colombia', 'Peru', 'Philippines']
@@ -572,7 +571,7 @@ def get_recommendation_html(recommendation):
         color_class = "color-orange"
         display_text = "Neutral"
     
-    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>', unsafe_allow_html=True)
+    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
 
 def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent=False, lower_is_better=False):
     color_class = "color-orange" # Neutral/orange for equal values
