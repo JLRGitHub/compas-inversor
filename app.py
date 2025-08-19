@@ -457,7 +457,7 @@ def crear_grafico_tecnico(data):
     ax1.set_facecolor('#0E1117')
     ax1.plot(data.index, data['Close'], label='Precio', color='#87CEEB', linewidth=2)
     ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--')
-    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF4500', linestyle='--')
+    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#dc3545', linestyle='--')
     ax1.set_title('Análisis Técnico del Precio (Último Año)', color='white')
     ax1.legend()
     ax1.grid(color='gray', linestyle='--', linewidth=0.5)
