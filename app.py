@@ -1,3 +1,16 @@
+# app.py
+# -----------------------------------------------------------------------------
+# El Analizador de Acciones de Sr. Outfit - v52.1 (Cálculo Histórico Corregido)
+# -----------------------------------------------------------------------------
+#
+# Para ejecutar esta aplicación:
+# 1. Guarda este código como 'app.py'.
+# 2. Abre una terminal y ejecuta: pip install streamlit yfinance matplotlib numpy pandas
+# 3. En la misma terminal, navega a la carpeta donde guardaste el archivo y ejecuta:
+#    streamlit run app.py
+#
+# -----------------------------------------------------------------------------
+
 import streamlit as st
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -28,18 +41,18 @@ st.markdown("""
 
 # --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
-    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'rev_growth_excelente': 15, 'rev_growth_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'rev_growth_excelente': 10, 'rev_growth_bueno': 6, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90},
-    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 5, 'rev_growth_bueno': 3, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95},
-    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 7, 'rev_growth_bueno': 4, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85},
-    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 8, 'rev_growth_bueno': 0, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100},
-    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80},
-    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80}
+    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 20, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'per_barato': 12, 'per_justo': 18, 'payout_bueno': 70, 'payout_aceptable': 90},
+    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 22, 'payout_bueno': 80, 'payout_aceptable': 95},
+    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 28, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 70, 'payout_aceptable': 85},
+    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 15, 'per_justo': 20, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'payout_bueno': 90, 'payout_aceptable': 100},
+    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'per_barato': 22, 'per_justo': 30, 'payout_bueno': 60, 'payout_aceptable': 80},
+    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'payout_bueno': 60, 'payout_aceptable': 80}
 }
 
 # --- BLOQUE 1: OBTENCIÓN DE DATOS ---
@@ -47,8 +60,7 @@ SECTOR_BENCHMARKS = {
 def obtener_datos_completos(ticker):
     stock = yf.Ticker(ticker)
     info = stock.info
-    if not info or info.get('longName') is None:
-        return None
+    if not info or info.get('longName') is None: return None
     
     roe = info.get('returnOnEquity')
     op_margin = info.get('operatingMargins')
@@ -81,8 +93,6 @@ def obtener_datos_completos(ticker):
         "deuda_patrimonio": info.get('debtToEquity'), "ratio_corriente": info.get('currentRatio'), 
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'), 
         "p_fcf": p_fcf,
-        "raw_fcf": free_cash_flow, # Dato raw para chequear si es negativo
-        "p_b": info.get('priceToBook'),
         "crecimiento_ingresos": info.get('revenueGrowth', 0) * 100,
         "yield_dividendo": div_yield * 100 if div_yield is not None else 0,
         "payout_ratio": payout * 100 if payout is not None else 0,
@@ -94,12 +104,7 @@ def obtener_datos_completos(ticker):
 def obtener_datos_historicos_y_tecnicos(ticker):
     try:
         stock = yf.Ticker(ticker)
-        info = stock.info
         
-        if not isinstance(info, dict) or not info:
-            st.warning(f"No se pudo obtener la información básica para {ticker}. El ticker podría no ser válido o estar delistado.")
-            return {}
-
         financials_raw = stock.financials
         balance_sheet_raw = stock.balance_sheet
         cashflow_raw = stock.cashflow
@@ -122,61 +127,31 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 
         hist_10y = stock.history(period="10y")
         
-        if hist_10y.empty:
-            st.warning(f"No se encontraron datos históricos de precios para {ticker}. El análisis técnico y de valoración histórica no estará disponible.")
-            return {
-                "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
-                "per_hist": None, "pfcf_hist": None, "yield_hist": None, "pb_hist": None,
-                "tech_data": pd.DataFrame()
-            }
-
-        # --- CÁLCULO DE MÉTRICAS HISTÓRICAS (VERSIÓN SIMPLIFICADA Y ESTABLE) ---
-        pers, pfcfs, pbs = [], [], []
-        
+        pers, pfcfs = [], []
         possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
         share_key_found = next((key for key in possible_share_keys if key in balance_sheet_raw.index), None)
-        
-        net_income_key = 'Net Income Applicable To Common Shares' if 'Net Income Applicable To Common Shares' in financials_raw.index else 'Net Income'
         
         if not financials_raw.empty and share_key_found:
             for col_date in financials_raw.columns:
                 if col_date in balance_sheet_raw.columns and col_date in cashflow_raw.columns:
-                    net_income = financials_raw.loc[net_income_key, col_date]
-                    fcf = cashflow_raw.loc['Free Cash Flow', col_date] if 'Free Cash Flow' in cashflow_raw.index else None
+                    net_income = financials_raw.loc['Net Income', col_date]
+                    fcf = cashflow_raw.loc['Free Cash Flow', col_date]
                     shares = balance_sheet_raw.loc[share_key_found, col_date]
-                    book_value = balance_sheet_raw.loc['Total Stockholder Equity', col_date] if 'Total Stockholder Equity' in balance_sheet_raw.index else None
 
                     if pd.notna(shares) and shares > 0:
-                        start_of_year = col_date - pd.DateOffset(years=1)
-                        price_data_year = stock.history(start=start_of_year, end=col_date, interval="1d")
-
-                        if not price_data_year.empty:
-                            average_price_for_year = price_data_year['Close'].mean()
-                            
+                        price_data = stock.history(start=col_date, end=col_date + pd.Timedelta(days=5), interval="1d")
+                        if not price_data.empty:
+                            price = price_data['Close'].iloc[0]
+                            market_cap = price * shares
                             if pd.notna(net_income) and net_income > 0:
-                                eps = net_income / shares
-                                if eps > 0:
-                                    per_for_year = average_price_for_year / eps
-                                    if 0 < per_for_year < 200: 
-                                        pers.append(per_for_year)
-
+                                per = market_cap / net_income
+                                if 0 < per < 100: pers.append(per)
                             if pd.notna(fcf) and fcf > 0:
-                                fcf_per_share = fcf / shares
-                                if fcf_per_share > 0:
-                                    pfcf_for_year = average_price_for_year / fcf_per_share
-                                    if 0 < pfcf_for_year < 200:
-                                        pfcfs.append(pfcf_for_year)
-                            
-                            if pd.notna(book_value) and book_value > 0:
-                                book_value_per_share = book_value / shares
-                                if book_value_per_share > 0:
-                                    pb_for_year = average_price_for_year / book_value_per_share
-                                    if 0 < pb_for_year < 200:
-                                        pbs.append(pb_for_year)
+                                pfcf = market_cap / fcf
+                                if 0 < pfcf < 100: pfcfs.append(pfcf)
         
         per_historico = np.mean(pers) if pers else None
         pfcf_historico = np.mean(pfcfs) if pfcfs else None
-        pb_historico = np.mean(pbs) if pbs else None
         
         yield_historico = None
         divs_10y = stock.dividends.loc[hist_10y.index[0]:]
@@ -209,7 +184,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "per_hist": per_historico,
             "pfcf_hist": pfcf_historico,
             "yield_hist": yield_historico,
-            "pb_hist": pb_historico,
             "tech_data": hist_1y
         }
     except Exception:
@@ -218,7 +192,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
     banderas = []
-    if datos.get('sector') != 'Real Estate' and datos.get('payout_ratio', 0) > 100:
+    if datos['payout_ratio'] > 100:
         banderas.append("🔴 **Payout Peligroso:** El ratio de reparto de dividendos es superior al 100%.")
     if financials is not None and not financials.empty:
         if 'Operating Margin' in financials.columns and len(financials) >= 3 and (financials['Operating Margin'].diff().iloc[-2:] < 0).all():
@@ -233,8 +207,8 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     
     sector_bench = SECTOR_BENCHMARKS.get(sector, SECTOR_BENCHMARKS['Default'])
     
-    paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland', 'Austria', 'Belgium', 'Luxembourg', 'Singapore']
-    paises_precaucion = ['Spain', 'Italy', 'South Korea', 'Taiwan', 'India', 'Chile', 'Poland', 'Czech Republic', 'Portugal', 'Israel', 'United Arab Emirates', 'Qatar', 'Malaysia', 'Thailand', 'Saudi Arabia', 'Kuwait', 'Hong Kong']
+    paises_seguros = ['United States', 'Canada', 'Germany', 'Switzerland', 'Netherlands', 'United Kingdom', 'France', 'Denmark', 'Sweden', 'Norway', 'Finland', 'Australia', 'New Zealand', 'Japan', 'Ireland', 'Austria', 'Belgium', 'Luxembourg', 'Singapore', 'Hong Kong']
+    paises_precaucion = ['Spain', 'Italy', 'South Korea', 'Taiwan', 'India', 'Chile', 'Poland', 'Czech Republic', 'Portugal', 'Israel', 'United Arab Emirates', 'Qatar', 'Malaysia', 'Thailand', 'Saudi Arabia', 'Kuwait']
     paises_alto_riesgo = ['China', 'Brazil', 'Russia', 'Argentina', 'Turkey', 'Mexico', 'South Africa', 'Indonesia', 'Vietnam', 'Nigeria', 'Egypt', 'Pakistan', 'Colombia', 'Peru', 'Philippines']
     
     nota_geo, justificacion_geo, penalizador_geo = 10, "Jurisdicción estable y predecible.", 0
@@ -250,28 +224,19 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     elif datos['margen_operativo'] > sector_bench['margen_bueno']: nota_calidad += 2
     if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): nota_calidad += 2
     elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): nota_calidad += 1
-    if datos['crecimiento_ingresos'] > sector_bench['rev_growth_excelente']: nota_calidad += 2
-    elif datos['crecimiento_ingresos'] > sector_bench['rev_growth_bueno']: nota_calidad += 1
+    if datos['crecimiento_ingresos'] > 15: nota_calidad += 2
+    elif datos['crecimiento_ingresos'] > 8: nota_calidad += 1
     puntuaciones['calidad'] = min(10, nota_calidad)
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
-    # --- LÓGICA DE DEUDA INTELIGENTE POR SECTOR ---
     nota_salud = 0
     deuda_ratio = datos['deuda_patrimonio']
-    SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
-    
-    if sector in SECTORES_ALTA_DEUDA:
-        if isinstance(deuda_ratio, (int, float)):
-            if deuda_ratio < 150: nota_salud = 8
-            elif deuda_ratio < 250: nota_salud = 6
-            else: nota_salud = 4
+    if sector in ['Financials', 'Utilities']: nota_salud, justificaciones['salud'] = 7, "Sector intensivo en capital."
+    elif isinstance(deuda_ratio, (int, float)):
+        if deuda_ratio < 40: nota_salud = 8
+        elif deuda_ratio < 80: nota_salud = 6
         else: nota_salud = 4
-    else:
-        if isinstance(deuda_ratio, (int, float)):
-            if deuda_ratio < 40: nota_salud = 8
-            elif deuda_ratio < 80: nota_salud = 6
-            else: nota_salud = 4
-        else: nota_salud = 4
+    else: nota_salud = 4
     
     ratio_corriente = datos['ratio_corriente']
     if isinstance(ratio_corriente, (int, float)):
@@ -281,23 +246,14 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
-    # --- LÓGICA DE VALORACIÓN CON P/B Y FCF NEGATIVO ---
     nota_multiplos = 0
     if sector == 'Real Estate':
-        if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos += 8
-        elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos += 5
+        if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos = 10
+        elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos = 6
     else:
-        if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
-        if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 3
-        
-    SECTORES_PB_RELEVANTES = ['Financial Services', 'Industrials', 'Materials', 'Energy', 'Utilities', 'Real Estate']
-    if sector in SECTORES_PB_RELEVANTES and datos['p_b']:
-        if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 3
-        elif datos['p_b'] < sector_bench['pb_justo']: nota_multiplos += 1
+        if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 5
+        if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 5
     
-    if datos.get('raw_fcf') is not None and datos['raw_fcf'] < 0:
-        nota_multiplos -= 3
-
     nota_analistas, margen_seguridad = 0, 0
     if datos['precio_actual'] and datos['precio_objetivo']:
         margen_seguridad = ((datos['precio_objetivo'] - datos['precio_actual']) / datos['precio_actual']) * 100
@@ -306,29 +262,15 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         else: nota_analistas = 5
     puntuaciones['margen_seguridad_analistas'] = margen_seguridad
 
-    # --- ¡NUEVO! Tres márgenes de seguridad históricos ---
-    potencial_per, potencial_yield, potencial_pb = 0, 0, 0
+    nota_historica, potencial_per = 0, 0
     per_historico = hist_data.get('per_hist')
     if per_historico and datos['per'] and datos['per'] > 0:
         potencial_per = ((per_historico / datos['per']) - 1) * 100
-    puntuaciones['margen_seguridad_per'] = potencial_per
-
-    yield_historico = hist_data.get('yield_hist')
-    if yield_historico and datos['yield_dividendo'] and yield_historico > 0:
-        potencial_yield = ((datos['yield_dividendo'] / yield_historico) - 1) * 100
-    puntuaciones['margen_seguridad_yield'] = potencial_yield
+        if potencial_per > 30: nota_historica = 10
+        elif potencial_per > 15: nota_historica = 8
+        else: nota_historica = 5
+    puntuaciones['margen_seguridad_historico'] = potencial_per
     
-    pb_historico = hist_data.get('pb_hist')
-    if pb_historico and datos['p_b'] and datos['p_b'] > 0:
-        potencial_pb = ((pb_historico / datos['p_b']) - 1) * 100
-    puntuaciones['margen_seguridad_pb'] = potencial_pb
-    
-    nota_historica = 0
-    if potencial_per > 15: nota_historica += 3
-    if potencial_yield > 15: nota_historica += 3
-    if potencial_pb > 15: nota_historica += 3
-    nota_historica = min(10, nota_historica)
-
     nota_valoracion_base = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
     
     per_actual = datos.get('per')
@@ -338,11 +280,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
             nota_valoracion_base += 1
         elif per_adelantado > per_actual:
             nota_valoracion_base -= 1
-
-    if puntuaciones['calidad'] < 3:
-        nota_valoracion_base *= 0.5
-    elif puntuaciones['calidad'] < 5:
-        nota_valoracion_base *= 0.75
 
     puntuaciones['valoracion'] = max(0, min(10, nota_valoracion_base))
     if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Valoración muy atractiva desde múltiples ángulos."
@@ -358,39 +295,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
-    justificaciones['blue_chip_analysis'] = None
-    current_yield = datos.get('yield_dividendo')
-    historical_yield = hist_data.get('yield_hist')
-    current_per = datos.get('per')
-    historical_per = hist_data.get('per_hist')
-
-    if current_yield and historical_yield and current_per and historical_per:
-        per_is_lower = current_per < historical_per
-        yield_is_higher = current_yield > historical_yield
-        
-        if per_is_lower and yield_is_higher:
-            per_is_much_lower = current_per < historical_per * 0.8
-            yield_is_much_higher = current_yield > historical_yield * 1.2
-
-            if per_is_much_lower and yield_is_much_higher:
-                analysis = "🟢 Muy Interesante"
-                description = "Tanto el PER está significativamente por debajo de su media como el Yield está muy por encima. Señal de valoración muy atractiva."
-            else:
-                analysis = "🟡 Interesante"
-                description = "El PER está por debajo de su media y el Yield por encima. Señal de valoración atractiva."
-            
-            justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
-
-        elif per_is_lower or yield_is_higher:
-            analysis = "🔵 Señal Mixta"
-            if per_is_lower:
-                description = "El PER es inferior a su media, pero el Yield no es superior. Señal de valoración parcialmente positiva."
-            else:
-                description = "El Yield es superior a su media, pero el PER no es inferior. Señal de valoración parcialmente positiva."
-            justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
-
     return puntuaciones, justificaciones, SECTOR_BENCHMARKS
-
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
 def crear_grafico_radar(puntuaciones):
@@ -406,7 +311,7 @@ def crear_grafico_radar(puntuaciones):
     stats = np.concatenate((stats,[stats[0]]))
     angles = np.concatenate((angles,[angles[0]]))
 
-    fig, ax = plt.subplots(figsize=(2.5, 2.5), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(3, 3), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
     
@@ -424,7 +329,7 @@ def crear_grafico_radar(puntuaciones):
     return fig
 
 def crear_grafico_gauge(score):
-    fig, ax = plt.subplots(figsize=(2.5, 1.5))
+    fig, ax = plt.subplots(figsize=(3, 1.8))
     fig.patch.set_facecolor('#0E1117')
     
     colors = ['#dc3545', '#fd7e14', '#28a745']
@@ -432,16 +337,9 @@ def crear_grafico_gauge(score):
 
     ax.pie([*values, sum(values)], colors=[*colors, '#0E1117'], startangle=180, counterclock=False, radius=1, wedgeprops={'width':0.3})
     
-    if score >= 7.5:
-        arrow_color = '#28a745' # green
-    elif score >= 6:
-        arrow_color = '#fd7e14' # orange
-    else:
-        arrow_color = '#dc3545' # red
-
     angle = (1 - score / 10) * 180
     ax.arrow(0, 0, -0.8 * np.cos(np.radians(angle)), 0.8 * np.sin(np.radians(angle)),
-             width=0.02, head_width=0.05, head_length=0.1, fc=arrow_color, ec=arrow_color)
+             width=0.02, head_width=0.05, head_length=0.1, fc='white', ec='white')
     
     ax.text(0, -0.1, f'{score:.1f}', ha='center', va='center', fontsize=20, color='white', weight='bold')
     ax.text(0, -0.4, 'Nota Global', ha='center', va='center', fontsize=10, color='gray')
@@ -451,13 +349,13 @@ def crear_grafico_gauge(score):
     return fig
 
 def crear_grafico_tecnico(data):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 5), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     fig.patch.set_facecolor('#0E1117')
     
     ax1.set_facecolor('#0E1117')
     ax1.plot(data.index, data['Close'], label='Precio', color='#87CEEB', linewidth=2)
     ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--')
-    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#dc3545', linestyle='--')
+    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF4500', linestyle='--')
     ax1.set_title('Análisis Técnico del Precio (Último Año)', color='white')
     ax1.legend()
     ax1.grid(color='gray', linestyle='--', linewidth=0.5)
@@ -483,7 +381,7 @@ def crear_graficos_financieros(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
-        fig, axs = plt.subplots(2, 2, figsize=(8, 5.6))
+        fig, axs = plt.subplots(2, 2, figsize=(15, 10))
         plt.style.use('dark_background')
         fig.patch.set_facecolor('#0E1117')
         
@@ -566,374 +464,13 @@ def mostrar_metrica_informativa(label, value, is_percent=False):
 def get_recommendation_html(recommendation):
     rec_lower = recommendation.lower()
     color_class = "color-white"
-    display_text = recommendation
     if any(term in rec_lower for term in ['buy', 'outperform', 'strong']):
         color_class = "color-green"
-        display_text = "Muy Interesante"
     elif any(term in rec_lower for term in ['sell', 'underperform']):
         color_class = "color-red"
-        display_text = "Poco Interesante"
     elif 'hold' in rec_lower:
         color_class = "color-orange"
-        display_text = "Neutral"
-    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
-
-def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent=False, lower_is_better=False):
-    color_class = "color-orange" # Neutral/orange for equal values
-    
-    is_comparable = isinstance(current_value, (int, float)) and isinstance(historical_value, (int, float))
-
-    if is_comparable:
-        if lower_is_better:
-            if current_value < historical_value: color_class = "color-green"
-            elif current_value > historical_value: color_class = "color-red"
-        else: # higher is better
-            if current_value > historical_value: color_class = "color-green"
-            elif current_value < historical_value: color_class = "color-red"
-
-    if is_percent:
-        formatted_current = f"{current_value:.2f}%" if isinstance(current_value, (int, float)) else "N/A"
-        formatted_historical = f"vs {historical_value:.2f}%" if isinstance(historical_value, (int, float)) else ""
-    else:
-        formatted_current = f"{current_value:.2f}" if isinstance(current_value, (int, float)) else "N/A"
-        formatted_historical = f"vs {historical_value:.2f}" if isinstance(historical_value, (int, float)) else ""
-
-    st.markdown(f'''
-    <div class="metric-container">
-        <div class="metric-label">{label}</div>
-        <div class="metric-value {color_class}">{formatted_current}</div>
-        <div class="metric-label" style="line-height: 1; color: #FAFAFA;">{formatted_historical}</div>
-    </div>
-    ''', unsafe_allow_html=True)
-
-def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data, puntuaciones):
-    highlight_style = 'style="background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
-
-    # --- Leyenda de Calidad ---
-    roe = datos.get('roe', 0)
-    l_roe_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['roe_excelente']}%"
-    l_roe_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['roe_bueno']}%"
-    l_roe_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['roe_bueno']}%"
-    
-    l_roe_exc = f"<span {highlight_style}>{l_roe_exc_raw}</span>" if roe > sector_bench['roe_excelente'] else l_roe_exc_raw
-    l_roe_bueno = f"<span {highlight_style}>{l_roe_bueno_raw}</span>" if sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'] else l_roe_bueno_raw
-    l_roe_alerta = f"<span {highlight_style}>{l_roe_alerta_raw}</span>" if roe <= sector_bench['roe_bueno'] else l_roe_alerta_raw
-
-    margen_op = datos.get('margen_operativo', 0)
-    l_mop_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['margen_excelente']}%"
-    l_mop_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['margen_bueno']}%"
-    l_mop_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['margen_bueno']}%"
-    l_mop_exc = f"<span {highlight_style}>{l_mop_exc_raw}</span>" if margen_op > sector_bench['margen_excelente'] else l_mop_exc_raw
-    l_mop_bueno = f"<span {highlight_style}>{l_mop_bueno_raw}</span>" if sector_bench['margen_bueno'] < margen_op <= sector_bench['margen_excelente'] else l_mop_bueno_raw
-    l_mop_alerta = f"<span {highlight_style}>{l_mop_alerta_raw}</span>" if margen_op <= sector_bench['margen_bueno'] else l_mop_alerta_raw
-    
-    margen_neto = datos.get('margen_beneficio', 0)
-    l_mneto_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['margen_neto_excelente']}%"
-    l_mneto_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['margen_neto_bueno']}%"
-    l_mneto_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['margen_neto_bueno']}%"
-    l_mneto_exc = f"<span {highlight_style}>{l_mneto_exc_raw}</span>" if margen_neto > sector_bench['margen_neto_excelente'] else l_mneto_exc_raw
-    l_mneto_bueno = f"<span {highlight_style}>{l_mneto_bueno_raw}</span>" if sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'] else l_mneto_bueno_raw
-    l_mneto_alerta = f"<span {highlight_style}>{l_mneto_alerta_raw}</span>" if margen_neto <= sector_bench['margen_neto_bueno'] else l_mneto_alerta_raw
-
-    rev_growth = datos.get('crecimiento_ingresos', 0)
-    l_rev_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['rev_growth_excelente']}%"
-    l_rev_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['rev_growth_bueno']}%"
-    l_rev_lento_raw = f"<strong>Lento/Negativo:</strong> < {sector_bench['rev_growth_bueno']}%"
-
-    l_rev_exc = f"<span {highlight_style}>{l_rev_exc_raw}</span>" if rev_growth > sector_bench['rev_growth_excelente'] else l_rev_exc_raw
-    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_lento_raw
-    l_rev_lento = f"<span {highlight_style}>{l_rev_lento_raw}</span>" if rev_growth <= sector_bench['rev_growth_bueno'] else l_rev_lento_raw
-
-    leyenda_calidad = f"""
-    - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, los rangos son:
-        - {l_roe_exc}
-        - {l_roe_bueno}
-        - {l_roe_alerta}
-    - **Margen Operativo:** Mide el beneficio de la actividad principal de la empresa, antes de impuestos e intereses.
-        - {l_mop_exc}
-        - {l_mop_bueno}
-        - {l_mop_alerta}
-    - **Margen Neto:** Mide el beneficio final que queda para el accionista después de todos los gastos, impuestos e intereses.
-        - {l_mneto_exc}
-        - {l_mneto_bueno}
-        - {l_mneto_alerta}
-    - **Crecimiento Ingresos (YoY):** Mide el crecimiento de las ventas año a año. Para el sector **{datos['sector'].upper()}**, los rangos son:
-        - {l_rev_exc}
-        - {l_rev_bueno}
-        - {l_rev_lento}
-    """
-
-    # --- Leyenda de Salud Financiera (MEJORADA) ---
-    deuda_ratio = datos.get('deuda_patrimonio')
-    SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
-    leyenda_deuda = ""
-    if isinstance(deuda_ratio, (int, float)):
-        if datos['sector'] in SECTORES_ALTA_DEUDA:
-            l_deuda_man_raw = "<strong>Manejable:</strong> < 250"
-            l_deuda_ele_raw = "<strong>Elevado:</strong> > 250"
-            l_deuda_man = f"<span {highlight_style}>{l_deuda_man_raw}</span>" if deuda_ratio < 250 else l_deuda_man_raw
-            l_deuda_ele = f"<span {highlight_style}>{l_deuda_ele_raw}</span>" if deuda_ratio >= 250 else l_deuda_ele_raw
-            leyenda_deuda = f"""- **Deuda / Patrimonio:** Para el sector **{datos['sector'].upper()}**, que opera con alta deuda, los rangos son:
-        - {l_deuda_man}
-        - {l_deuda_ele}"""
-        else:
-            l_deuda_ideal_raw = "<strong>Ideal:</strong> < 40"
-            l_deuda_man_raw = "<strong>Manejable:</strong> < 80"
-            l_deuda_ele_raw = "<strong>Elevado:</strong> > 80"
-            l_deuda_ideal = f"<span {highlight_style}>{l_deuda_ideal_raw}</span>" if deuda_ratio < 40 else l_deuda_ideal_raw
-            l_deuda_man = f"<span {highlight_style}>{l_deuda_man_raw}</span>" if 40 <= deuda_ratio < 80 else l_deuda_man_raw
-            l_deuda_ele = f"<span {highlight_style}>{l_deuda_ele_raw}</span>" if deuda_ratio >= 80 else l_deuda_ele_raw
-            leyenda_deuda = f"""- **Deuda / Patrimonio:** Para el sector **{datos['sector'].upper()}**, los rangos son:
-        - {l_deuda_ideal}
-        - {l_deuda_man}
-        - {l_deuda_ele}"""
-
-    ratio_corriente = datos.get('ratio_corriente')
-    leyenda_liquidez = ""
-    if isinstance(ratio_corriente, (int, float)):
-        l_liq_exc_raw = "<strong>Excelente:</strong> > 2.0"
-        l_liq_sal_raw = "<strong>Saludable:</strong> > 1.5"
-        l_liq_ace_raw = "<strong>Aceptable:</strong> > 1.0"
-        l_liq_rie_raw = "<strong>Zona de Riesgo:</strong> < 1.0"
-        l_liq_exc = f"<span {highlight_style}>{l_liq_exc_raw}</span>" if ratio_corriente > 2.0 else l_liq_exc_raw
-        l_liq_sal = f"<span {highlight_style}>{l_liq_sal_raw}</span>" if 1.5 < ratio_corriente <= 2.0 else l_liq_sal_raw
-        l_liq_ace = f"<span {highlight_style}>{l_liq_ace_raw}</span>" if 1.0 < ratio_corriente <= 1.5 else l_liq_ace_raw
-        l_liq_rie = f"<span {highlight_style}>{l_liq_rie_raw}</span>" if ratio_corriente <= 1.0 else l_liq_rie_raw
-        leyenda_liquidez = f"""- **Ratio Corriente (Liquidez):** Mide la capacidad de pagar deudas a corto plazo.
-        - {l_liq_exc}
-        - {l_liq_sal}
-        - {l_liq_ace}
-        - {l_liq_rie}"""
-    
-    # Lógica de resaltado para Interpretación Combinada
-    is_high_debt_sector = datos['sector'] in SECTORES_ALTA_DEUDA
-    baja_deuda = False
-    alta_liquidez = False
-    if isinstance(deuda_ratio, (int, float)):
-        baja_deuda = (deuda_ratio < 250) if is_high_debt_sector else (deuda_ratio < 80)
-    if isinstance(ratio_corriente, (int, float)):
-        alta_liquidez = ratio_corriente > 1.5
-
-    esc_baja_d_alta_l = baja_deuda and alta_liquidez
-    esc_alta_d_alta_l = not baja_deuda and alta_liquidez
-    esc_baja_d_baja_l = baja_deuda and not alta_liquidez
-    esc_alta_d_baja_l = not baja_deuda and not alta_liquidez
-
-    l_ic_1_raw = "<strong>Baja Deuda / Alta Liquidez:</strong> Fortaleza financiera. El mejor escenario."
-    l_ic_2_raw = "<strong>Alta Deuda / Alta Liquidez:</strong> Puede pagar sus deudas, pero el apalancamiento es un riesgo a vigilar."
-    l_ic_3_raw = "<strong>Baja Deuda / Baja Liquidez:</strong> Balance conservador, pero podría tener problemas de liquidez a corto plazo."
-    l_ic_4_raw = "<strong>Alta Deuda / Baja Liquidez:</strong> El peor escenario. Riesgo de solvencia."
-
-    l_ic_1 = f"<span {highlight_style}>{l_ic_1_raw}</span>" if esc_baja_d_alta_l else l_ic_1_raw
-    l_ic_2 = f"<span {highlight_style}>{l_ic_2_raw}</span>" if esc_alta_d_alta_l else l_ic_2_raw
-    l_ic_3 = f"<span {highlight_style}>{l_ic_3_raw}</span>" if esc_baja_d_baja_l else l_ic_3_raw
-    l_ic_4 = f"<span {highlight_style}>{l_ic_4_raw}</span>" if esc_alta_d_baja_l else l_ic_4_raw
-
-    leyenda_salud = f"""
-    {leyenda_deuda}
-    {leyenda_liquidez}
-    - **Interpretación Combinada:**
-        - {l_ic_1}
-        - {l_ic_2}
-        - {l_ic_3}
-        - {l_ic_4}
-    """
-
-    # --- Leyenda de Valoración ---
-    per = datos.get('per')
-    p_fcf = datos.get('p_fcf')
-    leyenda_per = ""
-    leyenda_pfcf = ""
-
-    if datos.get('sector') == 'Real Estate':
-        leyenda_per = "- **PER (Price-to-Earnings):** No es la métrica principal para REITs. Se prefiere el P/FFO (usamos P/FCF como proxy)."
-    elif isinstance(per, (int, float)):
-        l_per_atr_raw = f"<strong>Atractivo:</strong> < {sector_bench['per_barato']}"
-        l_per_jus_raw = f"<strong>Justo:</strong> {sector_bench['per_barato']} - {sector_bench['per_justo']}"
-        l_per_car_raw = f"<strong>Caro:</strong> > {sector_bench['per_justo']}"
-        l_per_atr = f"<span {highlight_style}>{l_per_atr_raw}</span>" if per < sector_bench['per_barato'] else l_per_atr_raw
-        l_per_jus = f"<span {highlight_style}>{l_per_jus_raw}</span>" if sector_bench['per_barato'] <= per <= sector_bench['per_justo'] else l_per_jus_raw
-        l_per_car = f"<span {highlight_style}>{l_per_car_raw}</span>" if per > sector_bench['per_justo'] else l_per_car_raw
-        leyenda_per = f"""- **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio anual. Para el sector **{datos['sector'].upper()}**, los rangos son:
-        - {l_per_atr}
-        - {l_per_jus}
-        - {l_per_car}"""
-
-    if isinstance(p_fcf, (int, float)):
-        l_pfcf_atr_raw = "<strong>Atractivo:</strong> < 20"
-        l_pfcf_jus_raw = "<strong>Justo:</strong> 20 - 30"
-        l_pfcf_car_raw = "<strong>Caro:</strong> > 30"
-        if datos.get('sector') == 'Real Estate':
-            l_pfcf_atr_raw = "<strong>Atractivo (P/FFO):</strong> < 16"
-            l_pfcf_jus_raw = "<strong>Justo (P/FFO):</strong> 16 - 22"
-            l_pfcf_car_raw = "<strong>Caro (P/FFO):</strong> > 22"
-            l_pfcf_atr = f"<span {highlight_style}>{l_pfcf_atr_raw}</span>" if p_fcf < 16 else l_pfcf_atr_raw
-            l_pfcf_jus = f"<span {highlight_style}>{l_pfcf_jus_raw}</span>" if 16 <= p_fcf <= 22 else l_pfcf_jus_raw
-            l_pfcf_car = f"<span {highlight_style}>{l_pfcf_car_raw}</span>" if p_fcf > 22 else l_pfcf_car_raw
-        else:
-            l_pfcf_atr = f"<span {highlight_style}>{l_pfcf_atr_raw}</span>" if p_fcf < 20 else l_pfcf_atr_raw
-            l_pfcf_jus = f"<span {highlight_style}>{l_pfcf_jus_raw}</span>" if 20 <= p_fcf <= 30 else l_pfcf_jus_raw
-            l_pfcf_car = f"<span {highlight_style}>{l_pfcf_car_raw}</span>" if p_fcf > 30 else l_pfcf_car_raw
-        
-        leyenda_pfcf = f"""- **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor **Negativo es una señal de alerta**.
-        - {l_pfcf_atr}
-        - {l_pfcf_jus}
-        - {l_pfcf_car}"""
-    elif datos.get('raw_fcf') is not None and datos.get('raw_fcf') < 0:
-        leyenda_pfcf = f"""- <span {highlight_style}><strong>P/FCF (Price-to-Free-Cash-Flow):** **Negativo.**</span> Esto es una **señal de alerta**, ya que indica que la empresa está gastando más dinero del que genera. Es crucial investigar la causa: ¿se debe a fuertes inversiones para crecer (positivo a largo plazo) o a problemas operativos (negativo)? """
-
-
-    pb = datos.get('p_b')
-    leyenda_pb = ""
-    if isinstance(pb, (int, float)):
-        l_pb_atr_raw = f"<strong>Atractivo:</strong> < {sector_bench['pb_barato']}"
-        l_pb_jus_raw = f"<strong>Justo:</strong> {sector_bench['pb_barato']} - {sector_bench['pb_justo']}"
-        l_pb_car_raw = f"<strong>Caro:</strong> > {sector_bench['pb_justo']}"
-        l_pb_atr = f"<span {highlight_style}>{l_pb_atr_raw}</span>" if pb < sector_bench['pb_barato'] else l_pb_atr_raw
-        l_pb_jus = f"<span {highlight_style}>{l_pb_jus_raw}</span>" if sector_bench['pb_barato'] <= pb <= sector_bench['pb_justo'] else l_pb_jus_raw
-        l_pb_car = f"<span {highlight_style}>{l_pb_car_raw}</span>" if pb > sector_bench['pb_justo'] else l_pb_car_raw
-        leyenda_pb = f"""- **P/B (Price-to-Book):** Compara el precio con el valor contable. Es útil en sectores con activos tangibles (Banca, Industria, etc.). Para **{datos['sector'].upper()}**, los rangos son:
-        - {l_pb_atr}
-        - {l_pb_jus}
-        - {l_pb_car}"""
-
-    leyenda_valoracion = f"""
-    {leyenda_per}
-    - **PER Adelantado (Forward PE):** Usa beneficios futuros esperados. Si es inferior al PER actual, indica crecimiento y **otorga un bonus a la nota**.
-    {leyenda_pfcf}
-    {leyenda_pb}
-    """
-
-    # --- Leyenda de Dividendos (MEJORADA) ---
-    yield_div = datos.get('yield_dividendo', 0)
-    l_yield_exc_raw = "<strong>Excelente:</strong> > 3.5%"
-    l_yield_bueno_raw = "<strong>Bueno:</strong> > 2.0%"
-    l_yield_bajo_raw = "<strong>Bajo:</strong> < 2.0%"
-
-    l_yield_exc = f"<span {highlight_style}>{l_yield_exc_raw}</span>" if yield_div > 3.5 else l_yield_exc_raw
-    l_yield_bueno = f"<span {highlight_style}>{l_yield_bueno_raw}</span>" if 2.0 < yield_div <= 3.5 else l_yield_bueno_raw
-    l_yield_bajo = f"<span {highlight_style}>{l_yield_bajo_raw}</span>" if yield_div <= 2.0 else l_yield_bajo_raw
-
-    payout = datos.get('payout_ratio', 0)
-    l_pay_sal_raw = f"<strong>Saludable:</strong> < {sector_bench['payout_bueno']}%"
-    l_pay_pre_raw = f"<strong>Precaución:</strong> > {sector_bench['payout_bueno']}%"
-    l_pay_pel_raw = f"<strong>Peligroso:</strong> > {sector_bench['payout_aceptable']}%"
-    l_pay_sal = f"<span {highlight_style}>{l_pay_sal_raw}</span>" if 0 < payout < sector_bench['payout_bueno'] else l_pay_sal_raw
-    l_pay_pre = f"<span {highlight_style}>{l_pay_pre_raw}</span>" if sector_bench['payout_bueno'] <= payout < sector_bench['payout_aceptable'] else l_pay_pre_raw
-    l_pay_pel = f"<span {highlight_style}>{l_pay_pel_raw}</span>" if payout >= sector_bench['payout_aceptable'] else l_pay_pel_raw
-
-    SECTORES_ALTO_PAYOUT = ['Utilities', 'Real Estate', 'Financial Services', 'Consumer Staples', 'Communication Services']
-    if datos['sector'] in SECTORES_ALTO_PAYOUT:
-        leyenda_payout_intro = f"Indica qué % del beneficio se destina a dividendos. Para el sector **{datos['sector'].upper()}**, que tiene flujos de caja estables o una estructura de reparto especial (ej. REITs), se aceptan ratios más altos:"
-    else:
-        leyenda_payout_intro = f"Indica qué % del beneficio se destina a dividendos. Para el sector **{datos['sector'].upper()}**, los rangos son:"
-
-    blue_chip_status = justificaciones.get('blue_chip_analysis', {}).get('label', '')
-    l_bc_muy_int_raw = "<strong>🟢 Muy Interesante:</strong> PER actual < 80% del histórico Y Yield actual > 120% del histórico."
-    l_bc_int_raw = "<strong>🟡 Interesante:</strong> PER actual < histórico Y Yield actual > histórico."
-    l_bc_mixta_raw = "<strong>🔵 Señal Mixta:</strong> Solo una de las dos condiciones anteriores se cumple."
-    l_bc_neutral_raw = "<strong>⚪ Neutral:</strong> Ninguna de las condiciones anteriores se cumple."
-
-    l_bc_muy_int = f"<span {highlight_style}>{l_bc_muy_int_raw}</span>" if "Muy Interesante" in blue_chip_status else l_bc_muy_int_raw
-    l_bc_int = f"<span {highlight_style}>{l_bc_int_raw}</span>" if "Interesante" in blue_chip_status and "Muy" not in blue_chip_status else l_bc_int_raw
-    l_bc_mixta = f"<span {highlight_style}>{l_bc_mixta_raw}</span>" if "Mixta" in blue_chip_status else l_bc_mixta_raw
-    l_bc_neutral = f"<span {highlight_style}>{l_bc_neutral_raw}</span>" if not blue_chip_status or "Neutral" in blue_chip_status else l_bc_neutral_raw
-
-    leyenda_dividendos = f"""
-    - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos sobre el precio de la acción.
-        - {l_yield_exc}
-        - {l_yield_bueno}
-        - {l_yield_bajo}
-    - **Ratio de Reparto (Payout):** {leyenda_payout_intro}
-        - {l_pay_sal}
-        - {l_pay_pre}
-        - {l_pay_pel}
-    """
-    
-    leyenda_blue_chip = f"""
-    Compara la valoración actual con su media histórica para detectar oportunidades.
-    - {l_bc_muy_int}
-    - {l_bc_int}
-    - {l_bc_mixta}
-    - {l_bc_neutral}
-    """
-    
-    leyenda_tecnico = ""
-    if tech_data is not None and not tech_data.empty:
-        last_price = tech_data['Close'].iloc[-1]
-        sma200 = tech_data['SMA200'].iloc[-1]
-        rsi = tech_data['RSI'].iloc[-1]
-
-        tendencia_alcista = last_price > sma200
-        tendencia_bajista = last_price < sma200
-        
-        l_sma_alcista_raw = "<strong>Señal Alcista 🟢:</strong> El precio está <strong>por encima</strong> de la SMA200."
-        l_sma_bajista_raw = "<strong>Señal Bajista 🔴:</strong> El precio está <strong>por debajo</strong> de la SMA200."
-        
-        l_sma_alcista = f"<span {highlight_style}>{l_sma_alcista_raw}</span>" if tendencia_alcista else l_sma_alcista_raw
-        l_sma_bajista = f"<span {highlight_style}>{l_sma_bajista_raw}</span>" if tendencia_bajista else l_sma_bajista_raw
-
-        rsi_sobreventa = rsi < 30
-        rsi_neutral = 30 <= rsi <= 70
-        rsi_sobrecompra = rsi > 70
-
-        l_rsi_sobreventa_raw = "<strong>Sobreventa (< 30) 🟢:</strong> Potencial señal de compra."
-        l_rsi_neutral_raw = "<strong>Neutral (30 - 70) 🟠:</strong> Sin señal clara."
-        l_rsi_sobrecompra_raw = "<strong>Sobrecompra (> 70) 🔴:</strong> Potencial señal de venta."
-
-        l_rsi_sobreventa = f"<span {highlight_style}>{l_rsi_sobreventa_raw}</span>" if rsi_sobreventa else l_rsi_sobreventa_raw
-        l_rsi_neutral = f"<span {highlight_style}>{l_rsi_neutral_raw}</span>" if rsi_neutral else l_rsi_neutral_raw
-        l_rsi_sobrecompra = f"<span {highlight_style}>{l_rsi_sobrecompra_raw}</span>" if rsi_sobrecompra else l_rsi_sobrecompra_raw
-
-        escenario_1 = tendencia_alcista and rsi_sobreventa
-        escenario_2 = tendencia_alcista and rsi_neutral
-        escenario_3 = tendencia_alcista and rsi_sobrecompra
-        escenario_4 = tendencia_bajista and rsi_sobreventa
-        escenario_5 = tendencia_bajista and rsi_neutral
-        escenario_6 = tendencia_bajista and rsi_sobrecompra
-
-        l_esc_1_raw = "<strong>🟢+🟢 Oportunidad de Compra Óptima:</strong> Tendencia alcista con retroceso (RSI en sobreventa)."
-        l_esc_2_raw = "<strong>🟢+🟠 Continuación Alcista:</strong> Tendencia alcista con RSI neutral. Esperar retroceso para comprar."
-        l_esc_3_raw = "<strong>🟢+🔴 Riesgo de Corrección:</strong> Tendencia alcista pero con RSI sobrecomprado. Posible recogida de beneficios."
-        l_esc_4_raw = "<strong>🔴+🟢 Posible Rebote (Contra Tendencia):</strong> Tendencia bajista con RSI en sobreventa. Alto riesgo."
-        l_esc_5_raw = "<strong>🔴+🟠 Continuación Bajista:</strong> Tendencia bajista con RSI neutral. Evitar compras."
-        l_esc_6_raw = "<strong>🔴+🔴 Oportunidad de Venta Óptima:</strong> Tendencia bajista con rebote (RSI en sobrecompra)."
-
-        l_esc_1 = f"<span {highlight_style}>{l_esc_1_raw}</span>" if escenario_1 else l_esc_1_raw
-        l_esc_2 = f"<span {highlight_style}>{l_esc_2_raw}</span>" if escenario_2 else l_esc_2_raw
-        l_esc_3 = f"<span {highlight_style}>{l_esc_3_raw}</span>" if escenario_3 else l_esc_3_raw
-        l_esc_4 = f"<span {highlight_style}>{l_esc_4_raw}</span>" if escenario_4 else l_esc_4_raw
-        l_esc_5 = f"<span {highlight_style}>{l_esc_5_raw}</span>" if escenario_5 else l_esc_5_raw
-        l_esc_6 = f"<span {highlight_style}>{l_esc_6_raw}</span>" if escenario_6 else l_esc_6_raw
-
-        leyenda_tecnico = f"""
-        - **Medias Móviles (SMA):** Suavizan el precio para mostrar la tendencia. El número (50 o 200) se refiere a los **últimos días de cotización** (sesiones) que usa para calcular la media.
-            - **SMA50 (naranja):** Media de los últimos 50 días. Refleja la tendencia a corto/medio plazo.
-            - **SMA200 (roja):** Media de los últimos 200 días. Es el indicador más importante para la tendencia a largo plazo.
-            - {l_sma_alcista}
-            - {l_sma_bajista}
-        - **RSI (Índice de Fuerza Relativa):** Es un **oscilador de momentum** que mide la velocidad y la fuerza de los cambios en el precio. Su utilidad principal es detectar condiciones de **sobrecompra** (el precio ha subido mucho y rápido, posible corrección) o **sobreventa** (el precio ha caído mucho y rápido, posible rebote).
-            - {l_rsi_sobreventa}
-            - {l_rsi_neutral}
-            - {l_rsi_sobrecompra}
-        - **Estrategia Combinada:**
-            - {l_esc_1}
-            - {l_esc_2}
-            - {l_esc_3}
-            - {l_esc_4}
-            - {l_esc_5}
-            - {l_esc_6}
-        """
-
-    return {
-        'calidad': leyenda_calidad,
-        'salud': leyenda_salud,
-        'valoracion': leyenda_valoracion,
-        'dividendos': leyenda_dividendos,
-        'blue_chip': leyenda_blue_chip,
-        'tecnico': leyenda_tecnico
-    }
-
+    return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{recommendation}</div></div>'
 
 # --- ESTRUCTURA DE LA APLICACIÓN WEB ---
 st.title('El Analizador de Acciones de Sr. Outfit')
@@ -950,244 +487,177 @@ if st.button('Analizar Acción'):
                 st.error(f"Error: No se pudo encontrar el ticker '{ticker_input}'. Verifica que sea correcto.")
             else:
                 hist_data = obtener_datos_historicos_y_tecnicos(ticker_input)
+                puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
+                sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
                 
-                if not hist_data:
-                    st.error(f"No se pudieron obtener datos históricos para '{ticker_input}'. El análisis no puede continuar.")
-                else:
-                    puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
-                    sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
-                    
-                    tech_data = hist_data.get('tech_data')
-                    leyendas = generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data, puntuaciones)
-                    
-                    pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
-                    nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
-                    nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
+                pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
+                nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
+                nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
 
-                    st.header(f"Análisis Fundamental: {datos['nombre']} ({ticker_input})")
-                    
-                    st.markdown(f"### 🧭 Veredicto del Analizador: **{nota_final:.1f} / 10**")
-                    if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
-                    elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
-                    else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
+                st.header(f"Análisis Fundamental: {datos['nombre']} ({ticker_input})")
+                
+                st.markdown(f"### 🧭 Veredicto del Analizador: **{nota_final:.1f} / 10**")
+                if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
+                elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
+                else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
 
-                    col_gauge, col_radar = st.columns([0.7, 1])
-                    with col_gauge:
-                        st.subheader("Nota Global")
-                        fig_gauge = crear_grafico_gauge(nota_final)
-                        st.pyplot(fig_gauge)
-                    with col_radar:
-                        st.subheader("Resumen de Fortalezas")
-                        fig_radar = crear_grafico_radar(puntuaciones)
-                        st.pyplot(fig_radar)
+                col_gauge, col_radar = st.columns([0.7, 1])
+                with col_gauge:
+                    st.subheader("Nota Global")
+                    fig_gauge = crear_grafico_gauge(nota_final)
+                    st.pyplot(fig_gauge)
+                with col_radar:
+                    st.subheader("Resumen de Fortalezas")
+                    fig_radar = crear_grafico_radar(puntuaciones)
+                    st.pyplot(fig_radar)
 
-                    with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
-                        st.write(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
-                        geo_nota = puntuaciones['geopolitico']
-                        if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
-                        else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
-                        
-                        if datos['pais'] in ['China', 'Hong Kong']:
-                            st.warning("⚠️ **Riesgo Regulatorio (ADR/VIE):** Invertir en empresas chinas a través de ADRs conlleva riesgos adicionales relacionados con la estructura legal (VIE) y posibles cambios regulatorios del gobierno chino que podrían afectar el valor de la inversión.")
+                with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
+                    st.write(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
+                    geo_nota = puntuaciones['geopolitico']
+                    if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
+                    else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
+                    st.caption(justificaciones['geopolitico'])
+                    st.write(f"**Descripción:** {datos['descripcion']}")
+                
+                with st.container(border=True):
+                    st.subheader("Consenso de Analistas")
+                    recomendacion_str = datos.get('recomendacion_analistas', 'N/A').replace('_', ' ').title()
+                    st.markdown(get_recommendation_html(recomendacion_str), unsafe_allow_html=True)
 
-                        st.caption(justificaciones['geopolitico'])
-                        st.write(f"**Descripción:** {datos['descripcion']}")
-                    
+                col1, col2 = st.columns(2)
+                with col1:
                     with st.container(border=True):
-                        st.subheader("Consenso de Analistas")
-                        recomendacion_str = datos.get('recomendacion_analistas', 'N/A').replace('_', ' ').title()
-                        st.markdown(get_recommendation_html(recomendacion_str), unsafe_allow_html=True)
-
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        with st.container(border=True):
-                            st.subheader(f"Calidad del Negocio [{puntuaciones['calidad']}/10]")
-                            st.caption(justificaciones['calidad'])
-                            c1, c2 = st.columns(2)
-                            with c1:
-                                mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
-                                mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
-                            with c2:
-                                mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
-                                mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'], is_percent=True)
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['calidad'], unsafe_allow_html=True)
-                    with col2:
-                        with st.container(border=True):
-                            st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
-                            st.caption(justificaciones['salud'])
-                            
-                            SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
-                            if datos['sector'] in SECTORES_ALTA_DEUDA:
-                                deuda_umbral_bueno = 150
-                                deuda_umbral_malo = 250
-                            else:
-                                deuda_umbral_bueno = 40
-                                deuda_umbral_malo = 80
-                            
-                            s1, s2 = st.columns(2)
-                            with s1: 
-                                mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], deuda_umbral_bueno, deuda_umbral_malo, lower_is_better=True)
-                            with s2: 
-                                mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['salud'], unsafe_allow_html=True)
-
-                    with st.container(border=True):
-                        st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
-                        st.caption(justificaciones['valoracion'])
-                        
-                        tab1, tab2 = st.tabs(["Múltiplos Actuales", "Análisis Histórico"])
-                        
-                        with tab1:
-                            val1, val2 = st.columns(2)
-                            with val1:
-                                mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
-                                mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per_adelantado'), datos.get('per'), lower_is_better=True)
-                            with val2:
-                                mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
-                                raw_fcf = datos.get('raw_fcf')
-                                if raw_fcf is not None and raw_fcf < 0:
-                                    st.markdown('<div class="metric-container"><div class="metric-label">🌊 P/FCF</div><div class="metric-value color-red">Negativo</div></div>', unsafe_allow_html=True)
-                                else:
-                                    mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
-
-                        with tab2:
-                            h1, h2, h3 = st.columns(3)
-                            with h1:
-                                mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
-                            with h2:
-                                mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
-                            with h3:
-                                mostrar_metrica_informativa("📚 P/B Medio (Histórico)", hist_data.get('pb_hist'))
-
+                        st.subheader(f"Calidad del Negocio [{puntuaciones['calidad']}/10]")
+                        st.caption(justificaciones['calidad'])
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            mostrar_metrica_con_color("📈 ROE", datos['roe'], 20, 15, is_percent=True)
+                            mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], 15, 10, is_percent=True)
+                        with c2:
+                            mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], 20, 15, is_percent=True)
+                            mostrar_metrica_con_color("🚀 Crec. Ingresos (YoY)", datos['crecimiento_ingresos'], 15, 8, is_percent=True)
                         with st.expander("Ver Leyenda Detallada"):
-                            st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
-                    
-                    if datos['yield_dividendo'] > 0:
-                        with st.container(border=True):
-                            st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
-                            st.caption(justificaciones['dividendos'])
-                            
-                            st.markdown("---")
-                            div1, div2 = st.columns(2)
-                            with div1: 
-                                mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
-                                mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
-                            with div2:
-                                mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
-                            
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
-                    
-                    blue_chip_analysis = justificaciones.get('blue_chip_analysis')
-                    if blue_chip_analysis:
-                        with st.container(border=True):
-                            st.subheader(f"Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
-                            bc1, bc2 = st.columns(2)
-                            with bc1:
-                                mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
-                            with bc2:
-                                mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
-                            st.caption(blue_chip_analysis['description'])
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['blue_chip'], unsafe_allow_html=True)
-
+                            st.markdown(f"""
+                            - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas. Para el sector **{datos['sector'].upper()}**, se considera **Excelente > {sector_bench['roe_excelente']}%**. Un ROE muy alto (>50%) puede estar 'inflado' por una deuda elevada.
+                            - **Márgenes (Operativo y Neto):** Indican el % de beneficio sobre las ventas. Para este sector, un **Margen Operativo Excelente es > {sector_bench['margen_excelente']}%** y un **Margen Neto Excelente es > {sector_bench['margen_neto_excelente']}%**. Es una señal de alerta si el Margen Neto es superior al Operativo, ya que puede indicar beneficios extraordinarios no recurrentes.
+                            - **Crecimiento Ingresos:** Mide el crecimiento de las ventas. Un crecimiento de doble dígito (>10%) es una señal muy positiva.
+                            """)
+                with col2:
                     with st.container(border=True):
-                        st.subheader("Potencial de Revalorización (Márgenes de Seguridad)")
-                        ms1, ms2, ms3, ms4 = st.columns(4)
-                        with ms1:
-                            mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
-                        with ms2:
-                            mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
-                        with ms3:
-                            mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
-                        with ms4:
-                            mostrar_margen_seguridad("📚 Según su P/B Histórico", puntuaciones['margen_seguridad_pb'])
-                        
+                        st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
+                        st.caption(justificaciones['salud'])
+                        s1, s2 = st.columns(2)
+                        with s1: mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 40, 80, lower_is_better=True)
+                        with s2: mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown("""
-                            - **Según Analistas:** Representa el potencial de subida hasta el **precio objetivo medio** que establece el consenso de analistas profesionales que cubren la acción. Es una visión a futuro.
-                            - **Según su PER Histórico:** Calcula el potencial que tendría la acción si su **PER actual volviera a su media histórica**. Un valor positivo indica que actualmente está más barata que su media.
-                            - **Según su Yield Histórico:** Calcula el potencial que tendría la acción si su **rentabilidad por dividendo actual volviera a su media histórica**. Un valor positivo indica que el dividendo actual es más atractivo de lo normal. *Más relevante en empresas con dividendos estables o crecientes.*
-                            - **Según su P/B Histórico:** Calcula el potencial que tendría la acción si su **ratio Precio/Valor en Libros actual volviera a su media histórica**. *Más relevante en sectores con activos tangibles (Banca, Industria, etc.).*
+                            - **Deuda / Patrimonio (Debt to Equity):** Compara la deuda con los fondos propios. Un valor bajo (< 40) indica un balance muy conservador. **Esta nota se combina con el Ratio Corriente para la puntuación final.**
+                            - **Ratio Corriente (Current Ratio):** Mide la capacidad de pagar deudas a corto plazo. Un valor > 1.5 es muy saludable y **aporta puntos extra a la nota de salud financiera.**
                             """)
 
-
-                    st.header("Análisis Gráfico y Banderas Rojas")
-                    col_fig_1, col_fig_2 = st.columns(2)
-                    with col_fig_1:
-                        financials_hist = hist_data.get('financials_charts')
-                        dividends_hist = hist_data.get('dividends_charts')
-                        fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
-                        if fig_financieros:
-                            st.pyplot(fig_financieros)
-                        else:
-                            st.warning("No se pudieron generar los gráficos financieros históricos.")
-                    with col_fig_2:
-                        tech_data = hist_data.get('tech_data')
-                        if tech_data is not None and not tech_data.empty:
-                            fig_tecnico = crear_grafico_tecnico(tech_data)
-                            st.pyplot(fig_tecnico)
-                        else:
-                            st.warning("No se pudieron generar los datos para el análisis técnico.")
-
-                    # --- SECCIONES DE TEXTO DEBAJO DE LOS GRÁFICOS ---
-                    col_text_1, col_text_2 = st.columns(2)
-                    with col_text_1:
-                        with st.container(border=True):
-                            st.subheader("Banderas Rojas (Red Flags)")
-                            banderas = analizar_banderas_rojas(datos, financials_hist)
-                            if banderas:
-                                for bandera in banderas: st.warning(bandera)
-                            else:
-                                st.success("✅ No se han detectado banderas rojas significativas.")
+                with st.container(border=True):
+                    st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
+                    st.caption(justificaciones['valoracion'])
                     
-                    with col_text_2:
-                        with st.container(border=True):
-                            st.subheader("Análisis Técnico")
-                            if tech_data is not None and not tech_data.empty:
-                                last_price = tech_data['Close'].iloc[-1]
-                                sma50 = tech_data['SMA50'].iloc[-1]
-                                sma200 = tech_data['SMA200'].iloc[-1]
-                                rsi = tech_data['RSI'].iloc[-1]
-                                
-                                tendencia_texto = "Lateral 🟠"
-                                tendencia_color = "color-orange"
-                                if last_price > sma50 and sma50 > sma200:
-                                    tendencia_texto = "Alcista Fuerte 🟢"
-                                    tendencia_color = "color-green"
-                                elif last_price > sma200:
-                                    tendencia_texto = "Alcista 🟢"
-                                    tendencia_color = "color-green"
-                                elif last_price < sma50 and sma50 < sma200:
-                                    tendencia_texto = "Bajista Fuerte 🔴"
-                                    tendencia_color = "color-red"
-                                elif last_price < sma200:
-                                    tendencia_texto = "Bajista 🔴"
-                                    tendencia_color = "color-red"
+                    tab1, tab2 = st.tabs(["Resumen y Potencial", "Análisis Histórico"])
+                    
+                    with tab1:
+                        val1, val2 = st.columns(2)
+                        with val1:
+                            st.markdown("##### Múltiplos (Presente)")
+                            mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
+                            mostrar_metrica_con_color("🔮 PER Adelantado", datos['per_adelantado'], datos.get('per', 999), lower_is_better=True)
+                            mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
+                        with val2:
+                            st.markdown("##### Márgenes de Seguridad")
+                            mostrar_margen_seguridad("🛡️ Según Expertos (Futuro)", puntuaciones['margen_seguridad_analistas'])
+                            mostrar_margen_seguridad("📈 Según Histórico (Pasado)", puntuaciones['margen_seguridad_historico'])
+                    
+                    with tab2:
+                        h1, h2 = st.columns(2)
+                        with h1:
+                            mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
+                        with h2:
+                            mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
 
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
+                    with st.expander("Ver Leyenda Detallada"):
+                        if datos['sector'] == 'Real Estate':
+                            st.info("💡 **Análisis Especial para REITs:** Para el sector inmobiliario (REITs), el PER no es una métrica fiable debido al impacto de la depreciación. Por ello, la valoración por múltiplos se basa principalmente en el **P/FCF (Precio / Flujo de Caja Libre)**, que ofrece una visión más precisa de la capacidad del negocio para generar caja.")
+                        else:
+                            st.markdown(f"""
+                            - **Múltiplos:** Miden cuántas veces estás pagando los beneficios (PER) o el flujo de caja (P/FCF). Para el sector **{datos['sector'].upper()}**, un **PER atractivo es < {sector_bench['per_barato']}**. El **PER Adelantado** usa beneficios futuros esperados; si es menor que el PER actual, indica crecimiento y **suma un bonus a la nota**.
+                            """)
+                        st.markdown("""
+                        - **Márgenes de Seguridad:** Miden el potencial de revalorización. El de **Expertos** se basa en el precio objetivo de los analistas (futuro), y el **Histórico** en si la acción volviera a su PER medio histórico (pasado).
+                        - **Análisis Histórico:** Compara los múltiplos actuales con sus medias históricas para ver si la empresa está cara o barata respecto a su propia historia.
+                        """)
 
-                                rsi_texto = f"{rsi:.2f} (Neutral 🟠)"
-                                rsi_color = "color-orange"
-                                if rsi > 70:
-                                    rsi_texto = f"{rsi:.2f} (Sobrecompra 🔴)"
-                                    rsi_color = "color-red"
-                                elif rsi < 30:
-                                    rsi_texto = f"{rsi:.2f} (Sobreventa 🟢)"
-                                    rsi_color = "color-green"
+                if datos['yield_dividendo'] > 0:
+                    with st.container(border=True):
+                        st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
+                        st.caption(justificaciones['dividendos'])
+                        div1, div2 = st.columns(2)
+                        with div1: 
+                            mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
+                            mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
+                        with div2:
+                            mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
+                        with st.expander("Ver Leyenda Detallada"):
+                            st.markdown(f"""
+                            - **Rentabilidad (Yield):** Es el porcentaje que recibes anualmente en dividendos en relación al precio de la acción.
+                            - **Ratio de Reparto (Payout):** Indica qué porcentaje del beneficio se destina a pagar dividendos. Para el sector **{datos['sector'].upper()}**, un payout saludable es **< {sector_bench['payout_bueno']}%**.
+                            - **Yield Medio (Histórico):** Es la rentabilidad por dividendo media histórica. Si el Yield actual es **superior a esta media**, puede ser una señal de que la acción está barata. **Otorga un bonus a la nota de dividendos.**
+                            """)
+                
+                st.header("Análisis Gráfico Financiero y Banderas Rojas")
+                financials_hist = hist_data.get('financials_charts')
+                dividends_hist = hist_data.get('dividends_charts')
+                fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
+                if fig_financieros:
+                    st.pyplot(fig_financieros)
+                    st.subheader("Banderas Rojas (Red Flags)")
+                    banderas = analizar_banderas_rojas(datos, financials_hist)
+                    if banderas:
+                        for bandera in banderas: st.warning(bandera)
+                    else:
+                        st.success("✅ No se han detectado banderas rojas significativas.")
+                else:
+                    st.warning("No se pudieron generar los gráficos financieros históricos.")
+                
+                with st.container(border=True):
+                    st.header("Análisis Técnico")
+                    tech_data = hist_data.get('tech_data')
+                    if tech_data is not None and not tech_data.empty:
+                        fig_tecnico = crear_grafico_tecnico(tech_data)
+                        st.pyplot(fig_tecnico)
+                        
+                        last_price = tech_data['Close'].iloc[-1]
+                        sma50 = tech_data['SMA50'].iloc[-1]
+                        sma200 = tech_data['SMA200'].iloc[-1]
+                        rsi = tech_data['RSI'].iloc[-1]
+                        
+                        tendencia = "Lateral"
+                        if last_price > sma50 and sma50 > sma200:
+                            tendencia = "Alcista 🟢"
+                        elif last_price < sma50 and sma50 < sma200:
+                            tendencia = "Bajista 🔴"
+                            
+                        rsi_estado = "Neutral"
+                        if rsi > 70: rsi_estado = "Sobrecompra 🔴"
+                        elif rsi < 30: rsi_estado = "Sobreventa 🟢"
 
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
+                        st.metric("Tendencia Actual", tendencia)
+                        st.metric("Estado RSI", f"{rsi:.2f} ({rsi_estado})")
 
-                                with st.expander("Ver Leyenda Detallada"):
-                                    st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
-                            else:
-                                st.warning("No se pudieron generar los datos para el análisis técnico.")
+                        with st.expander("Ver Leyenda Detallada"):
+                            st.markdown("""
+                            - **Medias Móviles (SMA):** Suavizan el precio para mostrar la tendencia subyacente. La **SMA50** (naranja) indica la tendencia a corto plazo y la **SMA200** (roja) la de largo plazo. Una tendencia es claramente alcista cuando el precio está por encima de ambas medias y la SMA50 está por encima de la SMA200.
+                            - **RSI (Índice de Fuerza Relativa):** Es un oscilador que mide la velocidad y el cambio de los movimientos del precio. Un valor **> 70** indica que la acción puede estar "sobrecomprada" y podría corregir a la baja. Un valor **< 30** indica que puede estar "sobrevendida" y podría rebotar al alza.
+                            """)
+                    else:
+                        st.warning("No se pudieron generar los datos para el análisis técnico.")
 
-        except TypeError as e:
-            st.error(f"Error al procesar los datos para '{ticker_input}'. Es posible que los datos de Yahoo Finance para este ticker estén incompletos o no disponibles temporalmente.")
-            st.error(f"Detalle técnico: {e}")
         except Exception as e:
-            st.error("El Analizador de Acciones de Sr. Outfit ha encontrado un problema. Por favor, inténtalo de nuevo más tarde.")
+            st.error("El Analizador de Acciones de Sr. Outfit está en mantenimiento. Es posible que el ticker introducido no exista o que haya un problema de conexión. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
+
