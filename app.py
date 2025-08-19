@@ -387,7 +387,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
 
 # --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
-def crear_grafico_radar(puntuaciones):
+def crear_grafico_radar(puntuaciones, score):
     labels = ['Calidad', 'Valoración', 'Salud Fin.', 'Dividendos']
     stats = [
         puntuaciones.get('calidad', 0), 
@@ -400,7 +400,7 @@ def crear_grafico_radar(puntuaciones):
     stats = np.concatenate((stats,[stats[0]]))
     angles = np.concatenate((angles,[angles[0]]))
 
-    fig, ax = plt.subplots(figsize=(2.5, 2.5), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(3.5, 3.5), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
     
@@ -415,26 +415,11 @@ def crear_grafico_radar(puntuaciones):
     ax.spines['polar'].set_color('white')
     ax.grid(color='gray', linestyle='--', linewidth=0.5)
 
-    return fig
+    # --- CAMBIO: Añadir la nota global en el centro ---
+    ax.text(0, 0, f'{score:.1f}', ha='center', va='center', fontsize=36, color='white', weight='bold')
+    ax.text(0, 0, '\n\n\nNota Global', ha='center', va='center', fontsize=12, color='gray')
 
-def crear_grafico_gauge(score):
-    fig, ax = plt.subplots(figsize=(2.5, 1.5))
-    fig.patch.set_facecolor('#0E1117')
-    
-    colors = ['#dc3545', '#fd7e14', '#28a745']
-    values = [4, 2, 4]
 
-    ax.pie([*values, sum(values)], colors=[*colors, '#0E1117'], startangle=180, counterclock=False, radius=1, wedgeprops={'width':0.3})
-    
-    angle = (1 - score / 10) * 180
-    ax.arrow(0, 0, -0.8 * np.cos(np.radians(angle)), 0.8 * np.sin(np.radians(angle)),
-             width=0.02, head_width=0.05, head_length=0.1, fc='white', ec='white')
-    
-    ax.text(0, -0.1, f'{score:.1f}', ha='center', va='center', fontsize=20, color='white', weight='bold')
-    ax.text(0, -0.4, 'Nota Global', ha='center', va='center', fontsize=10, color='gray')
-    
-    ax.set_aspect('equal')
-    plt.tight_layout()
     return fig
 
 def crear_grafico_tecnico(data):
@@ -1002,14 +987,11 @@ if st.button('Analizar Acción'):
                     elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
                     else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
 
-                    col_gauge, col_radar = st.columns([0.7, 1])
-                    with col_gauge:
-                        st.subheader("Nota Global")
-                        fig_gauge = crear_grafico_gauge(nota_final)
-                        st.pyplot(fig_gauge)
-                    with col_radar:
-                        st.subheader("Resumen de Fortalezas")
-                        fig_radar = crear_grafico_radar(puntuaciones)
+                    # --- CAMBIO: Unificar gráficos de radar y nota global ---
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        st.subheader("Resumen y Nota Global")
+                        fig_radar = crear_grafico_radar(puntuaciones, nota_final)
                         st.pyplot(fig_radar)
 
                     with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
