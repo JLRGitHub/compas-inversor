@@ -187,8 +187,38 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         if hist_10y.empty:
             st.warning(f"No se encontraron datos históricos de precios para {ticker}.")
             return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "cagr_rev_5y": cagr_rev, "cagr_net_5y": cagr_net, "cagr_fcf_5y": cagr_fcf}
+        
+        # --- Cálculo Robusto de PER y Yield Histórico ---
+        pers = []
+        annual_yields = []
+        if not financials_raw.empty and not balance_sheet_raw.empty:
+            net_income_key = 'Net Income Applicable To Common Shares' if 'Net Income Applicable To Common Shares' in financials_raw.index else 'Net Income'
+            share_key_found = next((key for key in ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding'] if key in balance_sheet_raw.index), None)
+            
+            if share_key_found:
+                for col_date in financials_raw.columns:
+                    net_income = financials_raw.loc[net_income_key, col_date]
+                    shares = balance_sheet_raw.loc[share_key_found, col_date]
+                    if pd.notna(net_income) and pd.notna(shares) and shares > 0 and net_income > 0:
+                        eps = net_income / shares
+                        price_data_year = hist_10y[hist_10y.index.year == col_date.year]
+                        if not price_data_year.empty:
+                            avg_price = price_data_year['Close'].mean()
+                            per_year = avg_price / eps
+                            if 0 < per_year < 200:
+                                pers.append(per_year)
+        
+        divs_10y = stock.dividends
+        if not divs_10y.empty:
+            annual_dividends = divs_10y.resample('YE').sum()
+            annual_prices = hist_10y['Close'].resample('YE').mean()
+            df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
+            df_yield.columns = ['Dividends', 'Price']
+            if not df_yield.empty:
+                annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
 
-        per_historico, pfcf_historico, yield_historico = 15, 18, 2.5 
+        per_historico = np.mean(pers) if pers else None
+        yield_historico = np.mean(annual_yields) if annual_yields else None
 
         end_date_1y = hist_10y.index.max()
         start_date_1y = end_date_1y - pd.DateOffset(days=365)
@@ -204,7 +234,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 
         return {
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
-            "per_hist": per_historico, "pfcf_hist": pfcf_historico, "yield_hist": yield_historico,
+            "per_hist": per_historico, "yield_hist": yield_historico,
             "tech_data": hist_1y,
             "cagr_rev_5y": cagr_rev, "cagr_net_5y": cagr_net, "cagr_fcf_5y": cagr_fcf
         }
