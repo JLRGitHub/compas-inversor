@@ -271,7 +271,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
     banderas = []
-    if datos.get('sector') != 'Real Estate' and datos.get('payout_ratio', 0) > 100:
+    if datos.get('payout_ratio') is not None and datos.get('payout_ratio') > 100 and datos.get('sector') != 'Real Estate':
         banderas.append("🔴 **Payout Peligroso:** El ratio de reparto de dividendos es superior al 100%.")
     if financials is not None and not financials.empty:
         if 'Operating Margin' in financials.columns and len(financials) >= 3 and (financials['Operating Margin'].diff().iloc[-2:] < 0).all():
@@ -396,14 +396,12 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     else: justificaciones['valoracion'] = "Valoración razonable o exigente."
 
     nota_retorno = 0
-    if datos.get('yield_dividendo', 0) > 3.5: nota_retorno += 3
+    if datos.get('yield_dividendo', 0) > 3.5: nota_retorno += 4
     elif datos.get('yield_dividendo', 0) > 2: nota_retorno += 2
-    if 0 < datos.get('payout_ratio', 101) < sector_bench['payout_bueno']: nota_retorno += 3
-    elif 0 < datos.get('payout_ratio', 101) < sector_bench['payout_aceptable']: nota_retorno += 1
+    if 0 < datos.get('payout_ratio', 101) < sector_bench['payout_bueno']: nota_retorno += 4
+    elif 0 < datos.get('payout_ratio', 101) < sector_bench['payout_aceptable']: nota_retorno += 2
     if datos.get('buyback_yield', 0) > 2: nota_retorno += 2
     elif datos.get('buyback_yield', 0) > 0: nota_retorno += 1
-    if hist_data.get('yield_hist') and datos.get('yield_dividendo', 0) > hist_data['yield_hist']:
-        nota_retorno += 2
     puntuaciones['retorno_accionista'] = min(10, nota_retorno)
     justificaciones['retorno_accionista'] = "Excelente retorno al accionista (dividendos y recompras)." if puntuaciones['retorno_accionista'] >= 8 else "Sólido retorno al accionista."
     
@@ -469,8 +467,8 @@ def crear_grafico_tecnico(data):
     
     ax1.set_facecolor('#0E1117')
     ax1.plot(data.index, data['Close'], label='Precio', color='#87CEEB', linewidth=2)
-    ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--')
-    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF0000', linestyle='--')
+    ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FF0000', linestyle='--') # Rojo
+    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FFA500', linestyle='--') # Naranja
     ax1.set_title('Análisis Técnico del Precio (Último Año)', color='white')
     ax1.legend()
     ax1.grid(color='gray', linestyle='--', linewidth=0.5)
@@ -622,16 +620,17 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     ''', unsafe_allow_html=True)
 
 def mostrar_valor_intrinseco(label, valor_calculado, precio_actual):
-    if valor_calculado is None:
+    if valor_calculado is None or precio_actual is None:
         prose = "No aplicable"
         color_class = "color-white"
     else:
+        potencial = ((valor_calculado / precio_actual) - 1) * 100
         if precio_actual < valor_calculado:
             color_class = "color-green"
-            prose = f"Infravalorada ({valor_calculado:.2f})"
+            prose = f"Infravalorada ({valor_calculado:.2f}) <span style='font-size: 0.9rem; color: #adb5bd;'> (+{potencial:.1f}%)</span>"
         else:
             color_class = "color-red"
-            prose = f"Sobrevalorada ({valor_calculado:.2f})"
+            prose = f"Sobrevalorada ({valor_calculado:.2f}) <span style='font-size: 0.9rem; color: #adb5bd;'> ({potencial:.1f}%)</span>"
     
     st.markdown(f'''
     <div class="metric-container">
@@ -648,10 +647,20 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     l_roic_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['roic_excelente']}%"
     l_roic_bueno_raw = f"<strong>Bueno:</strong> > {sector_bench['roic_bueno']}%"
     l_roic_alerta_raw = f"<strong>Alerta:</strong> < {sector_bench['roic_bueno']}%"
+    l_roic_na_raw = "<strong>No aplicable:</strong> Métrica no estándar para el sector financiero, cuyo modelo de negocio es diferente."
     
-    l_roic_exc = f"<span {highlight_style}>{l_roic_exc_raw}</span>" if roic is not None and roic > sector_bench['roic_excelente'] else l_roic_exc_raw
-    l_roic_bueno = f"<span {highlight_style}>{l_roic_bueno_raw}</span>" if roic is not None and sector_bench['roic_bueno'] < roic <= sector_bench['roic_excelente'] else l_roic_bueno_raw
-    l_roic_alerta = f"<span {highlight_style}>{l_roic_alerta_raw}</span>" if roic is not None and roic <= sector_bench['roic_bueno'] else l_roic_alerta_raw
+    if datos['sector'] == 'Financial Services':
+        leyenda_roic = f"- **ROIC (Retorno sobre Capital Invertido):** {l_roic_na_raw}"
+    elif roic is not None:
+        l_roic_exc = f"<span {highlight_style}>{l_roic_exc_raw}</span>" if roic > sector_bench['roic_excelente'] else l_roic_exc_raw
+        l_roic_bueno = f"<span {highlight_style}>{l_roic_bueno_raw}</span>" if sector_bench['roic_bueno'] < roic <= sector_bench['roic_excelente'] else l_roic_bueno_raw
+        l_roic_alerta = f"<span {highlight_style}>{l_roic_alerta_raw}</span>" if roic <= sector_bench['roic_bueno'] else l_roic_alerta_raw
+        leyenda_roic = f"""- **ROIC (Retorno sobre Capital Invertido):** Mide la rentabilidad real del negocio sobre todo el capital (deuda + patrimonio). Es un indicador clave de calidad.
+        - {l_roic_exc}
+        - {l_roic_bueno}
+        - {l_roic_alerta}"""
+    else:
+        leyenda_roic = f"- **ROIC:** No disponible."
 
     margen_op = datos.get('margen_operativo')
     l_mop_exc_raw = f"<strong>Excelente:</strong> > {sector_bench['margen_excelente']}%"
@@ -665,23 +674,29 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     l_cc_exc_raw = "<strong>Excelente:</strong> > 100%"
     l_cc_bueno_raw = "<strong>Bueno:</strong> > 80%"
     l_cc_alerta_raw = "<strong>Alerta:</strong> < 80%"
-    l_cc_exc = f"<span {highlight_style}>{l_cc_exc_raw}</span>" if conversion_caja is not None and conversion_caja > 100 else l_cc_exc_raw
-    l_cc_bueno = f"<span {highlight_style}>{l_cc_bueno_raw}</span>" if conversion_caja is not None and 80 < conversion_caja <= 100 else l_cc_bueno_raw
-    l_cc_alerta = f"<span {highlight_style}>{l_cc_alerta_raw}</span>" if conversion_caja is not None and conversion_caja <= 80 else l_cc_alerta_raw
+    l_cc_na_raw = "<strong>No aplicable:</strong> Métrica no estándar para el sector financiero."
+
+    if datos['sector'] == 'Financial Services':
+        leyenda_conversion_caja = f"- **Conversión de Caja (FCF/Beneficio):** {l_cc_na_raw}"
+    elif conversion_caja is not None:
+        l_cc_exc = f"<span {highlight_style}>{l_cc_exc_raw}</span>" if conversion_caja > 100 else l_cc_exc_raw
+        l_cc_bueno = f"<span {highlight_style}>{l_cc_bueno_raw}</span>" if 80 < conversion_caja <= 100 else l_cc_bueno_raw
+        l_cc_alerta = f"<span {highlight_style}>{l_cc_alerta_raw}</span>" if conversion_caja <= 80 else l_cc_alerta_raw
+        leyenda_conversion_caja = f"""- **Conversión de Caja (FCF/Beneficio):** Mide qué % del beneficio se convierte en dinero real.
+        - {l_cc_exc}
+        - {l_cc_bueno}
+        - {l_cc_alerta}"""
+    else:
+        leyenda_conversion_caja = "- **Conversión de Caja:** No disponible."
+
 
     leyenda_calidad = f"""
-    - **ROIC (Retorno sobre Capital Invertido):** Mide la rentabilidad real del negocio sobre todo el capital (deuda + patrimonio). Es un indicador clave de calidad.
-        - {l_roic_exc}
-        - {l_roic_bueno}
-        - {l_roic_alerta}
+    {leyenda_roic}
     - **Margen Operativo:** Mide el beneficio de la actividad principal de la empresa.
         - {l_mop_exc}
         - {l_mop_bueno}
         - {l_mop_alerta}
-    - **Conversión de Caja (FCF/Beneficio):** Mide qué % del beneficio se convierte en dinero real.
-        - {l_cc_exc}
-        - {l_cc_bueno}
-        - {l_cc_alerta}
+    {leyenda_conversion_caja}
     """
 
     deuda_ratio = datos.get('deuda_patrimonio')
@@ -728,7 +743,7 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     deuda_ebitda = datos.get('deuda_ebitda')
     leyenda_deuda_ebitda = ""
     if datos['sector'] == 'Financial Services':
-        leyenda_deuda_ebitda = "- **Deuda Neta / EBITDA:** No es una métrica estándar para el sector financiero."
+        leyenda_deuda_ebitda = "- **Deuda Neta / EBITDA:** No es una métrica estándar para el sector financiero, ya que su modelo de negocio se basa en el apalancamiento y la 'deuda' es su materia prima."
     elif isinstance(deuda_ebitda, (int, float)):
         l_de_saludable_raw = f"<strong>Saludable:</strong> < {sector_bench['deuda_ebitda_bueno']}x"
         l_de_precaucion_raw = f"<strong>Precaución:</strong> {sector_bench['deuda_ebitda_bueno']}x - {sector_bench['deuda_ebitda_precaucion']}x"
@@ -744,7 +759,7 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     cobertura_intereses = datos.get('cobertura_intereses')
     leyenda_cobertura = ""
     if datos['sector'] == 'Financial Services':
-        leyenda_cobertura = "- **Cobertura de Intereses:** No es una métrica estándar para el sector financiero."
+        leyenda_cobertura = "- **Cobertura de Intereses:** No es una métrica estándar para el sector financiero, ya que los gastos por intereses son parte de su coste operativo principal."
     elif isinstance(cobertura_intereses, (int, float)):
         l_ci_excelente_raw = f"<strong>Excelente:</strong> > {sector_bench['cobertura_intereses_excelente']}x"
         l_ci_buena_raw = f"<strong>Buena:</strong> > {sector_bench['cobertura_intereses_bueno']}x"
@@ -936,12 +951,12 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         escenario_5 = tendencia_bajista and rsi_neutral
         escenario_6 = tendencia_bajista and rsi_sobrecompra
 
-        l_esc_1_raw = "<strong>🟢+🟢 Oportunidad de Compra Óptima:</strong> Tendencia alcista con retroceso (RSI en sobreventa)."
-        l_esc_2_raw = "<strong>🟢+🟠 Continuación Alcista:</strong> Tendencia alcista con RSI neutral. Esperar retroceso para comprar."
-        l_esc_3_raw = "<strong>🟢+🔴 Riesgo de Corrección:</strong> Tendencia alcista pero con RSI sobrecomprado. Posible recogida de beneficios."
+        l_esc_1_raw = "<strong>🟢+🟢 Oportunidad Interesante Óptima:</strong> Tendencia alcista con retroceso (RSI en sobreventa)."
+        l_esc_2_raw = "<strong>🟢+🟠 Continuación Alcista:</strong> Tendencia alcista con RSI neutral. Esperar retroceso."
+        l_esc_3_raw = "<strong>🟢+🔴 Riesgo de Corrección:</strong> Tendencia alcista pero con RSI sobrecomprado. Posible señal de peligro."
         l_esc_4_raw = "<strong>🔴+🟢 Posible Rebote (Contra Tendencia):</strong> Tendencia bajista con RSI en sobreventa. Alto riesgo."
-        l_esc_5_raw = "<strong>🔴+🟠 Continuación Bajista:</strong> Tendencia bajista con RSI neutral. Evitar compras."
-        l_esc_6_raw = "<strong>🔴+🔴 Oportunidad de Venta Óptima:</strong> Tendencia bajista con rebote (RSI en sobrecompra)."
+        l_esc_5_raw = "<strong>🔴+🟠 Continuación Bajista:</strong> Tendencia bajista con RSI neutral. Evitar."
+        l_esc_6_raw = "<strong>🔴+🔴 Señal de Peligro Óptima:</strong> Tendencia bajista con rebote (RSI en sobrecompra)."
 
         l_esc_1 = f"<span {highlight_style}>{l_esc_1_raw}</span>" if escenario_1 else l_esc_1_raw
         l_esc_2 = f"<span {highlight_style}>{l_esc_2_raw}</span>" if escenario_2 else l_esc_2_raw
@@ -952,8 +967,8 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
 
         leyenda_tecnico = f"""
         - **Medias Móviles (SMA):** Suavizan el precio para mostrar la tendencia. El número (50 o 200) se refiere a los **últimos días de cotización** (sesiones) que usa para calcular la media.
-            - **SMA50 (naranja):** Media de los últimos 50 días. Refleja la tendencia a corto/medio plazo.
-            - **SMA200 (roja):** Media de los últimos 200 días. Es el indicador más importante para la tendencia a largo plazo.
+            - **SMA50 (roja):** Media de los últimos 50 días. Refleja la tendencia a corto/medio plazo.
+            - **SMA200 (naranja):** Media de los últimos 200 días. Es el indicador más importante para la tendencia a largo plazo.
             - {l_sma_alcista}
             - {l_sma_bajista}
         - **RSI (Índice de Fuerza Relativa):** Es un **oscilador de momentum** que mide la velocidad y la fuerza de los cambios en el precio. Su utilidad principal es detectar condiciones de **sobrecompra** (el precio ha subido mucho y rápido, posible corrección) o **sobreventa** (el precio ha caído mucho y rápido, posible rebote).
@@ -1170,11 +1185,8 @@ if st.button('Analizar Acción'):
                         div1, div2 = st.columns(2)
                         with div1: 
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
-                            mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                         with div2:
-                            mostrar_metrica_con_color("🛍️ Rent. por Recompra", datos['buyback_yield'], 2, 0, is_percent=True)
-                            total_yield = datos.get('yield_dividendo', 0) + datos.get('buyback_yield', 0)
-                            mostrar_metrica_con_color("📈 Retorno Total", total_yield, 5, 3, is_percent=True)
+                            mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                         
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
