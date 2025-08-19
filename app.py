@@ -432,7 +432,6 @@ def crear_grafico_gauge(score):
 
     ax.pie([*values, sum(values)], colors=[*colors, '#0E1117'], startangle=180, counterclock=False, radius=1, wedgeprops={'width':0.3})
     
-    # --- ¡CORRECCIÓN! Color de la aguja dinámico ---
     if score >= 7.5:
         arrow_color = '#28a745' # green
     elif score >= 6:
@@ -452,7 +451,6 @@ def crear_grafico_gauge(score):
     return fig
 
 def crear_grafico_tecnico(data):
-    # --- ¡CORRECCIÓN! Tamaño del gráfico reducido ---
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 5), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     fig.patch.set_facecolor('#0E1117')
     
@@ -485,7 +483,6 @@ def crear_graficos_financieros(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
-        # --- ¡CORRECCIÓN! Tamaño del gráfico reducido ---
         fig, axs = plt.subplots(2, 2, figsize=(8, 5.6))
         plt.style.use('dark_background')
         fig.patch.set_facecolor('#0E1117')
