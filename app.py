@@ -27,7 +27,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
-# Se han añadido benchmarks para las nuevas métricas (deuda_ebitda, int_coverage)
 SECTOR_BENCHMARKS = {
     'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'rev_growth_excelente': 15, 'rev_growth_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'int_coverage_excelente': 10, 'int_coverage_bueno': 5},
     'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'rev_growth_excelente': 10, 'rev_growth_bueno': 6, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4, 'int_coverage_excelente': 8, 'int_coverage_bueno': 4},
@@ -116,10 +115,7 @@ def obtener_datos_completos(ticker):
     }
 
 def calculate_cagr(end_value, start_value, years):
-    if start_value is None or end_value is None or start_value == 0 or years <= 0:
-        return None
-    # Manejar valores iniciales negativos
-    if start_value < 0:
+    if start_value is None or end_value is None or start_value <= 0 or years <= 0:
         return None
     return ((end_value / start_value) ** (1 / years) - 1) * 100
 
@@ -177,8 +173,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             st.warning(f"No se encontraron datos históricos de precios para {ticker}.")
             return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "cagr_rev_5y": cagr_rev, "cagr_net_5y": cagr_net, "cagr_fcf_5y": cagr_fcf}
 
-        # Lógica de valoración histórica omitida por brevedad en el prompt original, se asume funcional
-        per_historico, pfcf_historico, yield_historico = 15, 18, 2.5 # Valores de ejemplo
+        per_historico, pfcf_historico, yield_historico = 15, 18, 2.5 
 
         end_date_1y = hist_10y.index.max()
         start_date_1y = end_date_1y - pd.DateOffset(days=365)
@@ -378,7 +373,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     puntuaciones['valor_graham'] = None
     if bpa and bpa > 0 and crecimiento_yoy is not None:
-        g = min(crecimiento_yoy * 100, 20)
+        g = min(crecimiento_yoy * 100, 20) if crecimiento_yoy > 0 else 0
         puntuaciones['valor_graham'] = bpa * (8.5 + 2 * g)
 
     puntuaciones['peg_lynch'] = None
@@ -622,7 +617,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
     roe = datos.get('roe', 0)
     margen_op = datos.get('margen_operativo', 0)
     margen_neto = datos.get('margen_beneficio', 0)
-    cagr_rev = hist_data.get('cagr_rev_5y')
+    cagr_rev = hist_data.get('cagr_rev_5y') if hist_data else None
     
     leyenda_calidad = f"""
     - **ROE (Return on Equity):** Mide la rentabilidad sobre el dinero de los accionistas.
@@ -633,6 +628,10 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
         - {highlight(margen_op > sector_bench['margen_excelente'], f"**Excelente:** > {sector_bench['margen_excelente']}%")}
         - {highlight(sector_bench['margen_bueno'] < margen_op <= sector_bench['margen_excelente'], f"**Bueno:** > {sector_bench['margen_bueno']}%")}
         - {highlight(margen_op <= sector_bench['margen_bueno'], f"**Alerta:** < {sector_bench['margen_bueno']}%")}
+    - **Margen Neto:** Mide el beneficio final que queda para el accionista.
+        - {highlight(margen_neto > sector_bench['margen_neto_excelente'], f"**Excelente:** > {sector_bench['margen_neto_excelente']}%")}
+        - {highlight(sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'], f"**Bueno:** > {sector_bench['margen_neto_bueno']}%")}
+        - {highlight(margen_neto <= sector_bench['margen_neto_bueno'], f"**Alerta:** < {sector_bench['margen_neto_bueno']}%")}
     - **Crecimiento Ingresos (CAGR 5 Años):** Mide la consistencia del crecimiento de ventas a largo plazo.
     """
     if cagr_rev is not None:
@@ -649,7 +648,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
     int_coverage = datos.get('interest_coverage')
     ratio_corriente = datos.get('ratio_corriente')
 
-    leyenda_salud = "- **Deuda Neta / EBITDA:** El ratio de deuda más importante. Mide cuántos años de ganancias operativas costaría pagar toda la deuda."
+    leyenda_salud = "- **Deuda Neta / EBITDA:** El ratio de deuda más importante. Mide cuántos años de ganancias operativas (EBITDA) costaría pagar toda la deuda neta."
     if deuda_ebitda is not None:
         leyenda_salud += f"""
         - {highlight(deuda_ebitda < sector_bench['deuda_ebitda_bueno'], f"**Saludable:** < {sector_bench['deuda_ebitda_bueno']}x")}
@@ -659,7 +658,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
     else:
         leyenda_salud += " - *No aplicable o datos no disponibles.*"
 
-    leyenda_salud += "\n- **Ratio Cobertura de Intereses:** Mide si la empresa genera suficientes beneficios para pagar los intereses de su deuda. Es la prueba de fuego de la solvencia."
+    leyenda_salud += "\n- **Ratio Cobertura de Intereses:** Mide cuántas veces la empresa puede pagar sus gastos por intereses anuales utilizando su beneficio operativo (EBIT). Es la prueba de fuego de la solvencia."
     if int_coverage is not None:
          leyenda_salud += f"""
         - {highlight(int_coverage > sector_bench['int_coverage_excelente'], f"**Excelente:** > {sector_bench['int_coverage_excelente']}x")}
@@ -677,34 +676,99 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
         - {highlight(1.0 < ratio_corriente <= 1.5, "**Aceptable:** > 1.0")}
         - {highlight(ratio_corriente <= 1.0, "**Zona de Riesgo:** < 1.0")}
     """
-    
-    # --- Leyenda de Valoración (Completa) ---
+    leyenda_salud += "\n- **Flujo de Caja Libre (FCF):** Es el dinero real que le queda a la empresa después de sus gastos operativos y de inversión."
+    raw_fcf = datos.get('raw_fcf')
+    if raw_fcf is not None:
+        leyenda_salud += f"""
+        - {highlight(raw_fcf > 0, "🟢 **Positivo:** La empresa genera más efectivo del que gasta.")}
+        - {highlight(raw_fcf <= 0, "🔴 **Negativo:** La empresa está quemando efectivo.")}
+        """
+
+    # --- Leyenda de Valoración ---
     per = datos.get('per')
     p_fcf = datos.get('p_fcf')
     pb = datos.get('p_b')
+    valor_graham = puntuaciones.get('valor_graham')
+    precio_actual = datos.get('precio_actual')
+    peg = puntuaciones.get('peg_lynch')
+    valor_weiss = puntuaciones.get('valor_weiss')
+    
     leyenda_valoracion = ""
-
     if datos.get('sector') == 'Real Estate':
-        leyenda_valoracion += "- **PER:** No es la métrica principal para REITs. Se prefiere el P/FFO (usamos P/FCF como proxy)."
+        leyenda_valoracion += "- **PER:** No es la métrica principal para REITs."
     elif per is not None:
-        leyenda_valoracion += f"""- **PER (Price-to-Earnings):** Mide cuántas veces pagas el beneficio anual.
+        leyenda_valoracion += f"""- **PER (Price-to-Earnings):**
         - {highlight(per < sector_bench['per_barato'], f"**Atractivo:** < {sector_bench['per_barato']}")}
         - {highlight(sector_bench['per_barato'] <= per <= sector_bench['per_justo'], f"**Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}")}
         - {highlight(per > sector_bench['per_justo'], f"**Caro:** > {sector_bench['per_justo']}")}"""
 
     if p_fcf is not None:
         p_fcf_barato, p_fcf_justo = (16, 22) if datos.get('sector') == 'Real Estate' else (20, 30)
-        leyenda_valoracion += f"""\n- **P/FCF (Price-to-Free-Cash-Flow):** Similar al PER, pero usa el flujo de caja libre. Un valor **Negativo es una señal de alerta**.
+        leyenda_valoracion += f"""\n- **P/FCF (Price-to-Free-Cash-Flow):**
         - {highlight(p_fcf < p_fcf_barato, f"**Atractivo:** < {p_fcf_barato}")}
         - {highlight(p_fcf_barato <= p_fcf <= p_fcf_justo, f"**Justo:** {p_fcf_barato} - {p_fcf_justo}")}
         - {highlight(p_fcf > p_fcf_justo, f"**Caro:** > {p_fcf_justo}")}"""
     
-    # ... (Resto de leyendas de valoración, dividendos, técnico, etc. como en el original)
-    # (Se omite por brevedad, pero se debe incluir toda la lógica de `generar_leyenda_dinamica` del código original)
-    leyenda_dividendos = "..."
-    leyenda_tecnico = "..."
-    leyenda_margen_seguridad = "..."
+    leyenda_valoracion += "\n---\n**Fórmulas Clásicas de Valoración:**"
+    leyenda_valoracion += f"\n- **Valor Intrínseco (B. Graham):**"
+    if valor_graham and precio_actual:
+        leyenda_valoracion += f'\n  - {highlight(precio_actual < valor_graham, "Infravalorada: Precio actual por debajo del valor intrínseco.")}'
+        leyenda_valoracion += f'\n  - {highlight(precio_actual >= valor_graham, "Sobrevalorada: Precio actual por encima del valor intrínseco.")}'
+    else:
+        leyenda_valoracion += f'\n  - {highlight(True, "No aplicable: Requiere beneficios y crecimiento positivos.")}'
+        
+    leyenda_valoracion += f"\n- **Ratio PEG (Peter Lynch):**"
+    if peg:
+        leyenda_valoracion += f'\n  - {highlight(peg < 1, "Barato (PEG < 1): El precio parece bajo en relación al crecimiento.")}'
+        leyenda_valoracion += f'\n  - {highlight(peg >= 1, "Caro (PEG > 1): El precio parece alto para su crecimiento.")}'
+    else:
+        leyenda_valoracion += f'\n  - {highlight(True, "No aplicable: Requiere PER y crecimiento positivos.")}'
 
+    # --- Leyenda de Dividendos ---
+    yield_div = datos.get('yield_dividendo', 0)
+    payout = datos.get('payout_ratio', 0)
+    blue_chip_analysis_data = justificaciones.get('blue_chip_analysis') or {}
+    blue_chip_status = blue_chip_analysis_data.get('label', '')
+    
+    leyenda_dividendos = f"""
+    - **Rentabilidad (Yield):**
+        - {highlight(yield_div > 3.5, "Excelente: > 3.5%")}
+        - {highlight(2.0 < yield_div <= 3.5, "Bueno: > 2.0%")}
+        - {highlight(yield_div <= 2.0, "Bajo: < 2.0%")}
+    - **Ratio de Reparto (Payout):**
+        - {highlight(0 < payout < sector_bench['payout_bueno'], f"Saludable: < {sector_bench['payout_bueno']}%")}
+        - {highlight(sector_bench['payout_bueno'] <= payout < sector_bench['payout_aceptable'], f"Precaución: > {sector_bench['payout_bueno']}%")}
+        - {highlight(payout >= sector_bench['payout_aceptable'], f"Peligroso: > {sector_bench['payout_aceptable']}%")}
+    - **Análisis de Valor 'Blue Chip':**
+        - {highlight("Muy Interesante" in blue_chip_status, "🟢 Muy Interesante")}
+        - {highlight("Interesante" in blue_chip_status and "Muy" not in blue_chip_status, "🟡 Interesante")}
+    """
+
+    # --- Leyenda Técnica ---
+    leyenda_tecnico = ""
+    if tech_data is not None and not tech_data.empty:
+        last_price = tech_data['Close'].iloc[-1]
+        sma200 = tech_data['SMA200'].iloc[-1]
+        rsi = tech_data['RSI'].iloc[-1]
+        tendencia_alcista = last_price > sma200
+        rsi_sobreventa = rsi < 30
+        leyenda_tecnico = f"""
+        - **Medias Móviles (SMA200):**
+            - {highlight(tendencia_alcista, "Señal Alcista 🟢: Precio > SMA200")}
+            - {highlight(not tendencia_alcista, "Señal Bajista 🔴: Precio < SMA200")}
+        - **RSI (Índice de Fuerza Relativa):**
+            - {highlight(rsi_sobreventa, "Sobreventa (< 30) 🟢: Potencial compra")}
+            - {highlight(rsi > 70, "Sobrecompra (> 70) 🔴: Potencial venta")}
+        """
+
+    # --- Leyenda Margen de Seguridad ---
+    ms_analistas = puntuaciones.get('margen_seguridad_analistas', 0)
+    leyenda_margen_seguridad = f"""
+    - **Según Analistas:**
+        - {highlight(ms_analistas > 20, "Alto Potencial: > 20%")}
+        - {highlight(0 <= ms_analistas <= 20, "Potencial Moderado: 0% a 20%")}
+        - {highlight(ms_analistas < 0, "Riesgo de Caída: < 0%")}
+    """
 
     return {
         'calidad': leyenda_calidad,
@@ -778,12 +842,14 @@ if st.button('Analizar Acción'):
                         with st.container(border=True):
                             st.subheader(f"Calidad del Negocio [{puntuaciones['calidad']:.1f}/10]")
                             st.caption(justificaciones['calidad'])
-                            c1, c2, c3 = st.columns(3)
+                            c1, c2, c3, c4 = st.columns(4)
                             with c1:
                                 mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
                             with c2:
                                 mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
                             with c3:
+                                mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
+                            with c4:
                                 mostrar_metrica_con_color("🚀 Crec. Ingresos (5a)", hist_data.get('cagr_rev_5y'), sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'], is_percent=True)
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['calidad'], unsafe_allow_html=True)
