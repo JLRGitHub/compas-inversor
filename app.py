@@ -432,9 +432,16 @@ def crear_grafico_gauge(score):
 
     ax.pie([*values, sum(values)], colors=[*colors, '#0E1117'], startangle=180, counterclock=False, radius=1, wedgeprops={'width':0.3})
     
+    if score >= 7.5:
+        arrow_color = '#28a745' # green
+    elif score >= 6:
+        arrow_color = '#fd7e14' # orange
+    else:
+        arrow_color = '#dc3545' # red
+
     angle = (1 - score / 10) * 180
     ax.arrow(0, 0, -0.8 * np.cos(np.radians(angle)), 0.8 * np.sin(np.radians(angle)),
-             width=0.02, head_width=0.05, head_length=0.1, fc='white', ec='white')
+             width=0.02, head_width=0.05, head_length=0.1, fc=arrow_color, ec=arrow_color)
     
     ax.text(0, -0.1, f'{score:.1f}', ha='center', va='center', fontsize=20, color='white', weight='bold')
     ax.text(0, -0.4, 'Nota Global', ha='center', va='center', fontsize=10, color='gray')
@@ -444,7 +451,7 @@ def crear_grafico_gauge(score):
     return fig
 
 def crear_grafico_tecnico(data):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 5), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     fig.patch.set_facecolor('#0E1117')
     
     ax1.set_facecolor('#0E1117')
@@ -476,7 +483,7 @@ def crear_graficos_financieros(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
-        fig, axs = plt.subplots(2, 2, figsize=(10, 7))
+        fig, axs = plt.subplots(2, 2, figsize=(8, 5.6))
         plt.style.use('dark_background')
         fig.patch.set_facecolor('#0E1117')
         
@@ -843,7 +850,6 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_pay_pel}
     """
     
-    # --- ¡NUEVO! Leyenda de Blue Chip separada ---
     leyenda_blue_chip = f"""
     Compara la valoración actual con su media histórica para detectar oportunidades.
     - {l_bc_muy_int}
@@ -1109,64 +1115,75 @@ if st.button('Analizar Acción'):
 
 
                     st.header("Análisis Gráfico Financiero y Banderas Rojas")
-                    financials_hist = hist_data.get('financials_charts')
-                    dividends_hist = hist_data.get('dividends_charts')
-                    fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
-                    if fig_financieros:
-                        st.pyplot(fig_financieros)
-                        st.subheader("Banderas Rojas (Red Flags)")
-                        banderas = analizar_banderas_rojas(datos, financials_hist)
-                        if banderas:
-                            for bandera in banderas: st.warning(bandera)
+                    col_fig_1, col_fig_2 = st.columns(2)
+                    with col_fig_1:
+                        financials_hist = hist_data.get('financials_charts')
+                        dividends_hist = hist_data.get('dividends_charts')
+                        fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
+                        if fig_financieros:
+                            st.pyplot(fig_financieros)
                         else:
-                            st.success("✅ No se han detectado banderas rojas significativas.")
-                    else:
-                        st.warning("No se pudieron generar los gráficos financieros históricos.")
-                    
-                    # --- SECCIÓN DE ANÁLISIS TÉCNICO MEJORADA ---
-                    with st.container(border=True):
-                        st.header("Análisis Técnico")
+                            st.warning("No se pudieron generar los gráficos financieros históricos.")
+                    with col_fig_2:
+                        tech_data = hist_data.get('tech_data')
                         if tech_data is not None and not tech_data.empty:
                             fig_tecnico = crear_grafico_tecnico(tech_data)
                             st.pyplot(fig_tecnico)
-                            
-                            last_price = tech_data['Close'].iloc[-1]
-                            sma50 = tech_data['SMA50'].iloc[-1]
-                            sma200 = tech_data['SMA200'].iloc[-1]
-                            rsi = tech_data['RSI'].iloc[-1]
-                            
-                            tendencia_texto = "Lateral 🟠"
-                            tendencia_color = "color-orange"
-                            if last_price > sma50 and sma50 > sma200:
-                                tendencia_texto = "Alcista Fuerte 🟢"
-                                tendencia_color = "color-green"
-                            elif last_price > sma200:
-                                tendencia_texto = "Alcista 🟢"
-                                tendencia_color = "color-green"
-                            elif last_price < sma50 and sma50 < sma200:
-                                tendencia_texto = "Bajista Fuerte 🔴"
-                                tendencia_color = "color-red"
-                            elif last_price < sma200:
-                                tendencia_texto = "Bajista 🔴"
-                                tendencia_color = "color-red"
-
-                            st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
-
-                            rsi_texto = f"{rsi:.2f} (Neutral 🟠)"
-                            rsi_color = "color-orange"
-                            if rsi > 70:
-                                rsi_texto = f"{rsi:.2f} (Sobrecompra 🔴)"
-                                rsi_color = "color-red"
-                            elif rsi < 30:
-                                rsi_texto = f"{rsi:.2f} (Sobreventa 🟢)"
-                                rsi_color = "color-green"
-
-                            st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
-
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
                         else:
                             st.warning("No se pudieron generar los datos para el análisis técnico.")
+
+                    # --- SECCIONES DE TEXTO DEBAJO DE LOS GRÁFICOS ---
+                    col_text_1, col_text_2 = st.columns(2)
+                    with col_text_1:
+                        with st.container(border=True):
+                            st.subheader("Banderas Rojas (Red Flags)")
+                            banderas = analizar_banderas_rojas(datos, financials_hist)
+                            if banderas:
+                                for bandera in banderas: st.warning(bandera)
+                            else:
+                                st.success("✅ No se han detectado banderas rojas significativas.")
+                    
+                    with col_text_2:
+                        with st.container(border=True):
+                            st.subheader("Análisis Técnico")
+                            if tech_data is not None and not tech_data.empty:
+                                last_price = tech_data['Close'].iloc[-1]
+                                sma50 = tech_data['SMA50'].iloc[-1]
+                                sma200 = tech_data['SMA200'].iloc[-1]
+                                rsi = tech_data['RSI'].iloc[-1]
+                                
+                                tendencia_texto = "Lateral 🟠"
+                                tendencia_color = "color-orange"
+                                if last_price > sma50 and sma50 > sma200:
+                                    tendencia_texto = "Alcista Fuerte 🟢"
+                                    tendencia_color = "color-green"
+                                elif last_price > sma200:
+                                    tendencia_texto = "Alcista 🟢"
+                                    tendencia_color = "color-green"
+                                elif last_price < sma50 and sma50 < sma200:
+                                    tendencia_texto = "Bajista Fuerte 🔴"
+                                    tendencia_color = "color-red"
+                                elif last_price < sma200:
+                                    tendencia_texto = "Bajista 🔴"
+                                    tendencia_color = "color-red"
+
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
+
+                                rsi_texto = f"{rsi:.2f} (Neutral 🟠)"
+                                rsi_color = "color-orange"
+                                if rsi > 70:
+                                    rsi_texto = f"{rsi:.2f} (Sobrecompra 🔴)"
+                                    rsi_color = "color-red"
+                                elif rsi < 30:
+                                    rsi_texto = f"{rsi:.2f} (Sobreventa 🟢)"
+                                    rsi_color = "color-green"
+
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
+
+                                with st.expander("Ver Leyenda Detallada"):
+                                    st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
+                            else:
+                                st.warning("No se pudieron generar los datos para el análisis técnico.")
 
         except TypeError as e:
             st.error(f"Error al procesar los datos para '{ticker_input}'. Es posible que los datos de Yahoo Finance para este ticker estén incompletos o no disponibles temporalmente.")
