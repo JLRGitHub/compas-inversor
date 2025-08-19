@@ -31,7 +31,7 @@ st.markdown("""
 SECTOR_BENCHMARKS = {
     'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'rev_growth_excelente': 15, 'rev_growth_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'int_coverage_excelente': 10, 'int_coverage_bueno': 5},
     'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'rev_growth_excelente': 10, 'rev_growth_bueno': 6, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4, 'int_coverage_excelente': 8, 'int_coverage_bueno': 4},
-    'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90, 'deuda_ebitda_bueno': 1, 'deuda_ebitda_aceptable': 2, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3},
+    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90, 'deuda_ebitda_bueno': 1, 'deuda_ebitda_aceptable': 2, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3},
     'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
     'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'rev_growth_excelente': 5, 'rev_growth_bueno': 3, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95, 'deuda_ebitda_bueno': 4, 'deuda_ebitda_aceptable': 5.5, 'int_coverage_excelente': 4, 'int_coverage_bueno': 2.5},
     'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
@@ -54,35 +54,35 @@ def obtener_datos_completos(ticker):
     financials = stock.financials
     balance_sheet = stock.balance_sheet
     
-    # --- Cálculo robusto de métricas financieras ---
+    # --- CORRECCIÓN 1: CÁLCULO MANUAL Y FIABLE DE MÉTRICAS DE DEUDA ---
+    # En lugar de confiar en info.get('debtToEbitda'), que es inconsistente,
+    # calculamos siempre manualmente con los datos de los estados financieros.
+    
+    # Cobertura de Intereses (EBIT / Gastos por Intereses)
     ebit = financials.loc['EBIT'].iloc[0] if 'EBIT' in financials.index and not financials.loc['EBIT'].empty else None
     interest_expense = financials.loc['Interest Expense'].iloc[0] if 'Interest Expense' in financials.index and not financials.loc['Interest Expense'].empty else None
     
     interest_coverage = None
-    if ebit is not None and interest_expense is not None:
-        interest_coverage = ebit / abs(interest_expense) if interest_expense != 0 else float('inf')
-
-    deuda_ebitda = info.get('debtToEbitda')
-    if deuda_ebitda is None:
-        net_debt = info.get('netDebt')
-        ebitda = info.get('ebitda')
-        if net_debt is None:
-            total_debt = balance_sheet.loc['Total Debt'].iloc[0] if 'Total Debt' in balance_sheet.index else 0
-            cash = balance_sheet.loc['Cash And Cash Equivalents'].iloc[0] if 'Cash And Cash Equivalents' in balance_sheet.index else 0
-            net_debt = total_debt - cash
-        if ebitda is None:
-            depreciation_key = 'Depreciation And Amortization' if 'Depreciation And Amortization' in financials.index else 'Reconciled Depreciation'
-            depreciation = financials.loc[depreciation_key].iloc[0] if depreciation_key in financials.index else 0
-            ebitda = ebit + depreciation if ebit else None
-        
-        if net_debt is not None and ebitda is not None and ebitda > 0:
-            deuda_ebitda = net_debt / ebitda
+    if ebit is not None and interest_expense is not None and interest_expense != 0:
+        interest_coverage = ebit / abs(interest_expense)
     
+    # Deuda Neta / EBITDA ((Deuda Total - Efectivo) / EBITDA)
+    deuda_ebitda = None
+    total_debt = balance_sheet.loc['Total Debt'].iloc[0] if 'Total Debt' in balance_sheet.index and not balance_sheet.loc['Total Debt'].empty else info.get('totalDebt')
+    cash = balance_sheet.loc['Cash And Cash Equivalents'].iloc[0] if 'Cash And Cash Equivalents' in balance_sheet.index and not balance_sheet.loc['Cash And Cash Equivalents'].empty else info.get('totalCash')
+    ebitda = info.get('ebitda') # info.get('ebitda') suele ser fiable y TTM.
+
+    if total_debt is not None and cash is not None and ebitda is not None and ebitda > 0:
+        net_debt = total_debt - cash
+        deuda_ebitda = net_debt / ebitda
+
+    # --- Lógica existente (con pequeñas mejoras) ---
     payout = info.get('payoutRatio')
     dividend_rate = info.get('dividendRate')
     precio = info.get('currentPrice')
-    div_yield = (dividend_rate / precio) if dividend_rate and precio and precio > 0 else 0
+    div_yield = (dividend_rate / precio) * 100 if dividend_rate and precio and precio > 0 else 0
     
+    # Corrección para Payout Ratio anómalo
     if payout is not None and (payout > 1.5 or payout < 0):
         trailing_eps = info.get('trailingEps')
         if trailing_eps and dividend_rate and trailing_eps > 0:
@@ -98,10 +98,7 @@ def obtener_datos_completos(ticker):
     descripcion_corta = 'No disponible.'
     if descripcion_completa and descripcion_completa != 'No disponible.':
         primer_punto = descripcion_completa.find('.')
-        if primer_punto != -1:
-            descripcion_corta = descripcion_completa[:primer_punto + 1]
-        else:
-            descripcion_corta = descripcion_completa
+        descripcion_corta = descripcion_completa[:primer_punto + 1] if primer_punto != -1 else descripcion_completa
             
     return {
         "nombre": info.get('longName', 'N/A'), "sector": info.get('sector', 'N/A'),
@@ -116,13 +113,14 @@ def obtener_datos_completos(ticker):
         "raw_fcf": free_cash_flow,
         "p_b": info.get('priceToBook'),
         "crecimiento_ingresos_yoy": info.get('revenueGrowth', 0) * 100 if info.get('revenueGrowth') is not None else 0,
-        "yield_dividendo": div_yield * 100,
+        "yield_dividendo": div_yield,
         "payout_ratio": payout * 100 if payout is not None else 0,
         "recomendacion_analistas": info.get('recommendationKey', 'N/A'),
         "precio_objetivo": info.get('targetMeanPrice'), "precio_actual": info.get('currentPrice'),
         "bpa": info.get('trailingEps'),
         "crecimiento_beneficios_yoy": info.get('earningsGrowth'),
         "dividendo_por_accion": dividend_rate,
+        # Valores corregidos y calculados manualmente
         "deuda_ebitda": deuda_ebitda,
         "interest_coverage": interest_coverage
     }
@@ -159,10 +157,11 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         
         if not cashflow_raw.empty:
             cashflow_annual = cashflow_raw.T.sort_index(ascending=True)
-            if 'Free Cash Flow' in cashflow_annual.columns and len(cashflow_annual) >= 4:
+            fcf_key = next((key for key in ['Free Cash Flow', 'Net Cash Flow From Continuing Investing Activities'] if key in cashflow_annual.columns), None)
+            if fcf_key and len(cashflow_annual) >= 4:
                 years_cf = (cashflow_annual.index[-1] - cashflow_annual.index[0]).days / 365.25
                 if years_cf > 0:
-                    cagr_fcf = calculate_cagr(cashflow_annual['Free Cash Flow'].iloc[-1], cashflow_annual['Free Cash Flow'].iloc[0], years_cf)
+                    cagr_fcf = calculate_cagr(cashflow_annual[fcf_key].iloc[-1], cashflow_annual[fcf_key].iloc[0], years_cf)
 
         if not financials_raw.empty and not balance_sheet_raw.empty and not cashflow_raw.empty:
             financials = financials_raw.T.sort_index(ascending=True).tail(4)
@@ -177,7 +176,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             if 'Free Cash Flow' not in cashflow.columns:
                 capex = cashflow.get('Capital Expenditure', cashflow.get('Capital Expenditures', 0))
                 op_cash = cashflow.get('Total Cash From Operating Activities', 0)
-                cashflow['Free Cash Flow'] = op_cash + capex
+                cashflow['Free Cash Flow'] = op_cash + capex # Capex es negativo, por eso se suma
             
             financials['Free Cash Flow'] = cashflow['Free Cash Flow']
             financials_for_charts, dividends_for_charts = financials, dividends_chart_data
@@ -188,38 +187,43 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             st.warning(f"No se encontraron datos históricos de precios para {ticker}.")
             return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "cagr_rev_5y": cagr_rev, "cagr_net_5y": cagr_net, "cagr_fcf_5y": cagr_fcf}
         
-        # --- Cálculo Robusto de PER y Yield Histórico ---
+        # --- CORRECCIÓN 2: CÁLCULO REAL DE PER Y YIELD HISTÓRICO ---
+        # Se eliminan los valores estáticos (15, 2.5) y se calcula la media real.
         pers = []
         annual_yields = []
+        
+        # Calcular PER histórico
         if not financials_raw.empty and not balance_sheet_raw.empty:
-            net_income_key = 'Net Income Applicable To Common Shares' if 'Net Income Applicable To Common Shares' in financials_raw.index else 'Net Income'
-            share_key_found = next((key for key in ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding'] if key in balance_sheet_raw.index), None)
+            net_income_key = 'Net Income'
+            share_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_raw.index else 'Diluted Average Shares'
             
-            if share_key_found:
+            if net_income_key in financials_raw.index and share_key in financials_raw.index:
                 for col_date in financials_raw.columns:
                     net_income = financials_raw.loc[net_income_key, col_date]
-                    shares = balance_sheet_raw.loc[share_key_found, col_date]
+                    shares = financials_raw.loc[share_key, col_date]
                     if pd.notna(net_income) and pd.notna(shares) and shares > 0 and net_income > 0:
                         eps = net_income / shares
                         price_data_year = hist_10y[hist_10y.index.year == col_date.year]
                         if not price_data_year.empty:
                             avg_price = price_data_year['Close'].mean()
                             per_year = avg_price / eps
-                            if 0 < per_year < 200:
+                            if 0 < per_year < 200: # Filtro para valores anómalos
                                 pers.append(per_year)
         
+        # Calcular Yield histórico
         divs_10y = stock.dividends
         if not divs_10y.empty:
             annual_dividends = divs_10y.resample('YE').sum()
             annual_prices = hist_10y['Close'].resample('YE').mean()
             df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
             df_yield.columns = ['Dividends', 'Price']
-            if not df_yield.empty:
-                annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
+            if not df_yield.empty and 'Price' in df_yield and 'Dividends' in df_yield:
+                 annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
 
         per_historico = np.mean(pers) if pers else None
         yield_historico = np.mean(annual_yields) if annual_yields else None
 
+        # --- Análisis Técnico (sin cambios) ---
         end_date_1y = hist_10y.index.max()
         start_date_1y = end_date_1y - pd.DateOffset(days=365)
         hist_1y = hist_10y[hist_10y.index >= start_date_1y].copy()
@@ -293,7 +297,8 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     nota_salud = 0
     deuda_ebitda = datos.get('deuda_ebitda')
     if deuda_ebitda is not None:
-        if deuda_ebitda < sector_bench['deuda_ebitda_bueno']: nota_salud += 4
+        if deuda_ebitda < 0: nota_salud += 4 # Caja neta
+        elif deuda_ebitda < sector_bench['deuda_ebitda_bueno']: nota_salud += 4
         elif deuda_ebitda < sector_bench['deuda_ebitda_aceptable']: nota_salud += 2
     
     interest_coverage = datos.get('interest_coverage')
@@ -316,10 +321,10 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos += 8
         elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos += 5
     else:
-        if datos['per'] and datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
-        if datos['p_fcf'] and datos['p_fcf'] < 20: nota_multiplos += 4
+        if datos['per'] and datos['per'] > 0 and datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
+        if datos['p_fcf'] and datos['p_fcf'] > 0 and datos['p_fcf'] < 20: nota_multiplos += 4
         
-    SECTORES_PB_RELEVANTES = ['Financial Services', 'Industrials', 'Materials', 'Energy', 'Utilities', 'Real Estate']
+    SECTORES_PB_RELEVANTES = ['Financials', 'Industrials', 'Materials', 'Energy', 'Utilities', 'Real Estate']
     if sector in SECTORES_PB_RELEVANTES and datos['p_b']:
         if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 2
     
@@ -331,7 +336,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         margen_seguridad = ((datos['precio_objetivo'] - datos['precio_actual']) / datos['precio_actual']) * 100
         if margen_seguridad > 25: nota_analistas = 10
         elif margen_seguridad > 15: nota_analistas = 8
-        else: nota_analistas = 5
+        elif margen_seguridad > 5: nota_analistas = 5
     puntuaciones['margen_seguridad_analistas'] = margen_seguridad
 
     potencial_per, potencial_yield = 0, 0
@@ -346,15 +351,15 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['margen_seguridad_yield'] = potencial_yield
     
     nota_historica = 0
-    if potencial_per > 15: nota_historica += 3
-    if potencial_yield > 15: nota_historica += 3
+    if potencial_per > 15: nota_historica += 5
+    if potencial_yield > 15: nota_historica += 5
     nota_historica = min(10, nota_historica)
 
     nota_valoracion_base = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
     
     per_actual = datos.get('per')
     per_adelantado = datos.get('per_adelantado')
-    if per_actual and per_adelantado:
+    if per_actual and per_adelantado and per_actual > 0 and per_adelantado > 0:
         if per_adelantado < per_actual * 0.9:
             nota_valoracion_base += 1
         elif per_adelantado > per_actual:
@@ -379,23 +384,28 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
+    # --- CORRECCIÓN 3: CÁLCULO DE FÓRMULAS DE VALOR INTRÍNSECO ---
     bpa = datos.get('bpa')
     crecimiento_yoy = datos.get('crecimiento_beneficios_yoy')
     per = datos.get('per')
     div_accion = datos.get('dividendo_por_accion')
-    yield_hist = hist_data.get('yield_hist')
+    
+    puntuaciones['valor_graham'] = None
+    if bpa and bpa > 0 and crecimiento_yoy is not None:
+        g = min(crecimiento_yoy * 100, 15) if crecimiento_yoy > 0 else 0 # Crecimiento limitado al 15%
+        puntuaciones['valor_graham'] = bpa * (8.5 + 2 * g)
 
     puntuaciones['peg_lynch'] = None
     if per and per > 0 and crecimiento_yoy is not None and crecimiento_yoy > 0:
         puntuaciones['peg_lynch'] = per / (crecimiento_yoy * 100)
 
     puntuaciones['valor_weiss'] = None
-    if div_accion and div_accion > 0 and yield_hist and yield_hist > 0:
-        puntuaciones['valor_weiss'] = div_accion / (yield_hist / 100)
+    if div_accion and div_accion > 0 and yield_historico and yield_historico > 0:
+        puntuaciones['valor_weiss'] = div_accion / (yield_historico / 100)
 
     return puntuaciones, justificaciones, SECTOR_BENCHMARKS
 
-# --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN ---
+# --- BLOQUE 3: GRÁFICOS Y PRESENTACIÓN (Con pequeñas mejoras visuales) ---
 def crear_grafico_radar(puntuaciones, score):
     labels = ['Calidad', 'Valoración', 'Salud Fin.', 'Dividendos']
     stats = [
@@ -820,7 +830,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, justificaciones, se
 st.title('El Analizador de Acciones de Sr. Outfit')
 st.caption("Herramienta de análisis. Esto no es una recomendación de compra o venta. Realiza tu propio juicio y análisis antes de invertir.")
 
-ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "AAPL").upper()
+ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "PEP").upper()
 
 if st.button('Analizar Acción'):
     with st.spinner('Realizando análisis profesional...'):
@@ -933,12 +943,14 @@ if st.button('Analizar Acción'):
                             with h1:
                                 mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
                             with h2:
-                                mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
+                                mostrar_metrica_informativa("💸 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
 
                         with tab3:
                             precio_actual = datos.get('precio_actual')
                             st.metric("Precio Actual", f"{precio_actual:.2f}" if precio_actual else "N/A")
                             st.markdown("---")
+                            
+                            mostrar_valor_formula("Valor Intrínseco (Graham)", "BPA * (8.5 + 2 * Crecimiento)", puntuaciones.get('valor_graham'), precio_actual)
                             
                             mostrar_valor_formula("Valor por Dividendo (Weiss)", "Dividendo / Yield Histórico", puntuaciones.get('valor_weiss'), precio_actual)
 
