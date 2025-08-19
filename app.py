@@ -12,7 +12,7 @@ st.markdown("""
 <style>
     .stApp { background-color: #0E1117; color: #FAFAFA; }
     h1, h2, h3 { color: #D4AF37; }
-    .st-emotion-cache-1r6slb0 { border: 1px solid #D4AF37 !important; border-radius: 10px; padding: 15px !important; }
+    .st-emotion-cache-1r6slb0 { border: 1px solid #D4AF37 !important; border-radius: 10px; padding: 15px !important; margin-bottom: 1rem; }
     .stButton>button { background-color: #D4AF37; color: #0E1117; border-radius: 8px; border: 1px solid #D4AF37; font-weight: bold; }
     
     /* Estilos para métricas con colores dinámicos */
@@ -444,13 +444,15 @@ def crear_grafico_gauge(score):
     return fig
 
 def crear_grafico_tecnico(data):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    # Gráfico más pequeño
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 5), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     fig.patch.set_facecolor('#0E1117')
     
     ax1.set_facecolor('#0E1117')
     ax1.plot(data.index, data['Close'], label='Precio', color='#87CEEB', linewidth=2)
     ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--')
-    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF4500', linestyle='--')
+    # Color de la SMA200 cambiado a un rojo más intenso
+    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF0000', linestyle='--')
     ax1.set_title('Análisis Técnico del Precio (Último Año)', color='white')
     ax1.legend()
     ax1.grid(color='gray', linestyle='--', linewidth=0.5)
@@ -476,7 +478,8 @@ def crear_graficos_financieros(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
-        fig, axs = plt.subplots(2, 2, figsize=(10, 7))
+        # Gráfico más pequeño
+        fig, axs = plt.subplots(2, 2, figsize=(8, 5))
         plt.style.use('dark_background')
         fig.patch.set_facecolor('#0E1117')
         
@@ -600,7 +603,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     ''', unsafe_allow_html=True)
 
 def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data):
-    highlight_style = 'style="background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
+    highlight_style = 'style="background-color: #FFFF00; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
 
     # --- Leyenda de Calidad ---
     roe = datos.get('roe', 0)
@@ -634,7 +637,7 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
     l_rev_lento_raw = f"<strong>Lento/Negativo:</strong> < {sector_bench['rev_growth_bueno']}%"
 
     l_rev_exc = f"<span {highlight_style}>{l_rev_exc_raw}</span>" if rev_growth > sector_bench['rev_growth_excelente'] else l_rev_exc_raw
-    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_lento_raw
+    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_bueno_raw
     l_rev_lento = f"<span {highlight_style}>{l_rev_lento_raw}</span>" if rev_growth <= sector_bench['rev_growth_bueno'] else l_rev_lento_raw
 
     leyenda_calidad = f"""
@@ -1098,25 +1101,34 @@ if st.button('Analizar Acción'):
                             - **Según su P/B Histórico:** Calcula el potencial que tendría la acción si su **ratio Precio/Valor en Libros actual volviera a su media histórica**. *Más relevante en sectores con activos tangibles (Banca, Industria, etc.).*
                             """)
 
-
-                    st.header("Análisis Gráfico Financiero y Banderas Rojas")
-                    financials_hist = hist_data.get('financials_charts')
-                    dividends_hist = hist_data.get('dividends_charts')
-                    fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
-                    if fig_financieros:
-                        st.pyplot(fig_financieros)
-                        st.subheader("Banderas Rojas (Red Flags)")
+                    # --- NUEVA ESTRUCTURA DE DISEÑO ---
+                    st.header("Análisis Gráfico y Técnico")
+                    
+                    col_fin, col_flags = st.columns([2, 1]) # Columna para gráficos financieros y banderas rojas
+                    
+                    with col_fin:
+                        st.subheader("Evolución Financiera")
+                        financials_hist = hist_data.get('financials_charts')
+                        dividends_hist = hist_data.get('dividends_charts')
+                        fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
+                        if fig_financieros:
+                            st.pyplot(fig_financieros)
+                        else:
+                            st.warning("No se pudieron generar los gráficos financieros históricos.")
+                    
+                    with col_flags:
+                        st.subheader("Banderas Rojas")
                         banderas = analizar_banderas_rojas(datos, financials_hist)
                         if banderas:
-                            for bandera in banderas: st.warning(bandera)
+                            for bandera in banderas: 
+                                st.warning(bandera)
                         else:
                             st.success("✅ No se han detectado banderas rojas significativas.")
-                    else:
-                        st.warning("No se pudieron generar los gráficos financieros históricos.")
-                    
-                    # --- SECCIÓN DE ANÁLISIS TÉCNICO MEJORADA ---
-                    with st.container(border=True):
-                        st.header("Análisis Técnico")
+
+                    col_tech, col_tech_legend = st.columns(2) # Columna para gráfico técnico y su leyenda
+
+                    with col_tech:
+                        st.subheader("Análisis Técnico")
                         if tech_data is not None and not tech_data.empty:
                             fig_tecnico = crear_grafico_tecnico(tech_data)
                             st.pyplot(fig_tecnico)
@@ -1153,11 +1165,12 @@ if st.button('Analizar Acción'):
                                 rsi_color = "color-green"
 
                             st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
-
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
                         else:
                             st.warning("No se pudieron generar los datos para el análisis técnico.")
+                    
+                    with col_tech_legend:
+                        st.subheader("Interpretación Técnica")
+                        st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
 
         except TypeError as e:
             st.error(f"Error al procesar los datos para '{ticker_input}'. Es posible que los datos de Yahoo Finance para este ticker estén incompletos o no disponibles temporalmente.")
