@@ -407,7 +407,7 @@ def crear_grafico_radar(puntuaciones):
     stats = np.concatenate((stats,[stats[0]]))
     angles = np.concatenate((angles,[angles[0]]))
 
-    fig, ax = plt.subplots(figsize=(3, 3), subplot_kw=dict(polar=True))
+    fig, ax = plt.subplots(figsize=(2.5, 2.5), subplot_kw=dict(polar=True))
     fig.patch.set_facecolor('#0E1117')
     ax.set_facecolor('#0E1117')
     
@@ -425,7 +425,7 @@ def crear_grafico_radar(puntuaciones):
     return fig
 
 def crear_grafico_gauge(score):
-    fig, ax = plt.subplots(figsize=(3, 1.8))
+    fig, ax = plt.subplots(figsize=(2.5, 1.5))
     fig.patch.set_facecolor('#0E1117')
     
     colors = ['#dc3545', '#fd7e14', '#28a745']
@@ -445,7 +445,7 @@ def crear_grafico_gauge(score):
     return fig
 
 def crear_grafico_tecnico(data):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 8), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     fig.patch.set_facecolor('#0E1117')
     
     ax1.set_facecolor('#0E1117')
@@ -477,7 +477,7 @@ def crear_graficos_financieros(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
-        fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+        fig, axs = plt.subplots(2, 2, figsize=(10, 7))
         plt.style.use('dark_background')
         fig.patch.set_facecolor('#0E1117')
         
@@ -1092,7 +1092,14 @@ if st.button('Analizar Acción'):
                             mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
                         with ms4:
                             mostrar_margen_seguridad("📚 Según su P/B Histórico", puntuaciones['margen_seguridad_pb'])
-                        st.caption("El margen por Yield es más relevante en empresas con dividendos estables o crecientes. El margen por P/B es útil en sectores con activos tangibles (Banca, Industria, etc.).")
+                        
+                        with st.expander("Ver Leyenda Detallada"):
+                            st.markdown("""
+                            - **Según Analistas:** Representa el potencial de subida hasta el **precio objetivo medio** que establece el consenso de analistas profesionales que cubren la acción. Es una visión a futuro.
+                            - **Según su PER Histórico:** Calcula el potencial que tendría la acción si su **PER actual volviera a su media histórica**. Un valor positivo indica que actualmente está más barata que su media.
+                            - **Según su Yield Histórico:** Calcula el potencial que tendría la acción si su **rentabilidad por dividendo actual volviera a su media histórica**. Un valor positivo indica que el dividendo actual es más atractivo de lo normal. *Más relevante en empresas con dividendos estables o crecientes.*
+                            - **Según su P/B Histórico:** Calcula el potencial que tendría la acción si su **ratio Precio/Valor en Libros actual volviera a su media histórica**. *Más relevante en sectores con activos tangibles (Banca, Industria, etc.).*
+                            """)
 
 
                     st.header("Análisis Gráfico Financiero y Banderas Rojas")
