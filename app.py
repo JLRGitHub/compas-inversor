@@ -772,9 +772,6 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_pfcf_atr}
         - {l_pfcf_jus}
         - {l_pfcf_car}"""
-    elif datos.get('raw_fcf') is not None and datos.get('raw_fcf') < 0:
-        leyenda_pfcf = f"""- <span {highlight_style}><strong>P/FCF (Price-to-Free-Cash-Flow):** **Negativo.**</span> Esto es una **señal de alerta**, ya que indica que la empresa está gastando más dinero del que genera. Es crucial investigar la causa: ¿se debe a fuertes inversiones para crecer (positivo a largo plazo) o a problemas operativos (negativo)? """
-
 
     pb = datos.get('p_b')
     leyenda_pb = ""
@@ -841,15 +838,11 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_pay_sal}
         - {l_pay_pre}
         - {l_pay_pel}
-    """
-    
-    # --- ¡NUEVO! Leyenda de Blue Chip separada ---
-    leyenda_blue_chip = f"""
-    Compara la valoración actual con su media histórica para detectar oportunidades.
-    - {l_bc_muy_int}
-    - {l_bc_int}
-    - {l_bc_mixta}
-    - {l_bc_neutral}
+    - **Análisis de Valor 'Blue Chip':** Compara la valoración actual con su media histórica para detectar oportunidades.
+        - {l_bc_muy_int}
+        - {l_bc_int}
+        - {l_bc_mixta}
+        - {l_bc_neutral}
     """
     
     leyenda_tecnico = ""
@@ -924,7 +917,6 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         'salud': leyenda_salud,
         'valoracion': leyenda_valoracion,
         'dividendos': leyenda_dividendos,
-        'blue_chip': leyenda_blue_chip,
         'tecnico': leyenda_tecnico
     }
 
@@ -1063,6 +1055,17 @@ if st.button('Analizar Acción'):
                             st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
                             st.caption(justificaciones['dividendos'])
                             
+                            blue_chip_analysis = justificaciones.get('blue_chip_analysis')
+                            if blue_chip_analysis:
+                                st.markdown("---")
+                                st.markdown(f"#### Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
+                                bc1, bc2 = st.columns(2)
+                                with bc1:
+                                    mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
+                                with bc2:
+                                    mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
+                                st.caption(blue_chip_analysis['description'])
+                            
                             st.markdown("---")
                             div1, div2 = st.columns(2)
                             with div1: 
@@ -1074,19 +1077,7 @@ if st.button('Analizar Acción'):
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
                     
-                    blue_chip_analysis = justificaciones.get('blue_chip_analysis')
-                    if blue_chip_analysis:
-                        with st.container(border=True):
-                            st.subheader(f"Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
-                            bc1, bc2 = st.columns(2)
-                            with bc1:
-                                mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
-                            with bc2:
-                                mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
-                            st.caption(blue_chip_analysis['description'])
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['blue_chip'], unsafe_allow_html=True)
-
+                    # --- ¡NUEVO! Sección de Márgenes de Seguridad ---
                     with st.container(border=True):
                         st.subheader("Potencial de Revalorización (Márgenes de Seguridad)")
                         ms1, ms2, ms3, ms4 = st.columns(4)
