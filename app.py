@@ -432,9 +432,17 @@ def crear_grafico_gauge(score):
 
     ax.pie([*values, sum(values)], colors=[*colors, '#0E1117'], startangle=180, counterclock=False, radius=1, wedgeprops={'width':0.3})
     
+    # --- ¡CORRECCIÓN! Color de la aguja dinámico ---
+    if score >= 7.5:
+        arrow_color = '#28a745' # green
+    elif score >= 6:
+        arrow_color = '#fd7e14' # orange
+    else:
+        arrow_color = '#dc3545' # red
+
     angle = (1 - score / 10) * 180
     ax.arrow(0, 0, -0.8 * np.cos(np.radians(angle)), 0.8 * np.sin(np.radians(angle)),
-             width=0.02, head_width=0.05, head_length=0.1, fc='white', ec='white')
+             width=0.02, head_width=0.05, head_length=0.1, fc=arrow_color, ec=arrow_color)
     
     ax.text(0, -0.1, f'{score:.1f}', ha='center', va='center', fontsize=20, color='white', weight='bold')
     ax.text(0, -0.4, 'Nota Global', ha='center', va='center', fontsize=10, color='gray')
@@ -444,7 +452,8 @@ def crear_grafico_gauge(score):
     return fig
 
 def crear_grafico_tecnico(data):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+    # --- ¡CORRECCIÓN! Tamaño del gráfico reducido ---
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 5), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     fig.patch.set_facecolor('#0E1117')
     
     ax1.set_facecolor('#0E1117')
@@ -476,7 +485,8 @@ def crear_graficos_financieros(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
-        fig, axs = plt.subplots(2, 2, figsize=(10, 7))
+        # --- ¡CORRECCIÓN! Tamaño del gráfico reducido ---
+        fig, axs = plt.subplots(2, 2, figsize=(8, 5.6))
         plt.style.use('dark_background')
         fig.patch.set_facecolor('#0E1117')
         
@@ -843,7 +853,6 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
         - {l_pay_pel}
     """
     
-    # --- ¡NUEVO! Leyenda de Blue Chip separada ---
     leyenda_blue_chip = f"""
     Compara la valoración actual con su media histórica para detectar oportunidades.
     - {l_bc_muy_int}
