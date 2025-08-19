@@ -435,8 +435,8 @@ def crear_grafico_tecnico(data):
     ax1.set_facecolor('#0E1117')
     ax1.plot(data.index, data['Close'], label='Precio', color='#87CEEB', linewidth=2)
     # --- CAMBIO DE COLOR ---
-    ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FF0000', linestyle='--') # Ahora es rojo
-    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FFA500', linestyle='--') # Ahora es naranja
+    ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--') # Ahora es naranja
+    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF0000', linestyle='--') # Ahora es rojo
     ax1.set_title('Análisis Técnico del Precio (Último Año)', color='white')
     ax1.legend()
     ax1.grid(color='gray', linestyle='--', linewidth=0.5)
@@ -890,8 +890,8 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
 
         leyenda_tecnico = f"""
         - **Medias Móviles (SMA):** Suavizan el precio para mostrar la tendencia. El número (50 o 200) se refiere a los **últimos días de cotización** (sesiones) que usa para calcular la media.
-            - **SMA50 (roja):** Media de los últimos 50 días. Refleja la tendencia a corto/medio plazo.
-            - **SMA200 (naranja):** Media de los últimos 200 días. Es el indicador más importante para la tendencia a largo plazo.
+            - **SMA50 (naranja):** Media de los últimos 50 días. Refleja la tendencia a corto/medio plazo.
+            - **SMA200 (roja):** Media de los últimos 200 días. Es el indicador más importante para la tendencia a largo plazo.
             - {l_sma_alcista}
             - {l_sma_bajista}
         - **RSI (Índice de Fuerza Relativa):** Es un **oscilador de momentum** que mide la velocidad y la fuerza de los cambios en el precio. Su utilidad principal es detectar condiciones de **sobrecompra** (el precio ha subido mucho y rápido, posible corrección) o **sobreventa** (el precio ha caído mucho y rápido, posible rebote).
