@@ -559,8 +559,7 @@ def mostrar_metrica_informativa(label, value, is_percent=False):
 def get_recommendation_html(recommendation):
     rec_lower = recommendation.lower()
     color_class = "color-white"
-    display_text = recommendation  # Valor por defecto
-
+    display_text = recommendation
     if any(term in rec_lower for term in ['buy', 'outperform', 'strong']):
         color_class = "color-green"
         display_text = "Muy Interesante"
@@ -570,7 +569,7 @@ def get_recommendation_html(recommendation):
     elif 'hold' in rec_lower:
         color_class = "color-orange"
         display_text = "Neutral"
-    
+    # --- ¡CORRECCIÓN! Se elimina el parámetro extra que causaba el SyntaxError ---
     return f'<div class="metric-container"><div class="metric-label">Recomendación Media</div><div class="metric-value {color_class}">{display_text}</div></div>'
 
 def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent=False, lower_is_better=False):
