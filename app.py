@@ -70,11 +70,21 @@ def obtener_datos_completos(ticker):
     free_cash_flow = info.get('freeCashflow')
     market_cap = info.get('marketCap')
     p_fcf = (market_cap / free_cash_flow) if market_cap and free_cash_flow and free_cash_flow > 0 else None
+
+    # --- CAMBIO: Acortar la descripción ---
+    descripcion_completa = info.get('longBusinessSummary', 'No disponible.')
+    descripcion_corta = 'No disponible.'
+    if descripcion_completa and descripcion_completa != 'No disponible.':
+        primer_punto = descripcion_completa.find('.')
+        if primer_punto != -1:
+            descripcion_corta = descripcion_completa[:primer_punto + 1]
+        else:
+            descripcion_corta = descripcion_completa # Mantener como está si no hay punto
             
     return {
         "nombre": info.get('longName', 'N/A'), "sector": info.get('sector', 'N/A'),
         "pais": info.get('country', 'N/A'), "industria": info.get('industry', 'N/A'),
-        "descripcion": info.get('longBusinessSummary', 'No disponible.'),
+        "descripcion": descripcion_corta,
         "roe": roe * 100 if roe is not None else 0, 
         "margen_operativo": op_margin * 100 if op_margin is not None else 0,
         "margen_beneficio": info.get('profitMargins', 0) * 100, 
