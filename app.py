@@ -606,7 +606,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     </div>
     ''', unsafe_allow_html=True)
 
-def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data, puntuaciones):
+def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data):
     highlight_style = 'style="background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
 
     # --- Leyenda de Calidad ---
