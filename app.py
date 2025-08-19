@@ -126,12 +126,12 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             st.warning(f"No se encontraron datos históricos de precios para {ticker}. El análisis técnico y de valoración histórica no estará disponible.")
             return {
                 "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
-                "per_hist": None, "pfcf_hist": None, "yield_hist": None, "pb_hist": None,
+                "per_hist": None, "pfcf_hist": None, "yield_hist": None,
                 "tech_data": pd.DataFrame()
             }
 
         # --- CÁLCULO DE MÉTRICAS HISTÓRICAS (VERSIÓN SIMPLIFICADA Y ESTABLE) ---
-        pers, pfcfs, pbs = [], [], []
+        pers, pfcfs = [], []
         
         possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
         share_key_found = next((key for key in possible_share_keys if key in balance_sheet_raw.index), None)
@@ -144,7 +144,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                     net_income = financials_raw.loc[net_income_key, col_date]
                     fcf = cashflow_raw.loc['Free Cash Flow', col_date] if 'Free Cash Flow' in cashflow_raw.index else None
                     shares = balance_sheet_raw.loc[share_key_found, col_date]
-                    book_value = balance_sheet_raw.loc['Total Stockholder Equity', col_date] if 'Total Stockholder Equity' in balance_sheet_raw.index else None
 
                     if pd.notna(shares) and shares > 0:
                         start_of_year = col_date - pd.DateOffset(years=1)
@@ -166,17 +165,9 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                                     pfcf_for_year = average_price_for_year / fcf_per_share
                                     if 0 < pfcf_for_year < 200:
                                         pfcfs.append(pfcf_for_year)
-                            
-                            if pd.notna(book_value) and book_value > 0:
-                                book_value_per_share = book_value / shares
-                                if book_value_per_share > 0:
-                                    pb_for_year = average_price_for_year / book_value_per_share
-                                    if 0 < pb_for_year < 200:
-                                        pbs.append(pb_for_year)
         
         per_historico = np.mean(pers) if pers else None
         pfcf_historico = np.mean(pfcfs) if pfcfs else None
-        pb_historico = np.mean(pbs) if pbs else None
         
         yield_historico = None
         divs_10y = stock.dividends.loc[hist_10y.index[0]:]
@@ -209,7 +200,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "per_hist": per_historico,
             "pfcf_hist": pfcf_historico,
             "yield_hist": yield_historico,
-            "pb_hist": pb_historico,
             "tech_data": hist_1y
         }
     except Exception:
@@ -307,7 +297,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['margen_seguridad_analistas'] = margen_seguridad
 
     # --- ¡NUEVO! Tres márgenes de seguridad históricos ---
-    potencial_per, potencial_yield, potencial_pb = 0, 0, 0
+    potencial_per, potencial_yield = 0, 0
     per_historico = hist_data.get('per_hist')
     if per_historico and datos['per'] and datos['per'] > 0:
         potencial_per = ((per_historico / datos['per']) - 1) * 100
@@ -318,15 +308,9 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         potencial_yield = ((datos['yield_dividendo'] / yield_historico) - 1) * 100
     puntuaciones['margen_seguridad_yield'] = potencial_yield
     
-    pb_historico = hist_data.get('pb_hist')
-    if pb_historico and datos['p_b'] and datos['p_b'] > 0:
-        potencial_pb = ((pb_historico / datos['p_b']) - 1) * 100
-    puntuaciones['margen_seguridad_pb'] = potencial_pb
-    
     nota_historica = 0
     if potencial_per > 15: nota_historica += 3
     if potencial_yield > 15: nota_historica += 3
-    if potencial_pb > 15: nota_historica += 3
     nota_historica = min(10, nota_historica)
 
     nota_valoracion_base = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
@@ -534,12 +518,15 @@ def mostrar_margen_seguridad(label, value):
     color_class = "color-white"
     prose = "N/A"
     if isinstance(value, (int, float)):
-        if value > 0:
+        if value > 20:
             color_class = "color-green"
-            prose = f"Podría aumentar un +{value:.2f}%"
+            prose = f"Alto Potencial: +{value:.2f}%"
+        elif value > 0:
+            color_class = "color-green"
+            prose = f"Potencial: +{value:.2f}%"
         else:
             color_class = "color-red"
-            prose = f"Podría disminuir un {value:.2f}%"
+            prose = f"Riesgo de Caída: {value:.2f}%"
     
     st.markdown(f'''
     <div class="metric-container">
@@ -602,7 +589,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     </div>
     ''', unsafe_allow_html=True)
 
-def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data):
+def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones, tech_data):
     highlight_style = 'style="background-color: #FFFF00; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
 
     # --- Leyenda de Calidad ---
@@ -919,13 +906,53 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
             - {l_esc_5}
             - {l_esc_6}
         """
+    
+    # --- Leyenda de Márgenes de Seguridad ---
+    ms_analistas = puntuaciones.get('margen_seguridad_analistas', 0)
+    ms_per = puntuaciones.get('margen_seguridad_per', 0)
+    ms_yield = puntuaciones.get('margen_seguridad_yield', 0)
+
+    l_ms_alto_raw = "<strong>Alto Potencial:</strong> > 20%"
+    l_ms_mod_raw = "<strong>Potencial Moderado:</strong> 0% a 20%"
+    l_ms_riesgo_raw = "<strong>Riesgo de Caída:</strong> < 0%"
+
+    # Analistas
+    l_ms_a_alto = f"<span {highlight_style}>{l_ms_alto_raw}</span>" if ms_analistas > 20 else l_ms_alto_raw
+    l_ms_a_mod = f"<span {highlight_style}>{l_ms_mod_raw}</span>" if 0 <= ms_analistas <= 20 else l_ms_mod_raw
+    l_ms_a_riesgo = f"<span {highlight_style}>{l_ms_riesgo_raw}</span>" if ms_analistas < 0 else l_ms_riesgo_raw
+
+    # PER
+    l_ms_p_alto = f"<span {highlight_style}>{l_ms_alto_raw}</span>" if ms_per > 20 else l_ms_alto_raw
+    l_ms_p_mod = f"<span {highlight_style}>{l_ms_mod_raw}</span>" if 0 <= ms_per <= 20 else l_ms_mod_raw
+    l_ms_p_riesgo = f"<span {highlight_style}>{l_ms_riesgo_raw}</span>" if ms_per < 0 else l_ms_riesgo_raw
+
+    # Yield
+    l_ms_y_alto = f"<span {highlight_style}>{l_ms_alto_raw}</span>" if ms_yield > 20 else l_ms_alto_raw
+    l_ms_y_mod = f"<span {highlight_style}>{l_ms_mod_raw}</span>" if 0 <= ms_yield <= 20 else l_ms_mod_raw
+    l_ms_y_riesgo = f"<span {highlight_style}>{l_ms_riesgo_raw}</span>" if ms_yield < 0 else l_ms_riesgo_raw
+
+    leyenda_margen_seguridad = f"""
+    - **Según Analistas:** Potencial hasta el precio objetivo medio.
+        - {l_ms_a_alto}
+        - {l_ms_a_mod}
+        - {l_ms_a_riesgo}
+    - **Según su PER Histórico:** Potencial si el PER actual vuelve a su media.
+        - {l_ms_p_alto}
+        - {l_ms_p_mod}
+        - {l_ms_p_riesgo}
+    - **Según su Yield Histórico:** Potencial si el Yield actual vuelve a su media.
+        - {l_ms_y_alto}
+        - {l_ms_y_mod}
+        - {l_ms_y_riesgo}
+    """
 
     return {
         'calidad': leyenda_calidad,
         'salud': leyenda_salud,
         'valoracion': leyenda_valoracion,
         'dividendos': leyenda_dividendos,
-        'tecnico': leyenda_tecnico
+        'tecnico': leyenda_tecnico,
+        'margen_seguridad': leyenda_margen_seguridad
     }
 
 
@@ -952,7 +979,7 @@ if st.button('Analizar Acción'):
                     sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
                     
                     tech_data = hist_data.get('tech_data')
-                    leyendas = generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, tech_data)
+                    leyendas = generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones, tech_data)
                     
                     pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
                     nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
@@ -1047,13 +1074,11 @@ if st.button('Analizar Acción'):
                                     mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
 
                         with tab2:
-                            h1, h2, h3 = st.columns(3)
+                            h1, h2 = st.columns(2)
                             with h1:
                                 mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
                             with h2:
                                 mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
-                            with h3:
-                                mostrar_metrica_informativa("📚 P/B Medio (Histórico)", hist_data.get('pb_hist'))
 
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
@@ -1085,26 +1110,18 @@ if st.button('Analizar Acción'):
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
                     
-                    # --- ¡NUEVO! Sección de Márgenes de Seguridad ---
                     with st.container(border=True):
                         st.subheader("Potencial de Revalorización (Márgenes de Seguridad)")
-                        ms1, ms2, ms3, ms4 = st.columns(4)
+                        ms1, ms2, ms3 = st.columns(3)
                         with ms1:
                             mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
                         with ms2:
                             mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
                         with ms3:
                             mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
-                        with ms4:
-                            mostrar_margen_seguridad("📚 Según su P/B Histórico", puntuaciones['margen_seguridad_pb'])
                         
                         with st.expander("Ver Leyenda Detallada"):
-                            st.markdown("""
-                            - **Según Analistas:** Representa el potencial de subida hasta el **precio objetivo medio** que establece el consenso de analistas profesionales que cubren la acción. Es una visión a futuro.
-                            - **Según su PER Histórico:** Calcula el potencial que tendría la acción si su **PER actual volviera a su media histórica**. Un valor positivo indica que actualmente está más barata que su media.
-                            - **Según su Yield Histórico:** Calcula el potencial que tendría la acción si su **rentabilidad por dividendo actual volviera a su media histórica**. Un valor positivo indica que el dividendo actual es más atractivo de lo normal. *Más relevante en empresas con dividendos estables o crecientes.*
-                            - **Según su P/B Histórico:** Calcula el potencial que tendría la acción si su **ratio Precio/Valor en Libros actual volviera a su media histórica**. *Más relevante en sectores con activos tangibles (Banca, Industria, etc.).*
-                            """)
+                            st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
 
                     # --- NUEVA ESTRUCTURA DE DISEÑO ---
                     st.header("Análisis Gráfico y Técnico")
