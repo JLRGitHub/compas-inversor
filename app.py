@@ -71,7 +71,6 @@ def obtener_datos_completos(ticker):
     market_cap = info.get('marketCap')
     p_fcf = (market_cap / free_cash_flow) if market_cap and free_cash_flow and free_cash_flow > 0 else None
 
-    # --- CAMBIO: Acortar la descripción ---
     descripcion_completa = info.get('longBusinessSummary', 'No disponible.')
     descripcion_corta = 'No disponible.'
     if descripcion_completa and descripcion_completa != 'No disponible.':
@@ -79,7 +78,7 @@ def obtener_datos_completos(ticker):
         if primer_punto != -1:
             descripcion_corta = descripcion_completa[:primer_punto + 1]
         else:
-            descripcion_corta = descripcion_completa # Mantener como está si no hay punto
+            descripcion_corta = descripcion_completa
             
     return {
         "nombre": info.get('longName', 'N/A'), "sector": info.get('sector', 'N/A'),
@@ -91,13 +90,16 @@ def obtener_datos_completos(ticker):
         "deuda_patrimonio": info.get('debtToEquity'), "ratio_corriente": info.get('currentRatio'), 
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'), 
         "p_fcf": p_fcf,
-        "raw_fcf": free_cash_flow, # Dato raw para chequear si es negativo
+        "raw_fcf": free_cash_flow,
         "p_b": info.get('priceToBook'),
         "crecimiento_ingresos": info.get('revenueGrowth', 0) * 100,
         "yield_dividendo": div_yield * 100 if div_yield is not None else 0,
         "payout_ratio": payout * 100 if payout is not None else 0,
         "recomendacion_analistas": info.get('recommendationKey', 'N/A'),
         "precio_objetivo": info.get('targetMeanPrice'), "precio_actual": info.get('currentPrice'),
+        "bpa": info.get('trailingEps'),
+        "crecimiento_beneficios": info.get('earningsGrowth'),
+        "dividendo_por_accion": info.get('dividendRate')
     }
 
 @st.cache_data(ttl=3600)
@@ -140,7 +142,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                 "tech_data": pd.DataFrame()
             }
 
-        # --- CÁLCULO DE MÉTRICAS HISTÓRICAS (VERSIÓN SIMPLIFICADA Y ESTABLE) ---
         pers, pfcfs = [], []
         
         possible_share_keys = ['Share Issued', 'Ordinary Shares Number', 'Basic Shares Outstanding', 'Total Common Shares Outstanding']
@@ -255,7 +256,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['calidad'] = min(10, nota_calidad)
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
-    # --- LÓGICA DE DEUDA INTELIGENTE POR SECTOR ---
     nota_salud = 0
     deuda_ratio = datos['deuda_patrimonio']
     SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
@@ -281,7 +281,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
-    # --- LÓGICA DE VALORACIÓN CON P/B Y FCF NEGATIVO ---
     nota_multiplos = 0
     if sector == 'Real Estate':
         if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos += 8
@@ -306,7 +305,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         else: nota_analistas = 5
     puntuaciones['margen_seguridad_analistas'] = margen_seguridad
 
-    # --- ¡NUEVO! Tres márgenes de seguridad históricos ---
     potencial_per, potencial_yield = 0, 0
     per_historico = hist_data.get('per_hist')
     if per_historico and datos['per'] and datos['per'] > 0:
@@ -382,6 +380,26 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
             else:
                 description = "El Yield es superior a su media, pero el PER no es inferior. Señal de valoración parcialmente positiva."
             justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
+    
+    # --- CÁLCULOS DE FÓRMULAS CLÁSICAS ---
+    bpa = datos.get('bpa')
+    crecimiento = datos.get('crecimiento_beneficios')
+    per = datos.get('per')
+    div_accion = datos.get('dividendo_por_accion')
+    yield_hist = hist_data.get('yield_hist')
+
+    puntuaciones['valor_graham'] = None
+    if bpa and bpa > 0 and crecimiento:
+        g = min(crecimiento * 100, 20) # Limitar crecimiento al 20% para evitar valoraciones extremas
+        puntuaciones['valor_graham'] = bpa * (8.5 + 2 * g)
+
+    puntuaciones['peg_lynch'] = None
+    if per and per > 0 and crecimiento and crecimiento > 0:
+        puntuaciones['peg_lynch'] = per / (crecimiento * 100)
+
+    puntuaciones['valor_weiss'] = None
+    if div_accion and div_accion > 0 and yield_hist and yield_hist > 0:
+        puntuaciones['valor_weiss'] = div_accion / (yield_hist / 100)
 
     return puntuaciones, justificaciones, SECTOR_BENCHMARKS
 
@@ -415,23 +433,19 @@ def crear_grafico_radar(puntuaciones, score):
     ax.spines['polar'].set_color('white')
     ax.grid(color='gray', linestyle='--', linewidth=0.5)
 
-    # --- CAMBIO: Añadir la nota global en el centro ---
     ax.text(0, 0, f'{score:.1f}', ha='center', va='center', fontsize=36, color='white', weight='bold')
     ax.text(0, 0, '\n\n\nNota Global', ha='center', va='center', fontsize=12, color='gray')
-
 
     return fig
 
 def crear_grafico_tecnico(data):
-    # Gráfico más pequeño
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 5), gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
     fig.patch.set_facecolor('#0E1117')
     
     ax1.set_facecolor('#0E1117')
     ax1.plot(data.index, data['Close'], label='Precio', color='#87CEEB', linewidth=2)
-    # --- CAMBIO DE COLOR ---
-    ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--') # Ahora es naranja
-    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF0000', linestyle='--') # Ahora es rojo
+    ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--')
+    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF0000', linestyle='--')
     ax1.set_title('Análisis Técnico del Precio (Último Año)', color='white')
     ax1.legend()
     ax1.grid(color='gray', linestyle='--', linewidth=0.5)
@@ -457,7 +471,6 @@ def crear_graficos_financieros(ticker, financials, dividends):
     try:
         if financials is None or financials.empty: return None
         años = [d.year for d in financials.index]
-        # Gráfico más pequeño
         fig, axs = plt.subplots(2, 2, figsize=(8, 5))
         plt.style.use('dark_background')
         fig.patch.set_facecolor('#0E1117')
@@ -584,6 +597,26 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     </div>
     ''', unsafe_allow_html=True)
 
+# --- NUEVA FUNCIÓN PARA MOSTRAR VALORES INTRÍNSECOS ---
+def mostrar_valor_intrinseco(label, valor_calculado, precio_actual):
+    if valor_calculado is None:
+        prose = "No aplicable"
+        color_class = "color-white"
+    else:
+        if precio_actual < valor_calculado:
+            color_class = "color-green"
+            prose = f"Infravalorada ({valor_calculado:.2f})"
+        else:
+            color_class = "color-red"
+            prose = f"Sobrevalorada ({valor_calculado:.2f})"
+    
+    st.markdown(f'''
+    <div class="metric-container">
+        <div class="metric-label">{label}</div>
+        <div class="metric-value {color_class}">{prose}</div>
+    </div>
+    ''', unsafe_allow_html=True)
+
 def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones, tech_data):
     highlight_style = 'style="background-color: #FFFF00; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
 
@@ -683,7 +716,6 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         - {l_liq_ace}
         - {l_liq_rie}"""
     
-    # Lógica de resaltado para Interpretación Combinada
     is_high_debt_sector = datos['sector'] in SECTORES_ALTA_DEUDA
     baja_deuda = False
     alta_liquidez = False
@@ -772,11 +804,54 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         - {l_pb_jus}
         - {l_pb_car}"""
 
+    # --- NUEVA LEYENDA PARA FÓRMULAS CLÁSICAS ---
+    valor_graham = puntuaciones.get('valor_graham')
+    precio_actual = datos.get('precio_actual')
+
+    l_graham_infra_raw = "<strong>Infravalorada:</strong> El precio actual está por debajo del Valor Intrínseco."
+    l_graham_sobre_raw = "<strong>Sobrevalorada:</strong> El precio actual está por encima del Valor Intrínseco."
+    l_graham_na_raw = "<strong>No aplicable:</strong> Requiere beneficios y crecimiento positivos."
+    
+    if valor_graham and precio_actual:
+        leyenda_graham = f"<span {highlight_style}>{l_graham_infra_raw}</span>" if precio_actual < valor_graham else f"<span {highlight_style}>{l_graham_sobre_raw}</span>"
+    else:
+        leyenda_graham = f"<span {highlight_style}>{l_graham_na_raw}</span>"
+
+    peg = puntuaciones.get('peg_lynch')
+    l_peg_barato_raw = "<strong>Barato (PEG < 1):</strong> El precio parece bajo en relación al crecimiento."
+    l_peg_justo_raw = "<strong>Justo (PEG ≈ 1):</strong> El precio parece adecuado para su crecimiento."
+    l_peg_caro_raw = "<strong>Caro (PEG > 1):</strong> El precio parece alto para su crecimiento."
+    l_peg_na_raw = "<strong>No aplicable:</strong> Requiere PER y crecimiento positivos."
+
+    if peg:
+        if peg < 1: leyenda_peg = f"<span {highlight_style}>{l_peg_barato_raw}</span>"
+        elif peg > 1.5: leyenda_peg = f"<span {highlight_style}>{l_peg_caro_raw}</span>"
+        else: leyenda_peg = f"<span {highlight_style}>{l_peg_justo_raw}</span>"
+    else:
+        leyenda_peg = f"<span {highlight_style}>{l_peg_na_raw}</span>"
+    
+    valor_weiss = puntuaciones.get('valor_weiss')
+    l_weiss_atractivo_raw = "<strong>Atractivo por Dividendo:</strong> El precio actual está por debajo del Valor por Dividendo."
+    l_weiss_poco_atractivo_raw = "<strong>Poco Atractivo por Dividendo:</strong> El precio actual está por encima del Valor por Dividendo."
+    l_weiss_na_raw = "<strong>No aplicable:</strong> Requiere que la empresa pague dividendos."
+
+    if valor_weiss and precio_actual:
+        leyenda_weiss = f"<span {highlight_style}>{l_weiss_atractivo_raw}</span>" if precio_actual < valor_weiss else f"<span {highlight_style}>{l_weiss_poco_atractivo_raw}</span>"
+    else:
+        leyenda_weiss = f"<span {highlight_style}>{l_weiss_na_raw}</span>"
+
     leyenda_valoracion = f"""
     {leyenda_per}
-    - **PER Adelantado (Forward PE):** Usa beneficios futuros esperados. Si es inferior al PER actual, indica crecimiento y **otorga un bonus a la nota**.
     {leyenda_pfcf}
     {leyenda_pb}
+    ---
+    **Fórmulas Clásicas de Valoración:**
+    - **Valor Intrínseco (B. Graham):** Estima el valor "real" de una acción basado en sus beneficios y crecimiento esperado.
+        - {leyenda_graham}
+    - **Ratio PEG (Peter Lynch):** Relaciona el PER con el crecimiento de los beneficios.
+        - {leyenda_peg}
+    - **Valor por Dividendo (G. Weiss):** Estima un precio justo asumiendo que el Yield volverá a su media histórica.
+        - {leyenda_weiss}
     """
 
     # --- Leyenda de Dividendos (MEJORADA) ---
@@ -803,9 +878,6 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     else:
         leyenda_payout_intro = f"Indica qué % del beneficio se destina a dividendos. Para el sector **{datos['sector'].upper()}**, los rangos son:"
 
-    # --- CORRECCIÓN DEL ERROR ---
-    # Se asegura de que 'blue_chip_analysis' sea un diccionario antes de intentar acceder a sus claves.
-    # Esto evita el error 'NoneType' si los datos históricos no están disponibles.
     blue_chip_analysis_data = justificaciones.get('blue_chip_analysis') or {}
     blue_chip_status = blue_chip_analysis_data.get('label', '')
     
@@ -902,7 +974,6 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
             - {l_esc_6}
         """
     
-    # --- Leyenda de Márgenes de Seguridad ---
     ms_analistas = puntuaciones.get('margen_seguridad_analistas', 0)
     ms_per = puntuaciones.get('margen_seguridad_per', 0)
     ms_yield = puntuaciones.get('margen_seguridad_yield', 0)
@@ -911,17 +982,14 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     l_ms_mod_raw = "<strong>Potencial Moderado:</strong> 0% a 20%"
     l_ms_riesgo_raw = "<strong>Riesgo de Caída:</strong> < 0%"
 
-    # Analistas
     l_ms_a_alto = f"<span {highlight_style}>{l_ms_alto_raw}</span>" if ms_analistas > 20 else l_ms_alto_raw
     l_ms_a_mod = f"<span {highlight_style}>{l_ms_mod_raw}</span>" if 0 <= ms_analistas <= 20 else l_ms_mod_raw
     l_ms_a_riesgo = f"<span {highlight_style}>{l_ms_riesgo_raw}</span>" if ms_analistas < 0 else l_ms_riesgo_raw
 
-    # PER
     l_ms_p_alto = f"<span {highlight_style}>{l_ms_alto_raw}</span>" if ms_per > 20 else l_ms_alto_raw
     l_ms_p_mod = f"<span {highlight_style}>{l_ms_mod_raw}</span>" if 0 <= ms_per <= 20 else l_ms_mod_raw
     l_ms_p_riesgo = f"<span {highlight_style}>{l_ms_riesgo_raw}</span>" if ms_per < 0 else l_ms_riesgo_raw
 
-    # Yield
     l_ms_y_alto = f"<span {highlight_style}>{l_ms_alto_raw}</span>" if ms_yield > 20 else l_ms_alto_raw
     l_ms_y_mod = f"<span {highlight_style}>{l_ms_mod_raw}</span>" if 0 <= ms_yield <= 20 else l_ms_mod_raw
     l_ms_y_riesgo = f"<span {highlight_style}>{l_ms_riesgo_raw}</span>" if ms_yield < 0 else l_ms_riesgo_raw
@@ -987,7 +1055,6 @@ if st.button('Analizar Acción'):
                     elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
                     else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
 
-                    # --- CAMBIO: Unificar gráficos de radar y nota global ---
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col2:
                         st.subheader("Resumen y Nota Global")
@@ -1050,7 +1117,7 @@ if st.button('Analizar Acción'):
                         st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
                         st.caption(justificaciones['valoracion'])
                         
-                        tab1, tab2 = st.tabs(["Múltiplos Actuales", "Análisis Histórico"])
+                        tab1, tab2, tab3 = st.tabs(["Múltiplos Actuales", "Análisis Histórico", "Valor Intrínseco (Fórmulas Clásicas)"])
                         
                         with tab1:
                             val1, val2 = st.columns(2)
@@ -1071,6 +1138,34 @@ if st.button('Analizar Acción'):
                                 mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
                             with h2:
                                 mostrar_metrica_informativa("🌊 P/FCF Medio (Histórico)", hist_data.get('pfcf_hist'))
+
+                        with tab3:
+                            precio_actual = datos.get('precio_actual')
+                            st.metric("Precio Actual", f"{precio_actual:.2f}" if precio_actual else "N/A")
+                            st.markdown("---")
+                            
+                            mostrar_valor_intrinseco("Valor Intrínseco (Graham)", puntuaciones.get('valor_graham'), precio_actual)
+                            
+                            precio_seguro = puntuaciones.get('valor_graham') * 0.67 if puntuaciones.get('valor_graham') else None
+                            mostrar_valor_intrinseco("Precio de Compra 'Seguro'", precio_seguro, precio_actual)
+
+                            mostrar_valor_intrinseco("Valor por Dividendo (Weiss)", puntuaciones.get('valor_weiss'), precio_actual)
+                            
+                            peg_lynch = puntuaciones.get('peg_lynch')
+                            if peg_lynch is None:
+                                prose = "No aplicable"
+                                color_class = "color-white"
+                            elif peg_lynch < 1:
+                                prose = f"Barato ({peg_lynch:.2f})"
+                                color_class = "color-green"
+                            elif peg_lynch > 1.5:
+                                prose = f"Caro ({peg_lynch:.2f})"
+                                color_class = "color-red"
+                            else:
+                                prose = f"Justo ({peg_lynch:.2f})"
+                                color_class = "color-orange"
+                            
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">Ratio PEG (Lynch)</div><div class="metric-value {color_class}">{prose}</div></div>', unsafe_allow_html=True)
 
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
@@ -1115,10 +1210,9 @@ if st.button('Analizar Acción'):
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
 
-                    # --- NUEVA ESTRUCTURA DE DISEÑO ---
                     st.header("Análisis Gráfico y Técnico")
                     
-                    col_fin, col_flags = st.columns([2, 1]) # Columna para gráficos financieros y banderas rojas
+                    col_fin, col_flags = st.columns([2, 1])
                     
                     with col_fin:
                         st.subheader("Evolución Financiera")
@@ -1139,7 +1233,7 @@ if st.button('Analizar Acción'):
                         else:
                             st.success("✅ No se han detectado banderas rojas significativas.")
 
-                    col_tech, col_tech_legend = st.columns(2) # Columna para gráfico técnico y su leyenda
+                    col_tech, col_tech_legend = st.columns(2)
 
                     with col_tech:
                         st.subheader("Análisis Técnico")
