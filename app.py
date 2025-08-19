@@ -821,7 +821,12 @@ def generar_leyenda_dinamica(datos, hist_data, sector_bench, justificaciones, te
     else:
         leyenda_payout_intro = f"Indica qué % del beneficio se destina a dividendos. Para el sector **{datos['sector'].upper()}**, los rangos son:"
 
-    blue_chip_status = justificaciones.get('blue_chip_analysis', {}).get('label', '')
+    # --- CORRECCIÓN DEL ERROR ---
+    # Se asegura de que 'blue_chip_analysis' sea un diccionario antes de intentar acceder a sus claves.
+    # Esto evita el error 'NoneType' si los datos históricos no están disponibles.
+    blue_chip_analysis_data = justificaciones.get('blue_chip_analysis') or {}
+    blue_chip_status = blue_chip_analysis_data.get('label', '')
+    
     l_bc_muy_int_raw = "<strong>🟢 Muy Interesante:</strong> PER actual < 80% del histórico Y Yield actual > 120% del histórico."
     l_bc_int_raw = "<strong>🟡 Interesante:</strong> PER actual < histórico Y Yield actual > histórico."
     l_bc_mixta_raw = "<strong>🔵 Señal Mixta:</strong> Solo una de las dos condiciones anteriores se cumple."
