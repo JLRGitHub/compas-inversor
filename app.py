@@ -71,6 +71,12 @@ def obtener_datos_completos(ticker):
     market_cap = info.get('marketCap')
     p_fcf = (market_cap / free_cash_flow) if market_cap and free_cash_flow and free_cash_flow > 0 else None
 
+    net_debt = info.get('netDebt')
+    ebitda = info.get('ebitda')
+    deuda_ebitda = None
+    if net_debt and ebitda and ebitda > 0:
+        deuda_ebitda = net_debt / ebitda
+
     descripcion_completa = info.get('longBusinessSummary', 'No disponible.')
     descripcion_corta = 'No disponible.'
     if descripcion_completa and descripcion_completa != 'No disponible.':
@@ -99,7 +105,8 @@ def obtener_datos_completos(ticker):
         "precio_objetivo": info.get('targetMeanPrice'), "precio_actual": info.get('currentPrice'),
         "bpa": info.get('trailingEps'),
         "crecimiento_beneficios": info.get('earningsGrowth'),
-        "dividendo_por_accion": info.get('dividendRate')
+        "dividendo_por_accion": info.get('dividendRate'),
+        "deuda_ebitda": deuda_ebitda
     }
 
 @st.cache_data(ttl=3600)
@@ -256,27 +263,33 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['calidad'] = min(10, nota_calidad)
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
+    # --- LÓGICA DE SALUD FINANCIERA REBALANCEADA ---
     nota_salud = 0
-    deuda_ratio = datos['deuda_patrimonio']
+    deuda_ratio = datos.get('deuda_patrimonio')
     SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
     
+    # Puntuación Deuda/Patrimonio (Max 4 puntos)
     if sector in SECTORES_ALTA_DEUDA:
         if isinstance(deuda_ratio, (int, float)):
-            if deuda_ratio < 150: nota_salud = 8
-            elif deuda_ratio < 250: nota_salud = 6
-            else: nota_salud = 4
-        else: nota_salud = 4
+            if deuda_ratio < 150: nota_salud += 4
+            elif deuda_ratio < 250: nota_salud += 2
     else:
         if isinstance(deuda_ratio, (int, float)):
-            if deuda_ratio < 40: nota_salud = 8
-            elif deuda_ratio < 80: nota_salud = 6
-            else: nota_salud = 4
-        else: nota_salud = 4
+            if deuda_ratio < 40: nota_salud += 4
+            elif deuda_ratio < 80: nota_salud += 2
     
-    ratio_corriente = datos['ratio_corriente']
+    # Puntuación Ratio Corriente (Max 3 puntos)
+    ratio_corriente = datos.get('ratio_corriente')
     if isinstance(ratio_corriente, (int, float)):
-        if ratio_corriente > 2.0: nota_salud += 2
-        elif ratio_corriente > 1.5: nota_salud += 1
+        if ratio_corriente > 2.0: nota_salud += 3
+        elif ratio_corriente > 1.5: nota_salud += 2
+        elif ratio_corriente > 1.0: nota_salud += 1
+
+    # Puntuación Deuda Neta/EBITDA (Max 3 puntos)
+    deuda_ebitda = datos.get('deuda_ebitda')
+    if isinstance(deuda_ebitda, (int, float)):
+        if deuda_ebitda < 3: nota_salud += 3
+        elif deuda_ebitda < 5: nota_salud += 1
     
     puntuaciones['salud'] = min(10, nota_salud)
     justificaciones['salud'] = "Balance muy sólido y líquido." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
@@ -381,7 +394,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
                 description = "El Yield es superior a su media, pero el PER no es inferior. Señal de valoración parcialmente positiva."
             justificaciones['blue_chip_analysis'] = {'label': analysis, 'description': description}
     
-    # --- CÁLCULOS DE FÓRMULAS CLÁSICAS ---
     bpa = datos.get('bpa')
     crecimiento = datos.get('crecimiento_beneficios')
     per = datos.get('per')
@@ -390,7 +402,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     puntuaciones['valor_graham'] = None
     if bpa and bpa > 0 and crecimiento:
-        g = min(crecimiento * 100, 20) # Limitar crecimiento al 20% para evitar valoraciones extremas
+        g = min(crecimiento * 100, 20)
         puntuaciones['valor_graham'] = bpa * (8.5 + 2 * g)
 
     puntuaciones['peg_lynch'] = None
@@ -597,7 +609,6 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     </div>
     ''', unsafe_allow_html=True)
 
-# --- NUEVA FUNCIÓN PARA MOSTRAR VALORES INTRÍNSECOS ---
 def mostrar_valor_intrinseco(label, valor_calculado, precio_actual):
     if valor_calculado is None:
         prose = "No aplicable"
@@ -652,7 +663,7 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
     l_rev_lento_raw = f"<strong>Lento/Negativo:</strong> < {sector_bench['rev_growth_bueno']}%"
 
     l_rev_exc = f"<span {highlight_style}>{l_rev_exc_raw}</span>" if rev_growth > sector_bench['rev_growth_excelente'] else l_rev_exc_raw
-    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_bueno_raw
+    l_rev_bueno = f"<span {highlight_style}>{l_rev_bueno_raw}</span>" if sector_bench['rev_growth_bueno'] < rev_growth <= sector_bench['rev_growth_excelente'] else l_rev_lento_raw
     l_rev_lento = f"<span {highlight_style}>{l_rev_lento_raw}</span>" if rev_growth <= sector_bench['rev_growth_bueno'] else l_rev_lento_raw
 
     leyenda_calidad = f"""
@@ -674,7 +685,6 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         - {l_rev_lento}
     """
 
-    # --- Leyenda de Salud Financiera (MEJORADA) ---
     deuda_ratio = datos.get('deuda_patrimonio')
     SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
     leyenda_deuda = ""
@@ -716,40 +726,26 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         - {l_liq_ace}
         - {l_liq_rie}"""
     
-    is_high_debt_sector = datos['sector'] in SECTORES_ALTA_DEUDA
-    baja_deuda = False
-    alta_liquidez = False
-    if isinstance(deuda_ratio, (int, float)):
-        baja_deuda = (deuda_ratio < 250) if is_high_debt_sector else (deuda_ratio < 80)
-    if isinstance(ratio_corriente, (int, float)):
-        alta_liquidez = ratio_corriente > 1.5
-
-    esc_baja_d_alta_l = baja_deuda and alta_liquidez
-    esc_alta_d_alta_l = not baja_deuda and alta_liquidez
-    esc_baja_d_baja_l = baja_deuda and not alta_liquidez
-    esc_alta_d_baja_l = not baja_deuda and not alta_liquidez
-
-    l_ic_1_raw = "<strong>Baja Deuda / Alta Liquidez:</strong> Fortaleza financiera. El mejor escenario."
-    l_ic_2_raw = "<strong>Alta Deuda / Alta Liquidez:</strong> Puede pagar sus deudas, pero el apalancamiento es un riesgo a vigilar."
-    l_ic_3_raw = "<strong>Baja Deuda / Baja Liquidez:</strong> Balance conservador, pero podría tener problemas de liquidez a corto plazo."
-    l_ic_4_raw = "<strong>Alta Deuda / Baja Liquidez:</strong> El peor escenario. Riesgo de solvencia."
-
-    l_ic_1 = f"<span {highlight_style}>{l_ic_1_raw}</span>" if esc_baja_d_alta_l else l_ic_1_raw
-    l_ic_2 = f"<span {highlight_style}>{l_ic_2_raw}</span>" if esc_alta_d_alta_l else l_ic_2_raw
-    l_ic_3 = f"<span {highlight_style}>{l_ic_3_raw}</span>" if esc_baja_d_baja_l else l_ic_3_raw
-    l_ic_4 = f"<span {highlight_style}>{l_ic_4_raw}</span>" if esc_alta_d_baja_l else l_ic_4_raw
+    deuda_ebitda = datos.get('deuda_ebitda')
+    leyenda_deuda_ebitda = ""
+    if isinstance(deuda_ebitda, (int, float)):
+        l_de_saludable_raw = "<strong>Saludable:</strong> < 3x"
+        l_de_precaucion_raw = "<strong>Precaución:</strong> 3x - 5x"
+        l_de_riesgo_raw = "<strong>Riesgo Elevado:</strong> > 5x"
+        l_de_saludable = f"<span {highlight_style}>{l_de_saludable_raw}</span>" if deuda_ebitda < 3 else l_de_saludable_raw
+        l_de_precaucion = f"<span {highlight_style}>{l_de_precaucion_raw}</span>" if 3 <= deuda_ebitda <= 5 else l_de_precaucion_raw
+        l_de_riesgo = f"<span {highlight_style}>{l_de_riesgo_raw}</span>" if deuda_ebitda > 5 else l_de_riesgo_raw
+        leyenda_deuda_ebitda = f"""- **Deuda Neta / EBITDA:** Mide los años que tardaría la empresa en pagar su deuda con su beneficio bruto.
+        - {l_de_saludable}
+        - {l_de_precaucion}
+        - {l_de_riesgo}"""
 
     leyenda_salud = f"""
     {leyenda_deuda}
     {leyenda_liquidez}
-    - **Interpretación Combinada:**
-        - {l_ic_1}
-        - {l_ic_2}
-        - {l_ic_3}
-        - {l_ic_4}
+    {leyenda_deuda_ebitda}
     """
 
-    # --- Leyenda de Valoración ---
     per = datos.get('per')
     p_fcf = datos.get('p_fcf')
     leyenda_per = ""
@@ -804,7 +800,6 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         - {l_pb_jus}
         - {l_pb_car}"""
 
-    # --- NUEVA LEYENDA PARA FÓRMULAS CLÁSICAS ---
     valor_graham = puntuaciones.get('valor_graham')
     precio_actual = datos.get('precio_actual')
 
@@ -854,7 +849,6 @@ def generar_leyenda_dinamica(datos, puntuaciones, sector_bench, justificaciones,
         - {leyenda_weiss}
     """
 
-    # --- Leyenda de Dividendos (MEJORADA) ---
     yield_div = datos.get('yield_dividendo', 0)
     l_yield_exc_raw = "<strong>Excelente:</strong> > 3.5%"
     l_yield_bueno_raw = "<strong>Bueno:</strong> > 2.0%"
@@ -1097,19 +1091,14 @@ if st.button('Analizar Acción'):
                             st.subheader(f"Salud Financiera [{puntuaciones['salud']}/10]")
                             st.caption(justificaciones['salud'])
                             
-                            SECTORES_ALTA_DEUDA = ['Financial Services', 'Utilities', 'Communication Services', 'Real Estate']
-                            if datos['sector'] in SECTORES_ALTA_DEUDA:
-                                deuda_umbral_bueno = 150
-                                deuda_umbral_malo = 250
-                            else:
-                                deuda_umbral_bueno = 40
-                                deuda_umbral_malo = 80
-                            
-                            s1, s2 = st.columns(2)
+                            s1, s2, s3 = st.columns(3)
                             with s1: 
-                                mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], deuda_umbral_bueno, deuda_umbral_malo, lower_is_better=True)
+                                mostrar_metrica_con_color("🏦 Deuda / Patrimonio", datos['deuda_patrimonio'], 80, 150, lower_is_better=True)
                             with s2: 
-                                mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
+                                mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
+                            with s3:
+                                mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], 3, 5, lower_is_better=True)
+
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['salud'], unsafe_allow_html=True)
 
@@ -1175,18 +1164,6 @@ if st.button('Analizar Acción'):
                             st.subheader(f"Dividendos [{puntuaciones['dividendos']}/10]")
                             st.caption(justificaciones['dividendos'])
                             
-                            blue_chip_analysis = justificaciones.get('blue_chip_analysis')
-                            if blue_chip_analysis:
-                                st.markdown("---")
-                                st.markdown(f"#### Análisis de Valor 'Blue Chip': **{blue_chip_analysis['label']}**")
-                                bc1, bc2 = st.columns(2)
-                                with bc1:
-                                    mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
-                                with bc2:
-                                    mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
-                                st.caption(blue_chip_analysis['description'])
-                            
-                            st.markdown("---")
                             div1, div2 = st.columns(2)
                             with div1: 
                                 mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
@@ -1204,8 +1181,10 @@ if st.button('Analizar Acción'):
                             mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
                         with ms2:
                             mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
+                            mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
                         with ms3:
                             mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
+                            mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
                         
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
