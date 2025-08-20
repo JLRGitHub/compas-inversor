@@ -538,8 +538,11 @@ def crear_grafico_tecnico(data):
     
     ax1.set_facecolor('#0E1117')
     ax1.plot(data.index, data['Close'], label='Precio', color='#87CEEB', linewidth=2)
-    ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--')
-    ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF0000', linestyle='--')
+    # Se asegura de que SMA50 y SMA200 existan antes de graficar
+    if 'SMA50' in data.columns and not data['SMA50'].isnull().all():
+        ax1.plot(data.index, data['SMA50'], label='Media Móvil 50 días', color='#FFA500', linestyle='--')
+    if 'SMA200' in data.columns and not data['SMA200'].isnull().all():
+        ax1.plot(data.index, data['SMA200'], label='Media Móvil 200 días', color='#FF0000', linestyle='--')
     ax1.set_title('Análisis Técnico del Precio (Último Año)', color='white')
     ax1.legend()
     ax1.grid(color='gray', linestyle='--', linewidth=0.5)
@@ -547,9 +550,10 @@ def crear_grafico_tecnico(data):
     ax1.spines['top'].set_color('white'); ax1.spines['bottom'].set_color('white'); ax1.spines['left'].set_color('white'); ax1.spines['right'].set_color('white')
 
     ax2.set_facecolor('#0E1117')
-    ax2.plot(data.index, data['RSI'], label='RSI', color='#DA70D6')
-    ax2.axhline(70, color='red', linestyle='--', linewidth=1)
-    ax2.axhline(30, color='green', linestyle='--', linewidth=1)
+    if 'RSI' in data.columns and not data['RSI'].isnull().all():
+        ax2.plot(data.index, data['RSI'], label='RSI', color='#DA70D6')
+        ax2.axhline(70, color='red', linestyle='--', linewidth=1)
+        ax2.axhline(30, color='green', linestyle='--', linewidth=1)
     ax2.set_ylim(0, 100)
     ax2.set_ylabel('RSI', color='white')
     ax2.grid(color='gray', linestyle='--', linewidth=0.5)
@@ -769,7 +773,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if cagr_rev is not None and not np.isnan(cagr_rev):
         leyenda_calidad += f"""
     - {highlight(cagr_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(sector_bench['rev_growth_bueno'] < cagr_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
+    - {highlight(cagr_rev > sector_bench['rev_growth_bueno'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
     - {highlight(cagr_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
 """
     else:
@@ -780,7 +784,7 @@ Rangos para el sector **{datos['sector']}**:<br>
 - **Crecimiento Ingresos (YoY):** El crecimiento de ventas en el último año, comparado con el anterior. Indica la salud actual del negocio.
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(yoy_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(yoy_rev is not None and yoy_rev > sector_bench['rev_growth_bueno'] and yoy_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
+    - {highlight(yoy_rev is not None and yoy_rev > sector_bench['rev_growth_bueno'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
     - {highlight(yoy_rev is not None and yoy_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
 """
 
@@ -841,7 +845,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if cagr_fcf is not None and not np.isnan(cagr_fcf):
         leyenda_salud += f"""
     - {highlight(cagr_fcf > sector_bench['fcf_growth_excelente'], f"**Excelente:** > {sector_bench['fcf_growth_excelente']}%")}<br>
-    - {highlight(sector_bench['fcf_growth_bueno'] < cagr_fcf <= sector_bench['fcf_growth_excelente'], f"**Bueno:** > {sector_bench['fcf_growth_bueno']}%")}<br>
+    - {highlight(cagr_fcf > sector_bench['fcf_growth_bueno'], f"**Bueno:** > {sector_bench['fcf_growth_bueno']}%")}<br>
     - {highlight(cagr_fcf <= sector_bench['fcf_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['fcf_growth_bueno']}%")}
 """
     else:
@@ -862,7 +866,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     elif per is not None and per > 0 and not np.isnan(per):
         leyenda_valoracion += f"""
     - {highlight(per < sector_bench['per_barato'], f"**Atractivo:** < {sector_bench['per_barato']}")}<br>
-    - {highlight(sector_bench['per_barato'] <= per <= sector_bench['per_justo'], f"**Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}")}<br>
+    - {highlight(per >= sector_bench['per_barato'] and per <= sector_bench['per_justo'], f"**Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}")}<br>
     - {highlight(per > sector_bench['per_justo'], f"**Caro:** > {sector_bench['per_justo']}")}"""
     else:
         leyenda_valoracion += f"""- {highlight(True, "**No aplicable (negativo o N/A).** Esto puede ocurrir si la empresa no es rentable.")}"""
@@ -882,7 +886,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if p_b is not None and not np.isnan(p_b):
         leyenda_valoracion += f"""Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(p_b < sector_bench['pb_barato'], f"**Atractivo:** < {sector_bench['pb_barato']}")}<br>
-    - {highlight(sector_bench['pb_barato'] <= p_b <= sector_bench['pb_justo'], f"**Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}")}<br>
+    - {highlight(p_b >= sector_bench['pb_barato'] and p_b <= sector_bench['pb_justo'], f"**Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}")}<br>
     - {highlight(p_b > sector_bench['pb_justo'], f"**Caro:** > {sector_bench['pb_justo']}")}"""
     else:
         leyenda_valoracion += f""" - {highlight(True, "**No aplicable o datos no disponibles.**")}"""
@@ -945,14 +949,17 @@ Rangos:<br>
         last_price = tech_data['Close'].iloc[-1]
         sma50 = tech_data['SMA50'].iloc[-1]
         sma200 = tech_data['SMA200'].iloc[-1]
-        # Corrección: uso de tech_data en lugar de tech_1y
         rsi = tech_data.get('RSI', None)
         beta = datos.get('beta')
 
         # Lógica de interpretación dinámica
-        # Se ha corregido la lógica de las condiciones para evitar errores.
-        tendencia_alcista_largo = last_price is not None and not np.isnan(last_price) and sma200 is not None and last_price > sma200
-        tendencia_alcista_corto = last_price is not None and not np.isnan(last_price) and sma50 is not None and last_price > sma50
+        # Corrección: Uso .item() para obtener el valor escalar de la serie y evitar el error
+        last_price_val = last_price if last_price is not None and not np.isnan(last_price) else None
+        sma50_val = sma50 if sma50 is not None and not np.isnan(sma50) else None
+        sma200_val = sma200 if sma200 is not None and not np.isnan(sma200) else None
+
+        tendencia_alcista_largo = last_price_val is not None and sma200_val is not None and last_price_val > sma200_val
+        tendencia_alcista_corto = last_price_val is not None and sma50_val is not None and last_price_val > sma50_val
         rsi_sobreventa = rsi is not None and not np.isnan(rsi) and rsi < 30
         rsi_sobrecompra = rsi is not None and not np.isnan(rsi) and rsi > 70
         
@@ -1330,7 +1337,7 @@ if st.button('Analizar Acción'):
                         
                         tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
                         # Corrección: Se ha ajustado la lógica para evitar el error de 'truth value'
-                        if last_price is not None and not np.isnan(last_price) and sma50 is not None and not np.isnan(sma50) and sma200 is not None and not np.isnan(sma200):
+                        if last_price is not None and not pd.isna(last_price) and sma50 is not None and not pd.isna(sma50) and sma200 is not None and not pd.isna(sma200):
                             if last_price > sma50 and sma50 > sma200: tendencia_texto, tendencia_color = "Alcista Fuerte 🟢", "color-green"
                             elif last_price > sma200: tendencia_texto, tendencia_color = "Alcista 🟢", "color-green"
                             elif last_price < sma50 and sma50 < sma200: tendencia_texto, tendencia_color = "Bajista Fuerte 🔴", "color-red"
