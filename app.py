@@ -1136,8 +1136,10 @@ if st.button('Analizar Acción'):
                         mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
                     with ms2:
                         mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
+                        mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), lower_is_better=True)
                     with ms3:
                         mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
+                        mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True)
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
 
