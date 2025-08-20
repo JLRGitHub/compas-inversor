@@ -906,6 +906,7 @@ Rangos para el sector **{datos['sector']}**:<br>
         sma200 = tech_data['SMA200'].iloc[-1] if not tech_data['SMA200'].isnull().all() else None
         rsi_series = tech_data.get('RSI', pd.Series(dtype=float))
         rsi = rsi_series.iloc[-1] if not rsi_series.empty and pd.notna(rsi_series.iloc[-1]) else None
+        beta = datos.get('beta')
         
         tendencia_alcista_largo = pd.notna(last_price) and pd.notna(sma200) and last_price > sma200
         tendencia_alcista_corto = pd.notna(last_price) and pd.notna(sma50) and last_price > sma50
@@ -932,6 +933,13 @@ Rangos para el sector **{datos['sector']}**:<br>
 <br><br>
 - **Veredicto Técnico Combinado:**<br>
 <span style="background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;">{resumen_texto}</span>
+<br><br>
+- **Beta:** Mide la volatilidad de la acción en comparación con el mercado (S&P 500). Un valor de 1.0 significa que la acción se mueve en línea con el mercado.<br>
+    - {highlight(isinstance(beta, (int, float)) and beta > 1.2, "Volátil (Beta > 1.2):")} La acción se mueve de forma más agresiva que el mercado.<br>
+    - {highlight(isinstance(beta, (int, float)) and 0.8 <= beta <= 1.2, "En línea (Beta 0.8-1.2):")} La acción se mueve de forma similar al mercado.<br>
+    - {highlight(isinstance(beta, (int, float)) and 0 <= beta < 0.8, "Defensiva (Beta < 0.8):")} La acción es menos volátil que el mercado.<br>
+    - {highlight(isinstance(beta, (int, float)) and beta < 0, "Anticíclica (Beta < 0):")} La acción se mueve en dirección opuesta al mercado.<br>
+    - {highlight(not isinstance(beta, (int, float)) or pd.isna(beta), "No disponible.")}
 """
     else:
         leyenda_tecnico = "No se pudieron generar los datos para el análisis técnico."
