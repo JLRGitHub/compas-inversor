@@ -701,13 +701,13 @@ Rangos para el sector **{datos['sector']}**:<br>
 <br><br>
 **Relación entre Márgenes:** Es una jerarquía: **Margen Bruto** > **Margen Operativo** > **Margen Neto**. La diferencia entre el Margen Operativo y el Neto se debe principalmente a los gastos financieros (intereses) e impuestos. Un Margen Neto mayor que el Operativo es una imposibilidad contable.
 <br><br>
-- **Crecimiento Ingresos (CAGR):** El crecimiento anual compuesto de las ventas durante los últimos años. Este es un indicador clave de la salud y el potencial de un negocio. Una empresa que no crece o decrece podría estar en problemas a largo plazo.
+- **Crecimiento Ingresos (CAGR):** El crecimiento anual compuesto de las ventas durante los últimos años. Este es un indicador clave de la salud y el potencial de un negocio. Una empresa que no crece o decrece podría estar en problemas a largo plazo.<br>
 Rangos para el sector **{datos['sector']}**:<br>
 """
     if cagr_rev is not None and not np.isnan(cagr_rev):
         leyenda_calidad += f"""
     - {highlight(cagr_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(cagr_rev > sector_bench['rev_growth_bueno'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
+    - {highlight(sector_bench['rev_growth_bueno'] < cagr_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
     - {highlight(cagr_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
 """
     else:
@@ -718,7 +718,7 @@ Rangos para el sector **{datos['sector']}**:<br>
 - **Crecimiento Ingresos (YoY):** El crecimiento de ventas en el último año, comparado con el anterior. Indica la salud actual del negocio.
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(yoy_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(yoy_rev > sector_bench['rev_growth_bueno'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
+    - {highlight(sector_bench['rev_growth_bueno'] < yoy_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
     - {highlight(yoy_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
 """
 
@@ -733,7 +733,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if deuda_ebitda is not None and not np.isnan(deuda_ebitda):
         leyenda_salud += f"""
 - {highlight(deuda_ebitda < sector_bench['deuda_ebitda_bueno'], f"**Saludable:** < {sector_bench['deuda_ebitda_bueno']}x")}<br>
-- {highlight(deuda_ebitda <= sector_bench['deuda_ebitda_aceptable'], f"**Precaución:** {sector_bench['deuda_ebitda_bueno']}x - {sector_bench['deuda_ebitda_aceptable']}x")}<br>
+- {highlight(sector_bench['deuda_ebitda_bueno'] <= deuda_ebitda <= sector_bench['deuda_ebitda_aceptable'], f"**Precaución:** {sector_bench['deuda_ebitda_bueno']}x - {sector_bench['deuda_ebitda_aceptable']}x")}<br>
 - {highlight(deuda_ebitda > sector_bench['deuda_ebitda_aceptable'], f"**Riesgo Elevado:** > {sector_bench['deuda_ebitda_aceptable']}x")}
 """
     else:
@@ -743,7 +743,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
             leyenda_salud += f"""
 - {highlight(deuda_patrimonio < sector_bench['deuda_patrimonio_bueno'], f"**Bajo:** < {sector_bench['deuda_patrimonio_bueno']}")}<br>
-- {highlight(deuda_patrimonio <= sector_bench['deuda_patrimonio_aceptable'], f"**Moderado:** {sector_bench['deuda_patrimonio_bueno']} - {sector_bench['deuda_patrimonio_aceptable']}")}<br>
+- {highlight(sector_bench['deuda_patrimonio_bueno'] <= deuda_patrimonio <= sector_bench['deuda_patrimonio_aceptable'], f"**Moderado:** {sector_bench['deuda_patrimonio_bueno']} - {sector_bench['deuda_patrimonio_aceptable']}")}<br>
 - {highlight(deuda_patrimonio > sector_bench['deuda_patrimonio_aceptable'], f"**Alto:** > {sector_bench['deuda_patrimonio_aceptable']}")}
 """
     else:
@@ -753,7 +753,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if int_coverage is not None and not np.isnan(int_coverage):
             leyenda_salud += f"""
 - {highlight(int_coverage > sector_bench['int_coverage_excelente'], f"**Excelente:** > {sector_bench['int_coverage_excelente']}x")}<br>
-- {highlight(int_coverage > sector_bench['int_coverage_bueno'], f"**Bueno:** > {sector_bench['int_coverage_bueno']}x")}<br>
+- {highlight(sector_bench['int_coverage_bueno'] < int_coverage <= sector_bench['int_coverage_excelente'], f"**Bueno:** > {sector_bench['int_coverage_bueno']}x")}<br>
 - {highlight(int_coverage <= sector_bench['int_coverage_bueno'], f"**Alerta:** < {sector_bench['int_coverage_bueno']}x")}
 """
     else:
@@ -776,7 +776,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if cagr_fcf is not None and not np.isnan(cagr_fcf):
         leyenda_salud += f"""
     - {highlight(cagr_fcf > sector_bench['fcf_growth_excelente'], f"**Excelente:** > {sector_bench['fcf_growth_excelente']}%")}<br>
-    - {highlight(cagr_fcf > sector_bench['fcf_growth_bueno'], f"**Bueno:** > {sector_bench['fcf_growth_bueno']}%")}<br>
+    - {highlight(sector_bench['fcf_growth_bueno'] < cagr_fcf <= sector_bench['fcf_growth_excelente'], f"**Bueno:** > {sector_bench['fcf_growth_bueno']}%")}<br>
     - {highlight(cagr_fcf <= sector_bench['fcf_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['fcf_growth_bueno']}%")}
 """
     else:
@@ -797,7 +797,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     elif per is not None and per > 0 and not np.isnan(per):
         leyenda_valoracion += f"""
     - {highlight(per < sector_bench['per_barato'], f"**Atractivo:** < {sector_bench['per_barato']}")}<br>
-    - {highlight(per <= sector_bench['per_justo'], f"**Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}")}<br>
+    - {highlight(sector_bench['per_barato'] <= per <= sector_bench['per_justo'], f"**Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}")}<br>
     - {highlight(per > sector_bench['per_justo'], f"**Caro:** > {sector_bench['per_justo']}")}"""
     else:
         leyenda_valoracion += f"""- {highlight(True, "No aplicable (negativo o N/A).")} Esto puede ocurrir si la empresa no es rentable."""
@@ -817,7 +817,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if p_b is not None and not np.isnan(p_b):
         leyenda_valoracion += f"""Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(p_b < sector_bench['pb_barato'], f"**Atractivo:** < {sector_bench['pb_barato']}")}<br>
-    - {highlight(p_b <= sector_bench['pb_justo'], f"**Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}")}<br>
+    - {highlight(sector_bench['pb_barato'] <= p_b <= sector_bench['pb_justo'], f"**Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}")}<br>
     - {highlight(p_b > sector_bench['pb_justo'], f"**Caro:** > {sector_bench['pb_justo']}")}"""
     else:
         leyenda_valoracion += f""" - {highlight(True, "No aplicable o datos no disponibles.")}"""
@@ -847,7 +847,7 @@ Rangos:<br>
 <br><br>
 - **Ratio de Reparto (Payout):** El porcentaje del beneficio neto que la empresa destina al pago de dividendos. Un payout sostenible, que no sea demasiado alto, te dice que la empresa tiene margen para seguir invirtiendo en el negocio y para mantener el dividendo en el futuro. Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(0 < payout < sector_bench['payout_bueno'], f"**Saludable:** < {sector_bench['payout_bueno']}%")}<br>
-    - {highlight(sector_bench['payout_bueno'] <= payout <= sector_bench['payout_aceptable'], f"**Precaución:** > {sector_bench['payout_bueno']}%")}<br>
+    - {highlight(sector_bench['payout_bueno'] <= payout <= sector_bench['payout_aceptable'], f"**Precaución:** {sector_bench['payout_bueno']}% - {sector_bench['payout_aceptable']}%")}<br>
     - {highlight(payout > sector_bench['payout_aceptable'], f"**Peligroso:** > {sector_bench['payout_aceptable']}%")}
 <br><br>
 - **Recompras Netas (%):** Mide el cambio anual en el número de acciones en circulación. Es una forma de remunerar al accionista. Un valor positivo es bueno (recompras), mientras que uno negativo es malo (dilución).
@@ -1063,8 +1063,14 @@ if st.button('Analizar Acción'):
                             with col_fcf1:
                                 mostrar_metrica_con_color("💰 Flujo de Caja Libre (FCF)", datos.get('raw_fcf'), 0, -1, is_currency=True)
                             with col_fcf2:
-                                cagr_fcf_display = f"{hist_data.get('cagr_fcf'):.2f}%" if hist_data.get('cagr_fcf') is not None and not np.isnan(hist_data.get('cagr_fcf')) else "No disponible"
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">🌊 Crecimiento FCF (CAGR)</div><div class="metric-value color-white">{cagr_fcf_display}</div></div>', unsafe_allow_html=True)
+                                cagr_fcf_val = hist_data.get('cagr_fcf')
+                                cagr_fcf_display = f"{cagr_fcf_val:.2f}%" if cagr_fcf_val is not None and not np.isnan(cagr_fcf_val) else "No disponible"
+                                cagr_fcf_color = "color-white"
+                                if cagr_fcf_val is not None and not np.isnan(cagr_fcf_val):
+                                    if cagr_fcf_val > 5: cagr_fcf_color = "color-green"
+                                    elif cagr_fcf_val < 0: cagr_fcf_color = "color-red"
+                                    else: cagr_fcf_color = "color-orange"
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">🌊 Crecimiento FCF (CAGR)</div><div class="metric-value {cagr_fcf_color}">{cagr_fcf_display}</div></div>', unsafe_allow_html=True)
                             
 
                             with st.expander("Ver Leyenda Detallada"):
