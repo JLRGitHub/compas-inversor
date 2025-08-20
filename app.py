@@ -311,7 +311,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "div_consecutive_years": div_consecutive_years
         }
     except Exception as e:
-        # Aquí se ha añadido un manejo de errores más robusto para evitar que la aplicación se detenga.
         st.error(f"Se produjo un error al procesar los datos históricos y técnicos. Detalle: {e}")
         return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_rev": None, "cagr_fcf": None, "div_consecutive_years": 0}
 
@@ -402,7 +401,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         if datos.get('p_fcf') is not None and datos['p_fcf'] < 16: nota_multiplos += 8
         elif datos.get('p_fcf') is not None and datos['p_fcf'] < 22: nota_multiplos += 5
     else:
-        # Se han ajustado los pesos para los múltiplos de valoración
         if datos.get('per') is not None and datos['per'] > 0 and not np.isnan(datos['per']):
             if datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
             elif datos['per'] < sector_bench['per_justo']: nota_multiplos += 2
@@ -419,7 +417,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         nota_multiplos -= 4
 
     nota_analistas, margen_seguridad = 0, 0
-    # Corrección: se utiliza .get en lugar de .et
     if datos.get('precio_actual') is not None and datos.get('precio_objetivo') is not None:
         margen_seguridad = ((datos['precio_objetivo'] - datos['precio_actual']) / datos['precio_actual']) * 100
         if margen_seguridad > 25: nota_analistas = 10
@@ -445,7 +442,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     if potencial_yield is not None and potencial_yield > 15: nota_historica += 5
     nota_historica = min(10, nota_historica)
 
-    # Se han ajustado los pesos de la nota de valoración total
     nota_valoracion_base = (nota_multiplos * 0.4) + (nota_analistas * 0.3) + (nota_historica * 0.3)
     
     per_actual = datos.get('per')
@@ -466,7 +462,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     else: justificaciones['valoracion'] = "Valoración razonable o exigente."
 
     nota_dividendos = 0
-    # Ajuste para ponderar mejor los dividendos crecientes
     div_consecutive_years = hist_data.get('div_consecutive_years', 0)
     if div_consecutive_years >= 20: nota_dividendos += 4
     elif div_consecutive_years >= 5: nota_dividendos += 2
@@ -477,18 +472,16 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     if datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 4
     elif datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
 
-    # Lógica de puntuación de Recompras (Buybacks)
     net_buybacks_pct = datos.get('net_buybacks_pct')
     if net_buybacks_pct is not None and not np.isnan(net_buybacks_pct):
         if net_buybacks_pct > 1:
-            nota_dividendos += 2  # Suma 2 puntos por una recompra significativa
+            nota_dividendos += 2
         elif net_buybacks_pct < -1:
-            nota_dividendos -= 2 # Resta 2 puntos por una dilución significativa
+            nota_dividendos -= 2
     
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
-    # --- CÁLCULO DE FÓRMULAS DE VALOR ---
     per = datos.get('per')
     crecimiento_yoy = datos.get('earningsGrowth')
     
@@ -1071,17 +1064,14 @@ if st.button('Analizar Acción'):
             else:
                 hist_data = obtener_datos_historicos_y_tecnicos(ticker_input)
                 
-                # Se ha añadido esta validación para evitar errores con tickers europeos sin datos históricos completos.
                 if hist_data and (hist_data.get('financials_charts') is None or hist_data.get('financials_charts').empty):
                     st.warning(f"No se pudieron obtener todos los datos históricos para '{ticker_input}'. El análisis puede estar incompleto.")
                 
-                # Se mueve el resto de la lógica dentro del bloque try-except
                 puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
                 sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
                 tech_data = hist_data.get('tech_data')
                 leyendas = generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data)
                 
-                # Ajuste en la lógica de las notas para que sean más representativas
                 calidad_score = puntuaciones.get('calidad', 0)
                 valoracion_score = puntuaciones.get('valoracion', 0)
                 salud_score = puntuaciones.get('salud', 0)
@@ -1314,18 +1304,18 @@ if st.button('Analizar Acción'):
                         fig_tecnico = crear_grafico_tecnico(tech_data)
                         st.pyplot(fig_tecnico)
                         
-                        last_price = tech_data['Close'].iloc[-1] if not tech_data.empty else None
-                        sma50 = tech_data['SMA50'].iloc[-1] if not tech_data.empty else None
-                        sma200 = tech_data['SMA200'].iloc[-1] if not tech_data.empty else None
-                        rsi = tech_data.get('RSI', None)
+                        last_price_val = tech_data['Close'].iloc[-1] if not tech_data.empty else None
+                        sma50_val = tech_data['SMA50'].iloc[-1] if not tech_data.empty and 'SMA50' in tech_data.columns else None
+                        sma200_val = tech_data['SMA200'].iloc[-1] if not tech_data.empty and 'SMA200' in tech_data.columns else None
+                        rsi = tech_data.get('RSI', None).iloc[-1] if not tech_data.empty and 'RSI' in tech_data.columns and not tech_data['RSI'].isnull().all() else None
                         beta = datos.get('beta')
                         
                         tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
-                        if last_price is not None and not pd.isna(last_price) and sma50 is not None and not pd.isna(sma50) and sma200 is not None and not pd.isna(sma200):
-                            if last_price > sma50 and sma50 > sma200: tendencia_texto, tendencia_color = "Alcista Fuerte 🟢", "color-green"
-                            elif last_price > sma200: tendencia_texto, tendencia_color = "Alcista 🟢", "color-green"
-                            elif last_price < sma50 and sma50 < sma200: tendencia_texto, tendencia_color = "Bajista Fuerte 🔴", "color-red"
-                            elif last_price < sma200: tendencia_texto, tendencia_color = "Bajista 🔴", "color-red"
+                        if last_price_val is not None and sma50_val is not None and sma200_val is not None:
+                            if last_price_val > sma50_val and sma50_val > sma200_val: tendencia_texto, tendencia_color = "Alcista Fuerte 🟢", "color-green"
+                            elif last_price_val > sma200_val: tendencia_texto, tendencia_color = "Alcista 🟢", "color-green"
+                            elif last_price_val < sma50_val and sma50_val < sma200_val: tendencia_texto, tendencia_color = "Bajista Fuerte 🔴", "color-red"
+                            elif last_price_val < sma200_val: tendencia_texto, tendencia_color = "Bajista 🔴", "color-red"
                         
                         st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
 
