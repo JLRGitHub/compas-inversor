@@ -906,7 +906,6 @@ Rangos para el sector **{datos['sector']}**:<br>
         sma200 = tech_data['SMA200'].iloc[-1] if not tech_data['SMA200'].isnull().all() else None
         rsi_series = tech_data.get('RSI', pd.Series(dtype=float))
         rsi = rsi_series.iloc[-1] if not rsi_series.empty and pd.notna(rsi_series.iloc[-1]) else None
-        beta = datos.get('beta')
         
         tendencia_alcista_largo = pd.notna(last_price) and pd.notna(sma200) and last_price > sma200
         tendencia_alcista_corto = pd.notna(last_price) and pd.notna(sma50) and last_price > sma50
@@ -1170,6 +1169,36 @@ if st.button('Analizar Acción'):
                     if tech_data is not None and not tech_data.empty:
                         fig_tecnico = crear_grafico_tecnico(tech_data)
                         st.pyplot(fig_tecnico)
+                        
+                        # --- CÓDIGO RESTAURADO ---
+                        last_price_val = tech_data['Close'].iloc[-1] if not tech_data.empty else None
+                        sma50_val = tech_data['SMA50'].iloc[-1] if not tech_data['SMA50'].isnull().all() else None
+                        sma200_val = tech_data['SMA200'].iloc[-1] if not tech_data['SMA200'].isnull().all() else None
+                        rsi = tech_data.get('RSI', pd.Series(dtype=float)).iloc[-1] if 'RSI' in tech_data.columns and not tech_data['RSI'].isnull().all() else None
+                        beta = datos.get('beta')
+                        
+                        tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
+                        if last_price_val is not None and sma50_val is not None and sma200_val is not None:
+                            if last_price_val > sma50_val and sma50_val > sma200_val: tendencia_texto, tendencia_color = "Alcista Fuerte 🟢", "color-green"
+                            elif last_price_val > sma200_val: tendencia_texto, tendencia_color = "Alcista 🟢", "color-green"
+                            elif last_price_val < sma50_val and sma50_val < sma200_val: tendencia_texto, tendencia_color = "Bajista Fuerte 🔴", "color-red"
+                            elif last_price_val < sma200_val: tendencia_texto, tendencia_color = "Bajista 🔴", "color-red"
+                        
+                        st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
+
+                        rsi_texto, rsi_color = "N/A", "color-white"
+                        if rsi is not None and not np.isnan(rsi):
+                            rsi_texto = f"{rsi:.2f} (Neutral 🟠)"
+                            rsi_color = "color-orange"
+                            if rsi > 70: rsi_texto, rsi_color = f"{rsi:.2f} (Sobrecompra 🔴)", "color-red"
+                            elif rsi < 30: rsi_texto, rsi_color = f"{rsi:.2f} (Sobreventa 🟢)", "color-green"
+                            
+                        st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
+                        
+                        beta_texto = f"{beta:.2f}" if isinstance(beta, (int, float)) and not np.isnan(beta) else 'N/A'
+                        st.markdown(f'<div class="metric-container"><div class="metric-label">Beta</div><div class="metric-value color-white">{beta_texto}</div></div>', unsafe_allow_html=True)
+                        # --- FIN DEL CÓDIGO RESTAURADO ---
+
                     else:
                         st.warning("No se pudieron generar los datos para el análisis técnico.")
                 
