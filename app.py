@@ -405,9 +405,9 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     yield_historico = hist_data.get('yield_hist')
     if yield_historico is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
-        potencial_yield = ((datos['yield_dividendo'] / yield_historico) - 1) * 100
+        potencial_yield = ((yield_historico / datos['yield_dividendo']) - 1) * 100
     else:
-        potencial_yield = None # Establecer en None si no se puede calcular
+        potencial_yield = None
     puntuaciones['margen_seguridad_yield'] = potencial_yield
     
     nota_historica = 0
@@ -773,7 +773,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if cagr_fcf is not None and not np.isnan(cagr_fcf):
         leyenda_salud += f"""
     - {highlight(cagr_fcf > sector_bench['fcf_growth_excelente'], f"**Excelente:** > {sector_bench['fcf_growth_excelente']}%")}<br>
-    - {highlight(sector_bench['fcf_growth_bueno'] < cagr_fcf <= sector_bench['fcf_growth_excelente'], f"**Bueno:** > {sector_bench['fcf_growth_bueno']}%")}<br>
+    - {highlight(cagr_fcf > sector_bench['fcf_growth_bueno'], f"**Bueno:** > {sector_bench['fcf_growth_bueno']}%")}<br>
     - {highlight(cagr_fcf <= sector_bench['fcf_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['fcf_growth_bueno']}%")}
 """
     else:
@@ -850,7 +850,6 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct > 0, f"**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
     - {highlight(net_buybacks_pct is None or np.isnan(net_buybacks_pct), "Desconocido.")}
 """
-
     # --- Leyenda Técnica ---
     leyenda_tecnico = ""
     if tech_data is not None and not tech_data.empty:
@@ -943,13 +942,12 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(0 <= ms_per <= 20, "Potencial Moderado: 0% a 20%")}<br>
     - {highlight(ms_per < 0, "Riesgo de Caída: < 0%")}
 <br><br>
-- **Según su Yield Histórico:** Compara el yield de dividendo actual con su media histórica. **Una lógica invertida**. Un margen de seguridad positivo significa que el yield actual es menor que el histórico, lo que podría implicar que el precio de la acción está por encima de su valor.
+- **Según su Yield Histórico:** Compara el yield de dividendo actual con su media histórica. **Una lógica invertida**. Un margen de seguridad positivo significa que el yield actual es mayor que el histórico, lo que podría implicar que la acción está infravalorada.
 <br>Rangos:<br>
     - {highlight(ms_yield > 20, "Alto Potencial: > 20%")}<br>
     - {highlight(0 <= ms_yield <= 20, "Potencial Moderado: 0% a 20%")}<br>
     - {highlight(ms_yield < 0, "Riesgo de Caída: < 0%")}
 """
-
     return {
         'calidad': leyenda_calidad,
         'salud': leyenda_salud,
