@@ -233,7 +233,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         hist_10y = stock.history(period="10y")
         
         if hist_10y.empty:
-            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf}
+            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf, "div_consecutive_years": 0}
         
         # --- CÁLCULO REAL DE PER Y YIELD HISTÓRICO ---
         pers = []
@@ -263,6 +263,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                                 pers.append(per_year)
         
         divs_10y = stock.dividends
+        div_consecutive_years = 0
         if not divs_10y.empty:
             annual_dividends = divs_10y.resample('YE').sum()
             annual_prices = hist_10y['Close'].resample('YE').mean()
@@ -270,7 +271,18 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             df_yield.columns = ['Dividends', 'Price']
             if not df_yield.empty and 'Price' in df_yield and 'Dividends' in df_yield:
                     annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
-
+            
+            # Cálculo de años de dividendos crecientes
+            annual_dividends_sorted = annual_dividends.sort_index()
+            if len(annual_dividends_sorted) > 1:
+                is_increasing = True
+                for i in range(1, len(annual_dividends_sorted)):
+                    if annual_dividends_sorted.iloc[i] <= annual_dividends_sorted.iloc[i-1]:
+                        is_increasing = False
+                        break
+                if is_increasing:
+                    div_consecutive_years = len(annual_dividends_sorted)
+        
         per_historico = np.mean(pers) if pers else None
         yield_historico = np.mean(annual_yields) if annual_yields else None
 
@@ -291,7 +303,8 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
             "per_hist": per_historico, "yield_hist": yield_historico,
             "tech_data": hist_1y,
-            "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf
+            "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf,
+            "div_consecutive_years": div_consecutive_years
         }
     except Exception as e:
         # Aquí se ha añadido un manejo de errores más robusto para evitar que la aplicación se detenga.
@@ -882,6 +895,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     yield_div = datos.get('yield_dividendo', 0)
     payout = datos.get('payout_ratio', 0)
     net_buybacks_pct = datos.get('net_buybacks_pct')
+    div_consecutive_years = hist_data.get('div_consecutive_years', 0)
     
     leyenda_dividendos = f"""
 - **Rentabilidad (Yield):** El porcentaje de tu inversión que recibes anualmente en forma de dividendos. Es una de las principales formas en las que los accionistas reciben retorno.
@@ -905,6 +919,18 @@ Rangos:<br>
 """
     else:
         leyenda_dividendos += f"     - {highlight(True, '<i>**Desconocido.**</i>')}"
+    
+    leyenda_dividendos += f"""
+<br><br>
+- **Historial de Dividendos:** Un largo historial de dividendos crecientes es un signo de una empresa estable y bien gestionada.
+"""
+    if div_consecutive_years > 0:
+        leyenda_dividendos += f" - **Creciente:** La empresa ha aumentado su dividendo durante **{div_consecutive_years}** años consecutivos. <br>"
+    elif datos.get('yield_dividendo', 0) > 0:
+        leyenda_dividendos += " - **Estable o Variable:** La empresa paga dividendos, pero no ha logrado una racha de aumentos consecutivos. <br>"
+    else:
+        leyenda_dividendos += " - **No paga dividendos.** <br>"
+
 
     # --- Leyenda Técnica ---
     leyenda_tecnico = ""
@@ -1041,8 +1067,18 @@ if st.button('Analizar Acción'):
                 tech_data = hist_data.get('tech_data')
                 leyendas = generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data)
                 
+                # Ajuste en la lógica de las notas para que sean más representativas
+                calidad_score = puntuaciones.get('calidad', 0)
+                valoracion_score = puntuaciones.get('valoracion', 0)
+                salud_score = puntuaciones.get('salud', 0)
+                dividendos_score = puntuaciones.get('dividendos', 0)
+
                 pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
-                nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
+                nota_ponderada = (calidad_score * pesos['calidad'] +
+                                 valoracion_score * pesos['valoracion'] +
+                                 salud_score * pesos['salud'] +
+                                 dividendos_score * pesos['dividendos'])
+                
                 nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
 
                 st.header(f"Análisis Fundamental: {datos['nombre']} ({ticker_input})")
@@ -1106,12 +1142,12 @@ if st.button('Analizar Acción'):
                         s1, s2 = st.columns(2)
                         with s1:
                             deuda_ebitda_val = datos.get('deuda_ebitda')
-                            # Se añade un manejo especial para la deuda negativa.
+                            # Se ha mejorado el manejo de deuda negativa para ser más claro
                             if deuda_ebitda_val is not None and deuda_ebitda_val < 0:
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">⚡ Deuda Neta/EBITDA</div><div class="metric-value color-green">Negativa ({deuda_ebitda_val:.2f})</div></div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">⚡ Deuda Neta/EBITDA</div><div class="metric-value color-green">Negativa ({deuda_ebitda_val:.2f})</div><div class="formula-label">Fórmula: (Deuda Total - Efectivo) / EBITDA</div></div>', unsafe_allow_html=True)
                             else:
                                 mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", deuda_ebitda_val, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
-                            st.markdown(f'<div class="formula-label">Fórmula: (Deuda Total - Efectivo) / EBITDA</div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="formula-label">Fórmula: (Deuda Total - Efectivo) / EBITDA</div>', unsafe_allow_html=True)
                             mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                             st.markdown(f'<div class="formula-label">Fórmula: Activos Corrientes / Pasivos Corrientes</div>', unsafe_allow_html=True)
 
@@ -1186,7 +1222,10 @@ if st.button('Analizar Acción'):
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(leyendas['peg'], unsafe_allow_html=True)
 
-                if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
+                # Se ha movido esta lógica dentro del bloque if para mayor claridad
+                div_info_cols = st.columns(3) if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0 else []
+
+                if div_info_cols:
                     with st.container(border=True):
                         st.subheader(f"Dividendos & Recompras [{puntuaciones['dividendos']:.1f}/10]")
                         st.caption(justificaciones['dividendos'])
@@ -1195,6 +1234,17 @@ if st.button('Analizar Acción'):
                         with div1:  
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                             mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
+                            
+                            # Nuevo campo de dividendos crecientes
+                            div_status = ""
+                            if hist_data.get('div_consecutive_years', 0) > 0:
+                                div_status = "Creciente"
+                            elif datos['yield_dividendo'] > 0:
+                                div_status = "Estable o Variable"
+                            else:
+                                div_status = "No paga dividendos"
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">Estado Dividendo</div><div class="metric-value color-white">{div_status}</div></div>', unsafe_allow_html=True)
+                            
                         with div2:
                             net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "No disponible"
                             color_buybacks = "color-white"
@@ -1207,6 +1257,9 @@ if st.button('Analizar Acción'):
                                     color_buybacks = "color-orange"
                             st.markdown(f'<div class="metric-container"><div class="metric-label">🔁 Recompras netas</div><div class="metric-value {color_buybacks}">{net_buybacks_display}</div></div>', unsafe_allow_html=True)
                             st.markdown(f'<div class="metric-container"><div class="metric-label">📈 Yield Medio (Histórico)</div><div class="metric-value color-white">{hist_data.get("yield_hist"):.2f}%</div></div>', unsafe_allow_html=True)
+
+                            # Nuevo campo de años consecutivos de dividendos
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">Años de Pago Creciente</div><div class="metric-value color-white">{hist_data.get("div_consecutive_years", 0)}</div></div>', unsafe_allow_html=True)
                         
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
@@ -1245,8 +1298,7 @@ if st.button('Analizar Acción'):
                     banderas = analizar_banderas_rojas(datos, financials_hist)
                     if banderas:
                         for bandera in banderas:  
-                            # Se ha corregido el uso de <b> a Markdown para el formato
-                            st.error(bandera.replace('<b>', '**').replace('</b>', '**'), unsafe_allow_html=True)
+                            st.error(bandera)
                     else:
                         st.success("✅ No se han detectado banderas rojas significativas.")
 
