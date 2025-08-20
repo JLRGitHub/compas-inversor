@@ -235,7 +235,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         hist_10y = stock.history(period="10y")
         
         if hist_10y.empty:
-            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf}
+            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf}
         
         # --- CÁLCULO REAL DE PER Y YIELD HISTÓRICO ---
         pers = []
@@ -404,14 +404,14 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['margen_seguridad_per'] = potencial_per
 
     yield_historico = hist_data.get('yield_hist')
-    if yield_historico is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
+    if yield_historico is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0 and yield_historico > 0:
         potencial_yield = ((datos['yield_dividendo'] - yield_historico) / yield_historico) * 100
     else:
         potencial_yield = None
     puntuaciones['margen_seguridad_yield'] = potencial_yield
     
     nota_historica = 0
-    if potencial_per > 15: nota_historica += 5
+    if potencial_per is not None and potencial_per > 15: nota_historica += 5
     if potencial_yield is not None and potencial_yield > 15: nota_historica += 5
     nota_historica = min(10, nota_historica)
 
@@ -1081,9 +1081,11 @@ if st.button('Analizar Acción'):
                         with tab2:
                             h1, h2 = st.columns(2)
                             with h1:
-                                mostrar_metrica_informativa("🕰️ PER Medio (Histórico)", hist_data.get('per_hist'))
+                                per_hist_display = f"{hist_data.get('per_hist'):.2f}" if hist_data.get('per_hist') is not None and not np.isnan(hist_data.get('per_hist')) else "No disponible"
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">🕰️ PER Medio (Histórico)</div><div class="metric-value color-white">{per_hist_display}</div></div>', unsafe_allow_html=True)
                             with h2:
-                                mostrar_metrica_informativa("💸 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
+                                yield_hist_display = f"{hist_data.get('yield_hist'):.2f}%" if hist_data.get('yield_hist') is not None and not np.isnan(hist_data.get('yield_hist')) else "No disponible"
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">💸 Yield Medio (Histórico)</div><div class="metric-value color-white">{yield_hist_display}</div></div>', unsafe_allow_html=True)
 
                         with st.expander("Ver Leyenda Detallada de Múltiplos"):
                             st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
@@ -1092,10 +1094,12 @@ if st.button('Analizar Acción'):
                         st.subheader("Ratio PEG (Peter Lynch)")
                         peg_lynch = puntuaciones.get('peg_lynch')
                         prose, color_class = ("No aplicable", "color-white")
-                        if peg_lynch is not None and not np.isnan(peg_lynch):
+                        if peg_lynch is not None and not np.isnan(peg_lynch) and peg_lynch > 0:
                             if peg_lynch < 1: prose, color_class = f"Barato ({peg_lynch:.2f})", "color-green"
                             elif peg_lynch > 1.5: prose, color_class = f"Caro ({peg_lynch:.2f})", "color-red"
                             else: prose, color_class = f"Justo ({peg_lynch:.2f})", "color-orange"
+                        else:
+                            prose, color_class = "No disponible", "color-white"
                         st.markdown(f'''<div class="metric-container">
                                              <div class="metric-label">Ratio PEG (Lynch)</div>
                                              <div class="metric-value {color_class}">{prose}</div>
