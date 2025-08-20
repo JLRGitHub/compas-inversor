@@ -88,7 +88,7 @@ def obtener_datos_completos(ticker):
     if total_debt_bs is not None and stockholder_equity is not None and stockholder_equity > 0:
         debt_to_equity = total_debt_bs / stockholder_equity
 
-    # --- Revertimos a ROE según la solicitud del usuario ---
+    # --- ROE es la métrica de rentabilidad ahora ---
     roe = info.get('returnOnEquity', 0) * 100
     
     # --- Cálculo de Recompras Netas (%) ---
@@ -363,6 +363,13 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         
     if datos.get('raw_fcf', 0) is not None and datos.get('raw_fcf', 0) <= 0:
         nota_salud -= 4
+    
+    cagr_fcf = hist_data.get('cagr_fcf')
+    if cagr_fcf is not None and not np.isnan(cagr_fcf) and cagr_fcf > 0:
+        nota_salud += 1
+    elif cagr_fcf is not None and not np.isnan(cagr_fcf) and cagr_fcf < 0:
+        nota_salud -= 1
+
 
     puntuaciones['salud'] = max(0, min(10, nota_salud))
     justificaciones['salud'] = "Balance muy sólido y solvente." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
@@ -398,14 +405,14 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     yield_historico = hist_data.get('yield_hist')
     if yield_historico is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
-        potencial_yield = ((yield_historico / datos['yield_dividendo']) - 1) * 100
+        potencial_yield = ((datos['yield_dividendo'] / yield_historico) - 1) * 100
     else:
-        potencial_yield = 0
+        potencial_yield = None # Establecer en None si no se puede calcular
     puntuaciones['margen_seguridad_yield'] = potencial_yield
     
     nota_historica = 0
     if potencial_per > 15: nota_historica += 5
-    if potencial_yield > 15: nota_historica += 5
+    if potencial_yield is not None and potencial_yield > 15: nota_historica += 5
     nota_historica = min(10, nota_historica)
 
     nota_valoracion_base = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
@@ -434,11 +441,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     elif datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
     if hist_data.get('yield_hist') is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > hist_data['yield_hist']:
         nota_dividendos += 2
-    
-    cagr_fcf = hist_data.get('cagr_fcf')
-    if cagr_fcf is not None and not np.isnan(cagr_fcf):
-        if cagr_fcf > sector_bench['fcf_growth_excelente']: nota_dividendos += 2
-        elif cagr_fcf > sector_bench['fcf_growth_bueno']: nota_dividendos += 1
     
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
@@ -673,7 +675,6 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     margen_op = datos.get('margen_operativo', 0)
     margen_neto = datos.get('margen_beneficio', 0)
     cagr_rev = hist_data.get('cagr_rev')
-    cagr_fcf = hist_data.get('cagr_fcf')
     yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
     leyenda_calidad = f"""
@@ -848,18 +849,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct < 0, f"**🟢 Aumento de Valor:** La empresa está reduciendo el número de acciones, lo que aumenta el valor de las acciones existentes.")}<br>
     - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct > 0, f"**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
     - {highlight(net_buybacks_pct is None or np.isnan(net_buybacks_pct), "Desconocido.")}
-<br><br>
-- **Crecimiento de FCF (CAGR):** El crecimiento anual compuesto del Flujo de Caja Libre. Es una métrica clave para medir la capacidad de la empresa de generar efectivo real para pagar y aumentar los dividendos a largo plazo.
-<br>Rangos para el sector **{datos['sector']}**:<br>
 """
-    if cagr_fcf is not None and not np.isnan(cagr_fcf):
-        leyenda_dividendos += f"""
-    - {highlight(cagr_fcf > sector_bench['fcf_growth_excelente'], f"**Excelente:** > {sector_bench['fcf_growth_excelente']}%")}<br>
-    - {highlight(sector_bench['fcf_growth_bueno'] < cagr_fcf <= sector_bench['fcf_growth_excelente'], f"**Bueno:** > {sector_bench['fcf_growth_bueno']}%")}<br>
-    - {highlight(cagr_fcf <= sector_bench['fcf_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['fcf_growth_bueno']}%")}
-"""
-    else:
-        leyenda_dividendos += " - *Datos de crecimiento no disponibles para este periodo.*"
 
     # --- Leyenda Técnica ---
     leyenda_tecnico = ""
@@ -1039,11 +1029,7 @@ if st.button('Analizar Acción'):
                             st.caption(justificaciones['calidad'])
                             c1, c2 = st.columns(2)
                             with c1:
-                                metric_name = "📈 ROE"
-                                metric_value = datos.get('roe', 0)
-                                umbral_excelente = sector_bench.get('roe_excelente')
-                                umbral_bueno = sector_bench.get('roe_bueno')
-                                mostrar_metrica_con_color(metric_name, metric_value, umbral_excelente, umbral_bueno, is_percent=True)
+                                mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
                                 mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
                                 cagr_rev_display = f"{hist_data.get('cagr_rev'):.2f}%" if hist_data.get('cagr_rev') is not None and not np.isnan(hist_data.get('cagr_rev')) else "No disponible"
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">🚀 Crec. Ingresos (CAGR)</div><div class="metric-value color-white">{cagr_rev_display}</div></div>', unsafe_allow_html=True)
@@ -1133,7 +1119,7 @@ if st.button('Analizar Acción'):
                                 net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "No disponible"
                                 color_buybacks = "color-green" if datos['net_buybacks_pct'] is not None and datos['net_buybacks_pct'] < 0 else "color-red"
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">🔁 Recompras netas</div><div class="metric-value {color_buybacks}">{net_buybacks_display}</div></div>', unsafe_allow_html=True)
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">📈 Yield Medio (Histórico)</div><div class="metric-value color-white">{hist_data.get("yield_hist")}</div></div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">📈 Yield Medio (Histórico)</div><div class="metric-value color-white">{hist_data.get("yield_hist"):.2f}%</div></div>', unsafe_allow_html=True)
                             
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
