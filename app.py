@@ -324,7 +324,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['geopolitico'], justificaciones['geopolitico'], puntuaciones['penalizador_geo'] = nota_geo, justificacion_geo, penalizador_geo
 
     nota_calidad = 0
-    # Usamos ROE en lugar de ROIC
     if datos.get('roe') is not None and datos['roe'] > sector_bench['roe_excelente']: nota_calidad += 2.5
     elif datos.get('roe') is not None and datos['roe'] > sector_bench['roe_bueno']: nota_calidad += 1.5
     if datos.get('margen_operativo') is not None and datos['margen_operativo'] > sector_bench['margen_excelente']: nota_calidad += 2.5
@@ -724,6 +723,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     deuda_patrimonio = datos.get('deuda_patrimonio')
     int_coverage = datos.get('interest_coverage')
     raw_fcf = datos.get('raw_fcf')
+    cagr_fcf = hist_data.get('cagr_fcf')
 
     leyenda_salud = f"""- **Deuda Neta / EBITDA:** Esta métrica te dice en cuántos años la empresa podría pagar su deuda neta usando sus ganancias operativas. Un valor bajo es mejor, ya que indica un balance más sólido y menos riesgo de quiebra. Rangos para el sector **{datos['sector']}**:<br>"""
     if deuda_ebitda is not None and not np.isnan(deuda_ebitda):
@@ -763,6 +763,21 @@ Rangos para el sector **{datos['sector']}**:<br>
 """
     else:
         leyenda_salud += f' - {highlight(True, "No aplicable o datos no disponibles.")}'
+
+    leyenda_salud += f"""
+<br><br>
+- **Crecimiento de FCF (CAGR):** El crecimiento anual compuesto del Flujo de Caja Libre. Es una métrica clave para medir la capacidad de la empresa de generar efectivo real para pagar y aumentar los dividendos a largo plazo.
+<br>Rangos para el sector **{datos['sector']}**:<br>
+"""
+    if cagr_fcf is not None and not np.isnan(cagr_fcf):
+        leyenda_salud += f"""
+    - {highlight(cagr_fcf > sector_bench['fcf_growth_excelente'], f"**Excelente:** > {sector_bench['fcf_growth_excelente']}%")}<br>
+    - {highlight(sector_bench['fcf_growth_bueno'] < cagr_fcf <= sector_bench['fcf_growth_excelente'], f"**Bueno:** > {sector_bench['fcf_growth_bueno']}%")}<br>
+    - {highlight(cagr_fcf <= sector_bench['fcf_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['fcf_growth_bueno']}%")}
+"""
+    else:
+        leyenda_salud += " - *Datos de crecimiento no disponibles para este periodo.*"
+
 
     # --- Leyenda de Valoración ---
     per = datos.get('per')
@@ -1050,7 +1065,13 @@ if st.button('Analizar Acción'):
                                 mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                             
                             st.markdown("---")
-                            mostrar_metrica_con_color("💰 Flujo de Caja Libre (FCF)", datos.get('raw_fcf'), 0, -1, is_currency=True)
+                            col_fcf1, col_fcf2 = st.columns(2)
+                            with col_fcf1:
+                                mostrar_metrica_con_color("💰 Flujo de Caja Libre (FCF)", datos.get('raw_fcf'), 0, -1, is_currency=True)
+                            with col_fcf2:
+                                cagr_fcf_display = f"{hist_data.get('cagr_fcf'):.2f}%" if hist_data.get('cagr_fcf') is not None and not np.isnan(hist_data.get('cagr_fcf')) else "No disponible"
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">🌊 Crecimiento FCF (CAGR)</div><div class="metric-value color-white">{cagr_fcf_display}</div></div>', unsafe_allow_html=True)
+                            
 
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['salud'], unsafe_allow_html=True)
@@ -1109,11 +1130,10 @@ if st.button('Analizar Acción'):
                                 mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                                 mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                             with div2:
-                                cagr_fcf_display = f"{hist_data.get('cagr_fcf'):.2f}%" if hist_data.get('cagr_fcf') is not None and not np.isnan(hist_data.get('cagr_fcf')) else "No disponible"
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">🌊 Crecimiento FCF (CAGR)</div><div class="metric-value color-white">{cagr_fcf_display}</div></div>', unsafe_allow_html=True)
                                 net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "No disponible"
                                 color_buybacks = "color-green" if datos['net_buybacks_pct'] is not None and datos['net_buybacks_pct'] < 0 else "color-red"
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">🔁 Recompras netas</div><div class="metric-value {color_buybacks}">{net_buybacks_display}</div></div>', unsafe_allow_html=True)
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">📈 Yield Medio (Histórico)</div><div class="metric-value color-white">{hist_data.get("yield_hist")}</div></div>', unsafe_allow_html=True)
                             
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
