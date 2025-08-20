@@ -405,7 +405,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     yield_historico = hist_data.get('yield_hist')
     if yield_historico is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
-        potencial_yield = ((yield_historico / datos['yield_dividendo']) - 1) * 100
+        potencial_yield = ((datos['yield_dividendo'] - yield_historico) / yield_historico) * 100
     else:
         potencial_yield = None
     puntuaciones['margen_seguridad_yield'] = potencial_yield
@@ -750,7 +750,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if int_coverage is not None and not np.isnan(int_coverage):
             leyenda_salud += f"""
 - {highlight(int_coverage > sector_bench['int_coverage_excelente'], f"**Excelente:** > {sector_bench['int_coverage_excelente']}x")}<br>
-- {highlight(sector_bench['int_coverage_bueno'] < int_coverage <= sector_bench['int_coverage_excelente'], f"**Bueno:** > {sector_bench['int_coverage_bueno']}x")}<br>
+- {highlight(int_coverage > sector_bench['int_coverage_bueno'], f"**Bueno:** > {sector_bench['int_coverage_bueno']}x")}<br>
 - {highlight(int_coverage <= sector_bench['int_coverage_bueno'], f"**Alerta:** < {sector_bench['int_coverage_bueno']}x")}
 """
     else:
