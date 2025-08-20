@@ -71,10 +71,20 @@ def obtener_datos_completos(ticker):
         net_debt = total_debt - cash
         deuda_ebitda = net_debt / ebitda
 
-    # --- CÁLCULO MANUAL DE DEUDA/PATRIMONIO ---
+    # --- CÁLCULO MANUAL DE DEUDA/PATRIMONIO (AÚN MÁS ROBUSTO) ---
     debt_to_equity = None
     total_debt_bs = balance_sheet.loc['Total Debt'].iloc[0] if 'Total Debt' in balance_sheet.index and not balance_sheet.loc['Total Debt'].empty else None
     stockholder_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index and not balance_sheet.loc['Total Stockholder Equity'].empty else None
+    
+    if total_debt_bs is None:
+        if 'Total Liabilities Net Minority Interest' in balance_sheet.index and 'Minority Interest' in balance_sheet.index:
+            total_debt_bs = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[0] - balance_sheet.loc['Minority Interest'].iloc[0]
+        else:
+            total_debt_bs = info.get('totalDebt') # Fallback to info
+    
+    if stockholder_equity is None:
+        stockholder_equity = info.get('totalStockholderEquity') # Fallback to info
+
     if total_debt_bs is not None and stockholder_equity is not None and stockholder_equity > 0:
         debt_to_equity = total_debt_bs / stockholder_equity
     
@@ -128,7 +138,10 @@ def obtener_datos_completos(ticker):
 def calculate_cagr(end_value, start_value, years):
     if start_value is None or end_value is None or start_value <= 0 or years <= 0:
         return None
-    return ((end_value / start_value) ** (1 / years) - 1) * 100
+    try:
+        return ((end_value / start_value) ** (1 / years) - 1) * 100
+    except ZeroDivisionError:
+        return None
 
 @st.cache_data(ttl=3600)
 def obtener_datos_historicos_y_tecnicos(ticker):
@@ -152,22 +165,28 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                 # Intenta calcular CAGR a 5 años
                 years = 5
                 start_year = financials_annual.index[-1].year - years
-                start_rev = financials_annual[financials_annual.index.year == start_year].get('Total Revenue', pd.Series()).iloc[0] if not financials_annual[financials_annual.index.year == start_year].empty else None
-                start_net = financials_annual[financials_annual.index.year == start_year].get('Net Income', pd.Series()).iloc[0] if not financials_annual[financials_annual.index.year == start_year].empty else None
+                start_rev_series = financials_annual[financials_annual.index.year == start_year].get('Total Revenue', pd.Series())
+                start_net_series = financials_annual[financials_annual.index.year == start_year].get('Net Income', pd.Series())
+                start_rev = start_rev_series.iloc[0] if not start_rev_series.empty else None
+                start_net = start_net_series.iloc[0] if not start_net_series.empty else None
                 end_rev = financials_annual['Total Revenue'].iloc[-1]
                 end_net = financials_annual['Net Income'].iloc[-1]
                 
                 cagr_rev = calculate_cagr(end_rev, start_rev, years)
                 cagr_net = calculate_cagr(end_net, start_net, years)
 
+            if (cagr_rev is None or cagr_net is None) and len(financials_annual) >= 3:
                 # Si no se puede a 5 años, intenta a 3 años
-                if cagr_rev is None and len(financials_annual) >= 3:
-                    years = 3
-                    start_year = financials_annual.index[-1].year - years
-                    start_rev = financials_annual[financials_annual.index.year == start_year].get('Total Revenue', pd.Series()).iloc[0] if not financials_annual[financials_annual.index.year == start_year].empty else None
-                    start_net = financials_annual[financials_annual.index.year == start_year].get('Net Income', pd.Series()).iloc[0] if not financials_annual[financials_annual.index.year == start_year].empty else None
-                    cagr_rev = calculate_cagr(end_rev, start_rev, years)
-                    cagr_net = calculate_cagr(end_net, start_net, years)
+                years = 3
+                start_year = financials_annual.index[-1].year - years
+                start_rev_series = financials_annual[financials_annual.index.year == start_year].get('Total Revenue', pd.Series())
+                start_net_series = financials_annual[financials_annual.index.year == start_year].get('Net Income', pd.Series())
+                start_rev = start_rev_series.iloc[0] if not start_rev_series.empty else None
+                start_net = start_net_series.iloc[0] if not start_net_series.empty else None
+                end_rev = financials_annual['Total Revenue'].iloc[-1]
+                end_net = financials_annual['Net Income'].iloc[-1]
+                cagr_rev = calculate_cagr(end_rev, start_rev, years)
+                cagr_net = calculate_cagr(end_net, start_net, years)
         
         if not cashflow_raw.empty:
             cashflow_annual = cashflow_raw.T.sort_index(ascending=True)
@@ -175,14 +194,16 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             if fcf_key and len(cashflow_annual) >= 5:
                 years_cf = 5
                 start_year = cashflow_annual.index[-1].year - years_cf
-                start_fcf = cashflow_annual[cashflow_annual.index.year == start_year].get(fcf_key, pd.Series()).iloc[0] if not cashflow_annual[cashflow_annual.index.year == start_year].empty else None
+                start_fcf_series = cashflow_annual[cashflow_annual.index.year == start_year].get(fcf_key, pd.Series())
+                start_fcf = start_fcf_series.iloc[0] if not start_fcf_series.empty else None
                 end_fcf = cashflow_annual[fcf_key].iloc[-1]
                 cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
             
-            if cagr_fcf is None and len(cashflow_annual) >= 3:
+            if cagr_fcf is None and fcf_key and len(cashflow_annual) >= 3:
                 years_cf = 3
                 start_year = cashflow_annual.index[-1].year - years_cf
-                start_fcf = cashflow_annual[cashflow_annual.index.year == start_year].get(fcf_key, pd.Series()).iloc[0] if not cashflow_annual[cashflow_annual.index.year == start_year].empty else None
+                start_fcf_series = cashflow_annual[cashflow_annual.index.year == start_year].get(fcf_key, pd.Series())
+                start_fcf = start_fcf_series.iloc[0] if not start_fcf_series.empty else None
                 end_fcf = cashflow_annual[fcf_key].iloc[-1]
                 cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
 
@@ -267,10 +288,10 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
     banderas = []
-    if datos.get('sector') != 'Real Estate' and datos.get('payout_ratio', 0) > 100:
+    if datos.get('sector') != 'Real Estate' and datos.get('payout_ratio') is not None and datos.get('payout_ratio', 0) > 100:
         banderas.append("🔴 **Payout Peligroso:** El ratio de reparto de dividendos es superior al 100%. Esto podría indicar que los dividendos no son sostenibles a largo plazo.")
     if financials is not None and not financials.empty:
-        if 'Operating Margin' in financials.columns and len(financials) >= 3 and (financials['Operating Margin'].diff().iloc[-2:] < 0).all():
+        if 'Operating Margin' in financials.columns and len(financials) >= 3 and (financials['Operating Margin'].iloc[-3:].diff().iloc[1:] < 0).all():
             banderas.append("🔴 **Márgenes Decrecientes:** Los márgenes de beneficio llevan 3 años seguidos bajando. Esto podría indicar una pérdida de ventaja competitiva o problemas en la gestión de costes.")
         if 'Total Debt' in financials.columns and len(financials) >= 3 and financials['Total Debt'].iloc[-1] > financials['Total Debt'].iloc[-3] * 1.5:
             banderas.append("🔴 **Deuda Creciente:** La deuda total ha aumentado significativamente. Un alto crecimiento de la deuda puede ser insostenible.")
@@ -341,8 +362,8 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     
     nota_multiplos = 0
     if sector == 'Real Estate':
-        if datos['p_fcf'] and datos['p_fcf'] < 16: nota_multiplos += 8
-        elif datos['p_fcf'] and datos['p_fcf'] < 22: nota_multiplos += 5
+        if datos.get('p_fcf') is not None and datos['p_fcf'] < 16: nota_multiplos += 8
+        elif datos.get('p_fcf') is not None and datos['p_fcf'] < 22: nota_multiplos += 5
     else:
         if datos.get('per') is not None and datos['per'] > 0 and datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
         if datos.get('p_fcf') is not None and datos['p_fcf'] > 0 and datos['p_fcf'] < 20: nota_multiplos += 4
@@ -660,6 +681,8 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'], f"**Bueno:** > {sector_bench['margen_neto_bueno']}%")}<br>
     - {highlight(margen_neto <= sector_bench['margen_neto_bueno'], f"**Alerta:** < {sector_bench['margen_neto_bueno']}%")}
 <br><br>
+**Relación entre Márgenes:** Es una jerarquía: **Margen Bruto** > **Margen Operativo** > **Margen Neto**. La diferencia entre el Margen Operativo y el Neto se debe principalmente a los gastos financieros (intereses) e impuestos. Un Margen Neto mayor que el Operativo es una imposibilidad contable.
+<br><br>
 - **Crecimiento Ingresos (CAGR):** El crecimiento anual compuesto de las ventas durante los últimos años. Este es un indicador clave de la salud y el potencial de un negocio. Una empresa que no crece o decrece podría estar en problemas a largo plazo.
 <br>Rangos para el sector **{datos['sector']}**:<br>
 """
@@ -729,6 +752,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     # --- Leyenda de Valoración ---
     per = datos.get('per')
     p_fcf = datos.get('p_fcf')
+    p_b = datos.get('p_b')
     
     leyenda_valoracion = ""
     if datos.get('sector') == 'Real Estate':
@@ -753,6 +777,15 @@ Rangos para el sector **{datos['sector']}**:<br>
     else:
         leyenda_valoracion += f"""<br><br>- **P/FCF (Price-to-Free-Cash-Flow):** {highlight(True, "No aplicable (negativo o N/A).")} Esto indica que la empresa no está generando caja libre."""
     
+    leyenda_valoracion += f"""<br><br>- **P/B (Precio/Libros):** Compara el precio de la acción con su valor contable (activos menos pasivos). Es especialmente útil para sectores con muchos activos tangibles como el financiero, industrial o de materiales, donde un valor de P/B bajo puede indicar que la acción está infravalorada. Para empresas de tecnología o servicios, que tienen menos activos tangibles, es menos relevante.<br>"""
+    if p_b is not None and not np.isnan(p_b):
+        leyenda_valoracion += f"""Rangos para el sector **{datos['sector']}**:<br>
+    - {highlight(p_b < sector_bench['pb_barato'], f"**Atractivo:** < {sector_bench['pb_barato']}")}<br>
+    - {highlight(sector_bench['pb_barato'] <= p_b <= sector_bench['pb_justo'], f"**Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}")}<br>
+    - {highlight(p_b > sector_bench['pb_justo'], f"**Caro:** > {sector_bench['pb_justo']}")}"""
+    else:
+        leyenda_valoracion += f""" - {highlight(True, "No aplicable o datos no disponibles.")}"""
+
     # --- Leyenda PEG ---
     peg = puntuaciones.get('peg_lynch')
     leyenda_peg = f"""- **Ratio PEG (Peter Lynch):** Es uno de los ratios de valoración más potentes. Relaciona el PER con el crecimiento de los beneficios (`PER / Crecimiento %`). Un valor por debajo de 1 indica que la acción está infravalorada en relación a su tasa de crecimiento.
@@ -785,24 +818,54 @@ Rangos para el sector **{datos['sector']}**:<br>
     leyenda_tecnico = ""
     if tech_data is not None and not tech_data.empty:
         last_price = tech_data['Close'].iloc[-1]
+        sma50 = tech_data['SMA50'].iloc[-1]
         sma200 = tech_data['SMA200'].iloc[-1]
         rsi = tech_data['RSI'].iloc[-1]
-        tendencia_alcista = last_price > sma200
+
+        # Lógica de interpretación dinámica
+        tendencia_alcista_largo = last_price > sma200
+        tendencia_alcista_corto = last_price > sma50
         rsi_sobreventa = rsi < 30
         rsi_sobrecompra = rsi > 70
+        
+        estado_tendencia = ""
+        estado_rsi = ""
+        resumen = ""
+        
+        # Resumen de Tendencia
+        if tendencia_alcista_largo and tendencia_alcista_corto:
+            estado_tendencia = highlight(True, "Tendencia Alcista Fuerte 🟢:") + " El precio está por encima de las medias móviles de 50 y 200 días, lo que sugiere una fuerte tendencia positiva."
+        elif tendencia_alcista_largo and not tendencia_alcista_corto:
+            estado_tendencia = highlight(True, "Tendencia Alcista 🟠:") + " El precio se encuentra por encima de la media de 200 días (largo plazo), pero ha caído por debajo de la de 50 (corto plazo), indicando un posible retroceso o consolidación."
+        elif not tendencia_alcista_largo and not tendencia_alcista_corto:
+             estado_tendencia = highlight(True, "Tendencia Bajista Fuerte 🔴:") + " El precio está por debajo de ambas medias móviles, confirmando una tendencia negativa a corto y largo plazo."
+        else:
+             estado_tendencia = highlight(True, "Tendencia Bajista 🟠:") + " El precio ha cruzado al alza la media de 50 días, pero sigue por debajo de la de 200. Esto podría ser el inicio de una reversión."
+
+        # Resumen de RSI
+        if rsi_sobrecompra:
+            estado_rsi = highlight(True, "RSI en Sobrecompra (> 70) 🔴:") + f" El RSI actual ({rsi:.2f}) sugiere que la acción ha subido demasiado rápido y podría estar lista para una corrección."
+        elif rsi_sobreventa:
+            estado_rsi = highlight(True, "RSI en Sobreventa (< 30) 🟢:") + f" El RSI actual ({rsi:.2f}) sugiere que la acción ha caído demasiado rápido y podría rebotar."
+        else:
+            estado_rsi = highlight(True, "RSI Neutral (30-70) 🟠:") + f" El RSI actual ({rsi:.2f}) no da una señal clara de sobrecompra o sobreventa."
+
+        # Conclusión
+        if (tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobreventa:
+            resumen = " **Análisis Combinado:** La acción está en una tendencia positiva a largo plazo y el RSI indica un momento de sobreventa. Esta combinación podría ser una señal de compra interesante, ya que la acción podría rebotar dentro de su tendencia principal."
+        elif (tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobrecompra:
+            resumen = " **Análisis Combinado:** La acción está en una tendencia positiva, pero el RSI indica que está sobrecomprada. Esto podría sugerir una pausa o corrección inminente antes de continuar con la tendencia."
+        elif (not tendencia_alcista_largo and not tendencia_alcista_corto) and rsi_sobreventa:
+            resumen = " **Análisis Combinado:** A pesar de que el RSI muestra sobreventa, la tendencia general de la acción es bajista. Cuidado, el rebote podría ser solo temporal dentro de una tendencia negativa más fuerte."
+        else:
+            resumen = " **Análisis Combinado:** Los indicadores no ofrecen una señal de compra o venta particularmente fuerte. Se sugiere observar el mercado para buscar confirmación."
+
         leyenda_tecnico = f"""
-- **Medias Móviles (SMA200):** La Media Móvil Simple de 200 días es uno de los indicadores técnicos más seguidos. Representa la tendencia de la acción a largo plazo.
-<br>La señal de **compra** más común es cuando el precio cruza la media de 200 hacia arriba. La señal de **venta** es cuando la cruza hacia abajo.<br>
-    - {highlight(tendencia_alcista, "Señal Alcista 🟢: El precio está por encima de la media de 200 sesiones, indicando una tendencia a largo plazo positiva.")}<br>
-    - {highlight(not tendencia_alcista, "Señal Bajista 🔴: El precio está por debajo de la media de 200 sesiones, indicando una tendencia a largo plazo negativa.")}
+- **Interpretación de la Tendencia:** {estado_tendencia}
 <br><br>
-- **RSI (Índice de Fuerza Relativa):** El RSI es un oscilador de momentum que mide la velocidad y el cambio de los movimientos de precios. Se usa para identificar condiciones de sobrecompra o sobreventa.
-<br>Los niveles de **70 y 30** son clave. Un valor por encima de 70 sugiere que la acción está sobrecomprada y podría corregir. Un valor por debajo de 30 sugiere que está sobrevendida y podría rebotar.<br>
-    - {highlight(rsi_sobreventa, "Sobreventa (< 30) 🟢: El activo ha caído de forma brusca. Podría indicar una oportunidad de compra por rebote.")}<br>
-    - {highlight(30 <= rsi <= 70, "Neutral (30-70) 🟠: No hay una señal clara de sobrecompra o sobreventa.")}<br>
-    - {highlight(rsi_sobrecompra, "Sobrecompra (> 70) 🔴: El activo ha subido de forma brusca. Podría indicar una futura corrección.")}
+- **Interpretación del Momentum (RSI):** {estado_rsi}
 <br><br>
-**Cómo se combinan:** No uses los indicadores de forma aislada. Por ejemplo, una señal de sobreventa del RSI es más potente si la acción también está en una tendencia alcista a largo plazo (por encima de la SMA200).
+- **Conclusión General:** {resumen}
 """
     else:
         leyenda_tecnico = "No se pudieron generar los datos para el análisis técnico."
