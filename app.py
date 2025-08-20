@@ -828,44 +828,55 @@ Rangos para el sector **{datos['sector']}**:<br>
         rsi_sobreventa = rsi < 30
         rsi_sobrecompra = rsi > 70
         
-        estado_tendencia = ""
-        estado_rsi = ""
-        resumen = ""
+        estado_tendencia_texto = ""
+        estado_rsi_texto = ""
+        resumen_texto = ""
         
         # Resumen de Tendencia
         if tendencia_alcista_largo and tendencia_alcista_corto:
-            estado_tendencia = highlight(True, "Tendencia Alcista Fuerte 🟢:") + " El precio está por encima de las medias móviles de 50 y 200 días, lo que sugiere una fuerte tendencia positiva."
+            estado_tendencia_texto = "El precio está por encima de las medias móviles de 50 y 200 días, lo que sugiere una fuerte tendencia positiva."
         elif tendencia_alcista_largo and not tendencia_alcista_corto:
-            estado_tendencia = highlight(True, "Tendencia Alcista 🟠:") + " El precio se encuentra por encima de la media de 200 días (largo plazo), pero ha caído por debajo de la de 50 (corto plazo), indicando un posible retroceso o consolidación."
+            estado_tendencia_texto = "El precio se encuentra por encima de la media de 200 días (largo plazo), pero ha caído por debajo de la de 50 (corto plazo), indicando un posible retroceso o consolidación."
         elif not tendencia_alcista_largo and not tendencia_alcista_corto:
-             estado_tendencia = highlight(True, "Tendencia Bajista Fuerte 🔴:") + " El precio está por debajo de ambas medias móviles, confirmando una tendencia negativa a corto y largo plazo."
+             estado_tendencia_texto = "El precio está por debajo de ambas medias móviles, confirmando una tendencia negativa a corto y largo plazo."
         else:
-             estado_tendencia = highlight(True, "Tendencia Bajista 🟠:") + " El precio ha cruzado al alza la media de 50 días, pero sigue por debajo de la de 200. Esto podría ser el inicio de una reversión."
+             estado_tendencia_texto = "El precio ha cruzado al alza la media de 50 días, pero sigue por debajo de la de 200. Esto podría ser el inicio de una reversión."
 
         # Resumen de RSI
         if rsi_sobrecompra:
-            estado_rsi = highlight(True, "RSI en Sobrecompra (> 70) 🔴:") + f" El RSI actual ({rsi:.2f}) sugiere que la acción ha subido demasiado rápido y podría estar lista para una corrección."
+            estado_rsi_texto = f"El RSI actual ({rsi:.2f}) sugiere que la acción ha subido demasiado rápido y podría estar lista para una corrección."
         elif rsi_sobreventa:
-            estado_rsi = highlight(True, "RSI en Sobreventa (< 30) 🟢:") + f" El RSI actual ({rsi:.2f}) sugiere que la acción ha caído demasiado rápido y podría rebotar."
+            estado_rsi_texto = f"El RSI actual ({rsi:.2f}) sugiere que la acción ha caído demasiado rápido y podría rebotar."
         else:
-            estado_rsi = highlight(True, "RSI Neutral (30-70) 🟠:") + f" El RSI actual ({rsi:.2f}) no da una señal clara de sobrecompra o sobreventa."
+            estado_rsi_texto = f"El RSI actual ({rsi:.2f}) no da una señal clara de sobrecompra o sobreventa."
 
         # Conclusión
         if (tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobreventa:
-            resumen = " **Análisis Combinado:** La acción está en una tendencia positiva a largo plazo y el RSI indica un momento de sobreventa. Esta combinación podría ser una señal de compra interesante, ya que la acción podría rebotar dentro de su tendencia principal."
+            resumen_texto = "La acción está en una tendencia positiva a largo plazo y el RSI indica un momento de sobreventa. Esta combinación podría ser una señal de compra interesante, ya que la acción podría rebotar dentro de su tendencia principal."
         elif (tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobrecompra:
-            resumen = " **Análisis Combinado:** La acción está en una tendencia positiva, pero el RSI indica que está sobrecomprada. Esto podría sugerir una pausa o corrección inminente antes de continuar con la tendencia."
+            resumen_texto = "La acción está en una tendencia positiva, pero el RSI indica que está sobrecomprada. Esto podría sugerir una pausa o corrección inminente antes de continuar con la tendencia."
         elif (not tendencia_alcista_largo and not tendencia_alcista_corto) and rsi_sobreventa:
-            resumen = " **Análisis Combinado:** A pesar de que el RSI muestra sobreventa, la tendencia general de la acción es bajista. Cuidado, el rebote podría ser solo temporal dentro de una tendencia negativa más fuerte."
+            resumen_texto = "A pesar de que el RSI muestra sobreventa, la tendencia general de la acción es bajista. Cuidado, el rebote podría ser solo temporal dentro de una tendencia negativa más fuerte."
         else:
-            resumen = " **Análisis Combinado:** Los indicadores no ofrecen una señal de compra o venta particularmente fuerte. Se sugiere observar el mercado para buscar confirmación."
+            resumen_texto = "Los indicadores no ofrecen una señal de compra o venta particularmente fuerte. Se sugiere observar el mercado para buscar confirmación."
 
         leyenda_tecnico = f"""
-- **Interpretación de la Tendencia:** {estado_tendencia}
+- **Medias Móviles (SMA200):** La Media Móvil Simple de 200 días es uno de los indicadores técnicos más seguidos. Representa la tendencia de la acción a largo plazo.
+<br>La señal de **compra** más común es cuando el precio cruza la media de 200 hacia arriba. La señal de **venta** es cuando la cruza hacia abajo.<br>
+    - {highlight(tendencia_alcista_largo, "Señal Alcista 🟢: El precio está por encima de la media de 200 sesiones, indicando una tendencia a largo plazo positiva.")}<br>
+    - {highlight(not tendencia_alcista_largo, "Señal Bajista 🔴: El precio está por debajo de la media de 200 sesiones, indicando una tendencia a largo plazo negativa.")}
 <br><br>
-- **Interpretación del Momentum (RSI):** {estado_rsi}
+- **RSI (Índice de Fuerza Relativa):** El RSI es un oscilador de momentum que mide la velocidad y el cambio de los movimientos de precios. Se usa para identificar condiciones de sobrecompra o sobreventa.
+<br>Los niveles de **70 y 30** son clave. Un valor por encima de 70 sugiere que la acción está sobrecomprada y podría corregir. Un valor por debajo de 30 sugiere que está sobrevendida y podría rebotar.<br>
+    - {highlight(rsi_sobreventa, "Sobreventa (< 30) 🟢: El activo ha caído de forma brusca. Podría indicar una oportunidad de compra por rebote.")}<br>
+    - {highlight(30 <= rsi <= 70, "Neutral (30-70) 🟠: No hay una señal clara de sobrecompra o sobreventa.")}<br>
+    - {highlight(rsi_sobrecompra, "Sobrecompra (> 70) 🔴: El activo ha subido de forma brusca. Podría indicar una futura corrección.")}
 <br><br>
-- **Conclusión General:** {resumen}
+- **Análisis Combinado:** La combinación de indicadores da una señal de mercado.
+    - {highlight((tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobreventa, "Tendencia positiva con rebote potencial 🟢:")} {estado_tendencia_texto} Y el RSI indica un momento de sobreventa. Esta podría ser una señal de compra.
+    - {highlight((tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobrecompra, "Tendencia positiva con riesgo de corrección 🟠:")} {estado_tendencia_texto} Pero el RSI indica sobrecompra. Podría haber una pausa o corrección.
+    - {highlight((not tendencia_alcista_largo and not tendencia_alcista_corto) and rsi_sobreventa, "Tendencia bajista con rebote débil 🔴:")} {estado_tendencia_texto} A pesar de la sobreventa, la tendencia es bajista. El rebote podría ser solo temporal.
+    - {highlight(not ((tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobreventa) and not ((tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobrecompra) and not ((not tendencia_alcista_largo and not tendencia_alcista_corto) and rsi_sobreventa), "Sin señal clara 🟠:")} {resumen_texto}
 """
     else:
         leyenda_tecnico = "No se pudieron generar los datos para el análisis técnico."
