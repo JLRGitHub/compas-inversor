@@ -260,7 +260,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
             df_yield.columns = ['Dividends', 'Price']
             if not df_yield.empty and 'Price' in df_yield and 'Dividends' in df_yield:
-                        annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
+                    annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
 
         per_historico = np.mean(pers) if pers else None
         yield_historico = np.mean(annual_yields) if annual_yields else None
@@ -301,6 +301,9 @@ def analizar_banderas_rojas(datos, financials):
         banderas.append("🔴 <b>Flujo de Caja Libre Negativo:</b> La empresa está quemando más dinero del que genera en sus operaciones. Esta situación es peligrosa si se prolonga en el tiempo.")
     if datos.get('interest_coverage') is not None and datos.get('interest_coverage') < 2:
         banderas.append("🔴 <b>Cobertura de Intereses Baja:</b> El beneficio operativo apenas cubre el pago de intereses de la deuda. En caso de una crisis, la empresa podría tener problemas para pagar sus obligaciones.")
+    # Añadido: Bandera roja para el ratio corriente
+    if datos.get('ratio_corriente') is not None and datos.get('ratio_corriente') < 1.0:
+        banderas.append("🔴 <b>Ratio Corriente Baja:</b> El ratio corriente es menor a 1.0. Esto podría indicar que la empresa tiene problemas para cubrir sus obligaciones a corto plazo.")
     return banderas
 
 def calcular_puntuaciones_y_justificaciones(datos, hist_data):
@@ -722,8 +725,16 @@ Rangos para el sector <b>{datos['sector']}</b>:<br>
     int_coverage = datos.get('interest_coverage')
     raw_fcf = datos.get('raw_fcf')
     cagr_fcf = hist_data.get('cagr_fcf')
+    ratio_corriente = datos.get('ratio_corriente')
 
-    leyenda_salud = f"""- <b>Deuda Neta / EBITDA:</b> Esta métrica te dice en cuántos años la empresa podría pagar su deuda neta usando sus ganancias operativas. Un valor bajo es mejor, ya que indica un balance más sólido y menos riesgo de quiebra. Rangos para el sector <b>{datos['sector']}</b>:<br>"""
+    leyenda_salud = f"""
+- <b>Ratio Corriente:</b> Es una medida de liquidez que te indica si la empresa puede pagar sus obligaciones a corto plazo (pasivos corrientes) con sus activos a corto plazo (activos corrientes). Un valor de 1.5 o más es generalmente considerado saludable.
+<br>Rangos:<br>
+    - {highlight(ratio_corriente is not None and ratio_corriente > 1.5, "<b>Líquido:</b> > 1.5x")}<br>
+    - {highlight(ratio_corriente is not None and 1.0 <= ratio_corriente <= 1.5, "<b>Suficiente:</b> 1.0x - 1.5x")}<br>
+    - {highlight(ratio_corriente is not None and ratio_corriente < 1.0, "<b>Riesgo:</b> < 1.0x (Posible problema de liquidez)")}
+<br><br>
+- <b>Deuda Neta / EBITDA:</b> Esta métrica te dice en cuántos años la empresa podría pagar su deuda neta usando sus ganancias operativas. Un valor bajo es mejor, ya que indica un balance más sólido y menos riesgo de quiebra. Rangos para el sector <b>{datos['sector']}</b>:<br>"""
     if datos['sector'] == 'Financials':
         leyenda_salud += " - <i>No aplicable para el sector Financiero ya que la deuda es parte de su modelo de negocio.</i>"
     elif deuda_ebitda is not None and not np.isnan(deuda_ebitda):
@@ -848,7 +859,7 @@ Rangos:<br>
     - {highlight(net_buybacks_pct < -1, "<b>🔴 Dilución:</b> La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
 """
     else:
-        leyenda_dividendos += f"    - {highlight(True, '<i>Desconocido.</i>')}"
+        leyenda_dividendos += f"     - {highlight(True, '<i>Desconocido.</i>')}"
 
     # --- Leyenda Técnica ---
     leyenda_tecnico = ""
@@ -1043,10 +1054,15 @@ if st.button('Analizar Acción'):
                             s1, s2 = st.columns(2)
                             with s1:
                                 mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
-                                mostrar_metrica_con_color("🛡️ Cobertura Intereses", datos['interest_coverage'], sector_bench['int_coverage_excelente'], sector_bench['int_coverage_bueno'])
-                            with s2:
+                                st.markdown(f'<div class="formula-label">Fórmula: (Deuda Total - Efectivo) / EBITDA</div>', unsafe_allow_html=True)
+                                # Añadido: Métrica y leyenda para el Ratio Corriente
                                 mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
-                            
+                                st.markdown(f'<div class="formula-label">Fórmula: Activos Corrientes / Pasivos Corrientes</div>', unsafe_allow_html=True)
+
+                            with s2:
+                                mostrar_metrica_con_color("🛡️ Cobertura Intereses", datos['interest_coverage'], sector_bench['int_coverage_excelente'], sector_bench['int_coverage_bueno'])
+                                st.markdown(f'<div class="formula-label">Fórmula: EBIT / Gasto de Intereses</div>', unsafe_allow_html=True)
+                                
                             st.markdown("---")
                             col_fcf1, col_fcf2 = st.columns(2)
                             with col_fcf1:
@@ -1105,10 +1121,10 @@ if st.button('Analizar Acción'):
                         else:
                             prose, color_class = "No disponible", "color-white"
                         st.markdown(f'''<div class="metric-container">
-                                                <div class="metric-label">Ratio PEG (Lynch)</div>
-                                                <div class="metric-value {color_class}">{prose}</div>
-                                                <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
-                                            </div>''', unsafe_allow_html=True)
+                                        <div class="metric-label">Ratio PEG (Lynch)</div>
+                                        <div class="metric-value {color_class}">{prose}</div>
+                                        <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
+                                    </div>''', unsafe_allow_html=True)
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['peg'], unsafe_allow_html=True)
 
@@ -1118,7 +1134,7 @@ if st.button('Analizar Acción'):
                             st.caption(justificaciones['dividendos'])
                             
                             div1, div2 = st.columns(2)
-                            with div1: 
+                            with div1:  
                                 mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                                 mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                             with div2:
@@ -1170,8 +1186,8 @@ if st.button('Analizar Acción'):
                         st.subheader("Banderas Rojas")
                         banderas = analizar_banderas_rojas(datos, financials_hist)
                         if banderas:
-                            for bandera in banderas: 
-                                st.warning(bandera)
+                            for bandera in banderas:  
+                                st.error(bandera)
                         else:
                             st.success("✅ No se han detectado banderas rojas significativas.")
 
