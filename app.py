@@ -70,23 +70,8 @@ def obtener_datos_completos(ticker):
     if total_debt is not None and cash is not None and ebitda is not None and ebitda > 0:
         net_debt = total_debt - cash
         deuda_ebitda = net_debt / ebitda
-
-    # --- CÁLCULO MANUAL DE DEUDA/PATRIMONIO (AÚN MÁS ROBUSTO) ---
-    debt_to_equity = None
-    total_debt_bs = None
-    if 'Total Debt' in balance_sheet.index and not balance_sheet.loc['Total Debt'].empty:
-        total_debt_bs = balance_sheet.loc['Total Debt'].iloc[0]
-    elif 'Long Term Debt' in balance_sheet.index and 'Current Debt' in balance_sheet.index:
-        long_term_debt = balance_sheet.loc['Long Term Debt'].iloc[0] if pd.notna(balance_sheet.loc['Long Term Debt'].iloc[0]) else 0
-        current_debt = balance_sheet.loc['Current Debt'].iloc[0] if pd.notna(balance_sheet.loc['Current Debt'].iloc[0]) else 0
-        total_debt_bs = long_term_debt + current_debt
-    else:
-        total_debt_bs = info.get('totalDebt') # Fallback to info
-        
-    stockholder_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index and not balance_sheet.loc['Total Stockholder Equity'].empty else info.get('totalStockholderEquity')
-
-    if total_debt_bs is not None and stockholder_equity is not None and stockholder_equity > 0:
-        debt_to_equity = total_debt_bs / stockholder_equity
+    
+    # Se elimina el cálculo de Deuda/Patrimonio
 
     # --- ROE es la métrica de rentabilidad ahora ---
     roe = info.get('returnOnEquity', 0) * 100
@@ -143,7 +128,8 @@ def obtener_datos_completos(ticker):
         "roe": roe,
         "margen_operativo": info.get('operatingMargins', 0) * 100 if info.get('operatingMargins') is not None else 0,
         "margen_beneficio": info.get('profitMargins', 0) * 100 if info.get('profitMargins') is not None else 0,
-        "deuda_patrimonio": debt_to_equity, "ratio_corriente": info.get('currentRatio'),
+        "deuda_patrimonio": None, # Eliminamos este valor
+        "ratio_corriente": info.get('currentRatio'),
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'),
         "p_fcf": p_fcf,
         "raw_fcf": free_cash_flow,
@@ -358,10 +344,11 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
             elif deuda_ebitda < sector_bench['deuda_ebitda_bueno']: nota_salud += 2.5
             elif deuda_ebitda < sector_bench['deuda_ebitda_aceptable']: nota_salud += 1.5
         
-        deuda_patrimonio = datos.get('deuda_patrimonio')
-        if deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
-            if deuda_patrimonio < sector_bench['deuda_patrimonio_bueno']: nota_salud += 2.5
-            elif deuda_patrimonio < sector_bench['deuda_patrimonio_aceptable']: nota_salud += 1.5
+        # Eliminamos la métrica Deuda/Patrimonio de la puntuación
+        # deuda_patrimonio = datos.get('deuda_patrimonio')
+        # if deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
+        #     if deuda_patrimonio < sector_bench['deuda_patrimonio_bueno']: nota_salud += 2.5
+        #     elif deuda_patrimonio < sector_bench['deuda_patrimonio_aceptable']: nota_salud += 1.5
 
     interest_coverage = datos.get('interest_coverage')
     if interest_coverage is not None:
@@ -694,7 +681,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
     leyenda_calidad = f"""
-- **ROE (Return on Equity):** Mide la rentabilidad sobre el capital de los accionistas. En términos simples, muestra cuán eficientemente una empresa utiliza el dinero de sus dueños para generar ganancias. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado.<br>
+- **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado, que sabe cómo generar un gran retorno. Por ejemplo, en un banco el ROE puede ser de un 2-3%, pero una empresa de gran calidad puede llegar a tener un ROE mucho más alto, por encima del 15% o incluso 20%.<br>
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(roe > sector_bench['roe_excelente'], f"**Excelente:** > {sector_bench['roe_excelente']}%")}<br>
     - {highlight(sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'], f"**Bueno:** > {sector_bench['roe_bueno']}%")}<br>
@@ -754,21 +741,20 @@ Rangos para el sector **{datos['sector']}**:<br>
     else:
         leyenda_salud += " - *No aplicable o datos no disponibles.*"
     
-    leyenda_salud += """<br><br>- **Deuda / Patrimonio (D/E):** Compara el apalancamiento financiero de la empresa, comparando la deuda total con los fondos propios. Un D/E bajo significa que la empresa se financia principalmente con fondos de los accionistas, no con deuda. Un valor alto puede ser arriesgado.
-<br>
-    Es importante entender la relación entre la deuda y la capacidad de la empresa para pagarla. Un D/E alto no es necesariamente un problema si el ratio de **Deuda Neta / EBITDA** es bajo, ya que esto indica que la empresa genera los suficientes beneficios para cubrir sus obligaciones.
-<br>
-"""
-    if datos['sector'] == 'Financials':
-         leyenda_salud += " - *No aplicable para el sector Financiero ya que la deuda es parte de su modelo de negocio.*"
-    elif deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
-            leyenda_salud += f"""
-- {highlight(deuda_patrimonio < sector_bench['deuda_patrimonio_bueno'], f"**Bajo:** < {sector_bench['deuda_patrimonio_bueno']}")}<br>
-- {highlight(sector_bench['deuda_patrimonio_bueno'] <= deuda_patrimonio <= sector_bench['deuda_patrimonio_aceptable'], f"**Moderado:** {sector_bench['deuda_patrimonio_bueno']} - {sector_bench['deuda_patrimonio_aceptable']}")}<br>
-- {highlight(deuda_patrimonio > sector_bench['deuda_patrimonio_aceptable'], f"**Alto:** > {sector_bench['deuda_patrimonio_aceptable']}")}
-"""
-    else:
-        leyenda_salud += " - *No aplicable o datos no disponibles.*"
+    # Se elimina la leyenda de Deuda/Patrimonio
+    # leyenda_salud += """<br><br>- **Deuda / Patrimonio (D/E):** Compara el apalancamiento financiero de la empresa, comparando la deuda total con los fondos propios. Un D/E bajo significa que la empresa se financia principalmente con fondos de los accionistas, no con deuda. Un valor alto puede ser arriesgado.
+    # Es importante entender la relación entre la deuda y la capacidad de la empresa para pagarla. Un D/E alto no es necesariamente un problema si el ratio de **Deuda Neta / EBITDA** es bajo, ya que esto indica que la empresa genera los suficientes beneficios para cubrir sus obligaciones.
+    # """
+    # if datos['sector'] == 'Financials':
+    #      leyenda_salud += " - *No aplicable para el sector Financiero ya que la deuda es parte de su modelo de negocio.*"
+    # elif deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
+    #         leyenda_salud += f"""
+    # - {highlight(deuda_patrimonio < sector_bench['deuda_patrimonio_bueno'], f"**Bajo:** < {sector_bench['deuda_patrimonio_bueno']}")}<br>
+    # - {highlight(sector_bench['deuda_patrimonio_bueno'] <= deuda_patrimonio <= sector_bench['deuda_patrimonio_aceptable'], f"**Moderado:** {sector_bench['deuda_patrimonio_bueno']} - {sector_bench['deuda_patrimonio_aceptable']}")}<br>
+    # - {highlight(deuda_patrimonio > sector_bench['deuda_patrimonio_aceptable'], f"**Alto:** > {sector_bench['deuda_patrimonio_aceptable']}")}
+    # """
+    # else:
+    #     leyenda_salud += " - *No aplicable o datos no disponibles.*"
 
     leyenda_salud += f"""<br><br>- **Cobertura de Intereses:** Te indica cuántas veces el beneficio operativo (EBIT) de la empresa cubre los gastos de intereses de su deuda. Un ratio alto significa que la empresa puede pagar fácilmente los intereses, lo que reduce el riesgo financiero.<br>"""
     if int_coverage is not None and not np.isnan(int_coverage):
@@ -1077,8 +1063,8 @@ if st.button('Analizar Acción'):
                                 mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
                                 mostrar_metrica_con_color("🛡️ Cobertura Intereses", datos['interest_coverage'], sector_bench['int_coverage_excelente'], sector_bench['int_coverage_bueno'])
                             with s2:
-                                # Aquí he cambiado la etiqueta para ser más explícitos con el ratio
-                                mostrar_metrica_con_color("⚖️ Deuda/Patrimonio (D/E)", datos['deuda_patrimonio'], sector_bench['deuda_patrimonio_bueno'], sector_bench['deuda_patrimonio_aceptable'], lower_is_better=True)
+                                # Eliminamos esta métrica del front-end
+                                # mostrar_metrica_con_color("⚖️ Deuda/Patrimonio (D/E)", datos['deuda_patrimonio'], sector_bench['deuda_patrimonio_bueno'], sector_bench['deuda_patrimonio_aceptable'], lower_is_better=True)
                                 mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                             
                             st.markdown("---")
