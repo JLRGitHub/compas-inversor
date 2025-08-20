@@ -678,20 +678,20 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
     leyenda_calidad = f"""
-- **ROE (Return on Equity):** Mide la rentabilidad sobre el capital de los accionistas. En términos simples, muestra cuán eficientemente una empresa utiliza el dinero de sus dueños para generar ganancias. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado.<br>
+- **ROE (Return on Equity):** Mide la rentabilidad sobre el capital de los accionistas. En términos simples, muestra cuán eficientemente una empresa utiliza el dinero de sus dueños para generar ganancias. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado.
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(roe > sector_bench['roe_excelente'], f"**Excelente:** > {sector_bench['roe_excelente']}%")}<br>
     - {highlight(sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'], f"**Bueno:** > {sector_bench['roe_bueno']}%")}<br>
     - {highlight(roe <= sector_bench['roe_bueno'], f"**Alerta:** < {sector_bench['roe_bueno']}%")}
 <br><br>
 - **Margen Operativo:** El porcentaje de beneficio que le queda a la empresa de sus ventas, después de pagar los costes directos de la producción y la gestión. Un margen operativo alto refleja una **fuerte ventaja competitiva** o "foso económico", lo que le permite a la empresa mantener precios estables y altos.
-<br>Rangos para el sector **{datos['sector']}**:<br>
+Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(margen_op > sector_bench['margen_excelente'], f"**Excelente:** > {sector_bench['margen_excelente']}%")}<br>
     - {highlight(sector_bench['margen_bueno'] < margen_op <= sector_bench['margen_excelente'], f"**Bueno:** > {sector_bench['margen_bueno']}%")}<br>
     - {highlight(margen_op <= sector_bench['margen_bueno'], f"**Alerta:** < {sector_bench['margen_bueno']}%")}
 <br><br>
 - **Margen Neto:** El porcentaje final de las ventas que se convierte en beneficio para el accionista. Es el "dinero de verdad" que queda después de todos los gastos, impuestos y amortizaciones. Un margen neto creciente indica que la empresa es cada vez más rentable.
-<br>Rangos para el sector **{datos['sector']}**:<br>
+Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(margen_neto > sector_bench['margen_neto_excelente'], f"**Excelente:** > {sector_bench['margen_neto_excelente']}%")}<br>
     - {highlight(sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'], f"**Bueno:** > {sector_bench['margen_neto_bueno']}%")}<br>
     - {highlight(margen_neto <= sector_bench['margen_neto_bueno'], f"**Alerta:** < {sector_bench['margen_neto_bueno']}%")}
@@ -699,7 +699,7 @@ Rangos para el sector **{datos['sector']}**:<br>
 **Relación entre Márgenes:** Es una jerarquía: **Margen Bruto** > **Margen Operativo** > **Margen Neto**. La diferencia entre el Margen Operativo y el Neto se debe principalmente a los gastos financieros (intereses) e impuestos. Un Margen Neto mayor que el Operativo es una imposibilidad contable.
 <br><br>
 - **Crecimiento Ingresos (CAGR):** El crecimiento anual compuesto de las ventas durante los últimos años. Este es un indicador clave de la salud y el potencial de un negocio. Una empresa que no crece o decrece podría estar en problemas a largo plazo.
-<br>Rangos para el sector **{datos['sector']}**:<br>
+Rangos para el sector **{datos['sector']}**:<br>
 """
     if cagr_rev is not None and not np.isnan(cagr_rev):
         leyenda_calidad += f"""
@@ -713,9 +713,9 @@ Rangos para el sector **{datos['sector']}**:<br>
     leyenda_calidad += f"""
 <br><br>
 - **Crecimiento Ingresos (YoY):** El crecimiento de ventas en el último año, comparado con el anterior. Indica la salud actual del negocio.
-<br>Rangos para el sector **{datos['sector']}**:<br>
+Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(yoy_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(sector_bench['rev_growth_bueno'] < yoy_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
+    - {highlight(yoy_rev > sector_bench['rev_growth_bueno'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
     - {highlight(yoy_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
 """
 
@@ -730,8 +730,8 @@ Rangos para el sector **{datos['sector']}**:<br>
     if deuda_ebitda is not None and not np.isnan(deuda_ebitda):
         leyenda_salud += f"""
 - {highlight(deuda_ebitda < sector_bench['deuda_ebitda_bueno'], f"**Saludable:** < {sector_bench['deuda_ebitda_bueno']}x")}<br>
-- {highlight(sector_bench['deuda_ebitda_bueno'] <= deuda_ebitda < sector_bench['deuda_ebitda_aceptable'], f"**Precaución:** {sector_bench['deuda_ebitda_bueno']}x - {sector_bench['deuda_ebitda_aceptable']}x")}<br>
-- {highlight(deuda_ebitda >= sector_bench['deuda_ebitda_aceptable'], f"**Riesgo Elevado:** > {sector_bench['deuda_ebitda_aceptable']}x")}
+- {highlight(deuda_ebitda <= sector_bench['deuda_ebitda_aceptable'], f"**Precaución:** {sector_bench['deuda_ebitda_bueno']}x - {sector_bench['deuda_ebitda_aceptable']}x")}<br>
+- {highlight(deuda_ebitda > sector_bench['deuda_ebitda_aceptable'], f"**Riesgo Elevado:** > {sector_bench['deuda_ebitda_aceptable']}x")}
 """
     else:
         leyenda_salud += " - *No aplicable o datos no disponibles.*"
@@ -740,8 +740,8 @@ Rangos para el sector **{datos['sector']}**:<br>
     if deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
             leyenda_salud += f"""
 - {highlight(deuda_patrimonio < sector_bench['deuda_patrimonio_bueno'], f"**Bajo:** < {sector_bench['deuda_patrimonio_bueno']}")}<br>
-- {highlight(sector_bench['deuda_patrimonio_bueno'] <= deuda_patrimonio < sector_bench['deuda_patrimonio_aceptable'], f"**Moderado:** {sector_bench['deuda_patrimonio_bueno']} - {sector_bench['deuda_patrimonio_aceptable']}")}<br>
-- {highlight(deuda_patrimonio >= sector_bench['deuda_patrimonio_aceptable'], f"**Alto:** > {sector_bench['deuda_patrimonio_aceptable']}")}
+- {highlight(deuda_patrimonio <= sector_bench['deuda_patrimonio_aceptable'], f"**Moderado:** {sector_bench['deuda_patrimonio_bueno']} - {sector_bench['deuda_patrimonio_aceptable']}")}<br>
+- {highlight(deuda_patrimonio > sector_bench['deuda_patrimonio_aceptable'], f"**Alto:** > {sector_bench['deuda_patrimonio_aceptable']}")}
 """
     else:
         leyenda_salud += " - *No aplicable o datos no disponibles.*"
@@ -785,17 +785,19 @@ Rangos para el sector **{datos['sector']}**:<br>
     p_fcf = datos.get('p_fcf')
     p_b = datos.get('p_b')
     
-    leyenda_valoracion = ""
-    if datos.get('sector') == 'Real Estate':
-        leyenda_valoracion += "- **PER:** Este ratio no es la métrica principal para los REITs (Real Estate Investment Trusts) ya que el beneficio neto no refleja adecuadamente su rentabilidad. Es mejor usar P/FCF para valorarlos.<br>"
-    elif per is not None and per > 0 and not np.isnan(per):
-        leyenda_valoracion += f"""- **PER (Price-to-Earnings):** Te dice cuántas veces el beneficio anual estás pagando para comprar la acción. Un PER bajo es atractivo, pero solo si la empresa es de calidad y tiene buenas perspectivas de crecimiento.
+    leyenda_valoracion = """
+- **PER (Price-to-Earnings):** Te dice cuántas veces el beneficio anual estás pagando para comprar la acción. Un PER bajo es atractivo, pero solo si la empresa es de calidad y tiene buenas perspectivas de crecimiento.
 <br>Rangos para el sector **{datos['sector']}**:<br>
+"""
+    if datos.get('sector') == 'Real Estate':
+        leyenda_valoracion += "Este ratio no es la métrica principal para los REITs (Real Estate Investment Trusts) ya que el beneficio neto no refleja adecuadamente su rentabilidad. Es mejor usar P/FCF para valorarlos."
+    elif per is not None and per > 0 and not np.isnan(per):
+        leyenda_valoracion += f"""
     - {highlight(per < sector_bench['per_barato'], f"**Atractivo:** < {sector_bench['per_barato']}")}<br>
-    - {highlight(sector_bench['per_barato'] <= per <= sector_bench['per_justo'], f"**Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}")}<br>
+    - {highlight(per <= sector_bench['per_justo'], f"**Justo:** {sector_bench['per_barato']} - {sector_bench['per_justo']}")}<br>
     - {highlight(per > sector_bench['per_justo'], f"**Caro:** > {sector_bench['per_justo']}")}"""
     else:
-        leyenda_valoracion += f"""- **PER (Price-to-Earnings):** {highlight(True, "No aplicable (negativo o N/A).")} Esto puede ocurrir si la empresa no es rentable."""
+        leyenda_valoracion += f"""- {highlight(True, "No aplicable (negativo o N/A).")} Esto puede ocurrir si la empresa no es rentable."""
 
 
     if p_fcf is not None and p_fcf > 0 and not np.isnan(p_fcf):
@@ -821,7 +823,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     peg = puntuaciones.get('peg_lynch')
     leyenda_peg = f"""- **Ratio PEG (Peter Lynch):** Es uno de los ratios de valoración más potentes. Relaciona el PER con el crecimiento de los beneficios (`PER / Crecimiento %`). Un valor por debajo de 1 indica que la acción está infravalorada en relación a su tasa de crecimiento.
 <br>Rangos:<br>"""
-    if peg is not None and not np.isnan(peg):
+    if peg is not None and not np.isnan(peg) and peg > 0:
         leyenda_peg += f' - {highlight(peg < 1, "Barato (PEG < 1): El precio parece bajo en relación al crecimiento.")}<br>'
         leyenda_peg += f' - {highlight(1 <= peg <= 1.5, "Justo (PEG 1-1.5): El precio está alineado con el crecimiento.")}<br>'
         leyenda_peg += f' - {highlight(peg > 1.5, "Caro (PEG > 1.5): El precio parece alto para su crecimiento.")}'
@@ -842,8 +844,8 @@ Rangos para el sector **{datos['sector']}**:<br>
 <br><br>
 - **Ratio de Reparto (Payout):** El porcentaje del beneficio neto que la empresa destina al pago de dividendos. Un payout sostenible, que no sea demasiado alto, te dice que la empresa tiene margen para seguir invirtiendo en el negocio y para mantener el dividendo en el futuro. Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(0 < payout < sector_bench['payout_bueno'], f"Saludable: < {sector_bench['payout_bueno']}%")}<br>
-    - {highlight(sector_bench['payout_bueno'] <= payout < sector_bench['payout_aceptable'], f"Precaución: > {sector_bench['payout_bueno']}%")}<br>
-    - {highlight(payout >= sector_bench['payout_aceptable'], f"Peligroso: > {sector_bench['payout_aceptable']}%")}
+    - {highlight(payout <= sector_bench['payout_aceptable'], f"Precaución: > {sector_bench['payout_bueno']}%")}<br>
+    - {highlight(payout > sector_bench['payout_aceptable'], f"Peligroso: > {sector_bench['payout_aceptable']}%")}
 <br><br>
 - **Recompras Netas (%):** Mide el cambio anual en el número de acciones en circulación. Es una forma de remunerar al accionista. Un valor negativo es bueno (recompras), mientras que uno positivo es malo (dilución).
     - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct < 0, f"**🟢 Aumento de Valor:** La empresa está reduciendo el número de acciones, lo que aumenta el valor de las acciones existentes.")}<br>
@@ -1207,5 +1209,3 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("El Analizador de Acciones de Sr. Outfit ha encontrado un problema. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
-
-
