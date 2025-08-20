@@ -12,7 +12,7 @@ st.markdown("""
 <style>
     .stApp { background-color: #0E1117; color: #FAFAFA; }
     h1, h2, h3 { color: #D4AF37; }
-    .st-emotion-cache-1r6slb0 { border: 1px solid #D4AF37 !important; border-radius: 10px; padding: 15px !important; margin-bottom: 1rem; }
+    .st-emotion-cache-1r6slb0, [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] { border: 1px solid #D4AF37 !important; border-radius: 10px; padding: 15px !important; margin-bottom: 1rem; }
     .stButton>button { background-color: #D4AF37; color: #0E1117; border-radius: 8px; border: 1px solid #D4AF37; font-weight: bold; }
     
     /* Estilos para métricas con colores dinámicos */
@@ -698,7 +698,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     color_class = "color-orange" 
     
     is_comparable = (isinstance(current_value, (int, float)) and not np.isnan(current_value)) and \
-                    (isinstance(historical_value, (int, float)) and not np.isnan(historical_value))
+                      (isinstance(historical_value, (int, float)) and not np.isnan(historical_value))
 
     if is_comparable:
         if lower_is_better:
@@ -919,7 +919,7 @@ Rangos:<br>
     - {highlight(net_buybacks_pct < -1, "**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
 """
     else:
-        leyenda_dividendos += f"     - {highlight(True, '<i>**Desconocido.**</i>')}"
+        leyenda_dividendos += f"      - {highlight(True, '<i>**Desconocido.**</i>')}"
     
     leyenda_dividendos += f"""
 <br><br>
@@ -936,21 +936,19 @@ Rangos:<br>
     # --- Leyenda Técnica ---
     leyenda_tecnico = ""
     if tech_data is not None and not tech_data.empty:
-        last_price = tech_data['Close'].iloc[-1]
-        sma50 = tech_data['SMA50'].iloc[-1]
-        sma200 = tech_data['SMA200'].iloc[-1]
-        rsi = tech_data.get('RSI', None)
+        # **FIX:** Get the last value of each series to avoid the "ambiguous truth value" error.
+        last_price = tech_data['Close'].iloc[-1] if not tech_data['Close'].empty else None
+        sma50 = tech_data['SMA50'].iloc[-1] if not tech_data['SMA50'].isnull().all() else None
+        sma200 = tech_data['SMA200'].iloc[-1] if not tech_data['SMA200'].isnull().all() else None
+        rsi_series = tech_data.get('RSI', pd.Series(dtype=float))
+        rsi = rsi_series.iloc[-1] if not rsi_series.empty and pd.notna(rsi_series.iloc[-1]) else None
         beta = datos.get('beta')
-
-        # Se corrige la lógica de las condiciones para evitar el error de 'truth value'
-        last_price_val = last_price if not pd.isna(last_price) else None
-        sma50_val = sma50 if not pd.isna(sma50) else None
-        sma200_val = sma200 if not pd.isna(sma200) else None
-
-        tendencia_alcista_largo = last_price_val is not None and sma200_val is not None and last_price_val > sma200_val
-        tendencia_alcista_corto = last_price_val is not None and sma50_val is not None and last_price_val > sma50_val
-        rsi_sobreventa = rsi is not None and not np.isnan(rsi) and rsi < 30
-        rsi_sobrecompra = rsi is not None and not np.isnan(rsi) and rsi > 70
+        
+        # Use pd.notna to safely check for None or np.nan
+        tendencia_alcista_largo = pd.notna(last_price) and pd.notna(sma200) and last_price > sma200
+        tendencia_alcista_corto = pd.notna(last_price) and pd.notna(sma50) and last_price > sma50
+        rsi_sobreventa = pd.notna(rsi) and rsi < 30
+        rsi_sobrecompra = pd.notna(rsi) and rsi > 70
         
         estado_tendencia_texto = ""
         estado_rsi_texto = ""
@@ -993,7 +991,7 @@ Rangos:<br>
 - **RSI (Índice de Fuerza Relativa):** El RSI es un oscilador de momentum que mide la velocidad y el cambio de los movimientos de precios. Se usa para identificar condiciones de sobrecompra o sobreventa.
 <br>Los niveles de **70 y 30** son clave. Un valor por encima de 70 sugiere que la acción está sobrecomprada y podría corregir. Un valor por debajo de 30 sugiere que está sobrevendida y podría rebotar.<br>
     - {highlight(rsi_sobreventa, "Sobreventa (< 30) 🟢:")} El activo ha caído de forma brusca. Podría indicar una oportunidad de compra por rebote.
-    - {highlight(30 <= rsi <= 70, "Neutral (30-70) 🟠:")} No hay una señal clara de sobrecompra o sobreventa.
+    - {highlight(pd.notna(rsi) and 30 <= rsi <= 70, "Neutral (30-70) 🟠:")} No hay una señal clara de sobrecompra o sobreventa.
     - {highlight(rsi_sobrecompra, "Sobrecompra (> 70) 🔴:")} El activo ha subido de forma brusca. Podría indicar una futura corrección.
 <br><br>
 - **Análisis Combinado:** La combinación de indicadores da una señal de mercado.
@@ -1031,9 +1029,9 @@ Rangos:<br>
 <br><br>
 - **Según su Yield Histórico:** Compara el yield de dividendo actual con su media histórica. **Una lógica invertida**. Un margen de seguridad positivo significa que el yield actual es mayor que el histórico, lo que podría implicar que la acción está infravalorada.
 <br>Rangos:<br>
-    - {highlight(ms_yield > 20, "Alto Potencial: > 20%")}<br>
-    - {highlight(0 <= ms_yield <= 20, "Potencial Moderado: 0% a 20%")}<br>
-    - {highlight(ms_yield < 0, "Riesgo de Caída: < 0%")}
+    - {highlight(ms_yield is not None and ms_yield > 20, "Alto Potencial: > 20%")}<br>
+    - {highlight(ms_yield is not None and 0 <= ms_yield <= 20, "Potencial Moderado: 0% a 20%")}<br>
+    - {highlight(ms_yield is not None and ms_yield < 0, "Riesgo de Caída: < 0%")}
 """
     return {
         'calidad': leyenda_calidad,
@@ -1077,9 +1075,9 @@ if st.button('Analizar Acción'):
 
                 pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
                 nota_ponderada = (calidad_score * pesos['calidad'] +
-                                 valoracion_score * pesos['valoracion'] +
-                                 salud_score * pesos['salud'] +
-                                 dividendos_score * pesos['dividendos'])
+                                  valoracion_score * pesos['valoracion'] +
+                                  salud_score * pesos['salud'] +
+                                  dividendos_score * pesos['dividendos'])
                 
                 nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
 
@@ -1210,10 +1208,10 @@ if st.button('Analizar Acción'):
                     else:
                         prose, color_class = "No disponible", "color-white"
                     st.markdown(f'''<div class="metric-container">
-                                    <div class="metric-label">Ratio PEG (Lynch)</div>
-                                    <div class="metric-value {color_class}">{prose}</div>
-                                    <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
-                                </div>''', unsafe_allow_html=True)
+                                        <div class="metric-label">Ratio PEG (Lynch)</div>
+                                        <div class="metric-value {color_class}">{prose}</div>
+                                        <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
+                                    </div>''', unsafe_allow_html=True)
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(leyendas['peg'], unsafe_allow_html=True)
 
@@ -1305,7 +1303,7 @@ if st.button('Analizar Acción'):
                         last_price_val = tech_data['Close'].iloc[-1] if not tech_data.empty else None
                         sma50_val = tech_data['SMA50'].iloc[-1] if not tech_data['SMA50'].isnull().all() else None
                         sma200_val = tech_data['SMA200'].iloc[-1] if not tech_data['SMA200'].isnull().all() else None
-                        rsi = tech_data.get('RSI', None).iloc[-1] if 'RSI' in tech_data.columns and not tech_data['RSI'].isnull().all() else None
+                        rsi = tech_data.get('RSI', pd.Series(dtype=float)).iloc[-1] if 'RSI' in tech_data.columns and not tech_data['RSI'].isnull().all() else None
                         beta = datos.get('beta')
                         
                         tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
