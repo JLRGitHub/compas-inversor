@@ -287,25 +287,26 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         yield_historico = np.mean(annual_yields) if annual_yields else None
 
         # --- Análisis Técnico ---
-        hist_1y = None # Inicializamos a None para evitar el error
+        tech_data = None # Inicializamos tech_data a None
         if not hist_10y.empty:
             end_date_1y = hist_10y.index.max()
             start_date_1y = end_date_1y - pd.DateOffset(days=365)
-            hist_1y = hist_10y[hist_10y.index >= start_date_1y].copy()
+            # Asignamos el resultado a tech_data
+            tech_data = hist_10y[hist_10y.index >= start_date_1y].copy()
             
-            if not hist_1y.empty: # Verificación adicional
-                hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
-                hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
-                delta = hist_1y['Close'].diff()
+            if not tech_data.empty: # Verificación adicional
+                tech_data['SMA50'] = tech_data['Close'].rolling(window=50).mean()
+                tech_data['SMA200'] = tech_data['Close'].rolling(window=200).mean()
+                delta = tech_data['Close'].diff()
                 gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
                 rs = gain / loss
-                hist_1y['RSI'] = 100 - (100 / (1 + rs))
+                tech_data['RSI'] = 100 - (100 / (1 + rs))
 
         return {
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
             "per_hist": per_historico, "yield_hist": yield_historico,
-            "tech_data": hist_1y,
+            "tech_data": tech_data, # Retornamos tech_data
             "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf,
             "div_consecutive_years": div_consecutive_years
         }
@@ -468,8 +469,14 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     else: justificaciones['valoracion'] = "Valoración razonable o exigente."
 
     nota_dividendos = 0
+    # Ajuste para ponderar mejor los dividendos crecientes
+    div_consecutive_years = hist_data.get('div_consecutive_years', 0)
+    if div_consecutive_years >= 20: nota_dividendos += 4
+    elif div_consecutive_years >= 5: nota_dividendos += 2
+
     if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 3.5: nota_dividendos += 4
     elif datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 2: nota_dividendos += 2
+    
     if datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 4
     elif datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
 
@@ -739,7 +746,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
     leyenda_calidad = f"""
-- **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado, que sabe cómo generar un gran retorno. Por ejemplo, un particular en un depósito el ROE puede ser de un 2-3%, pero una empresa de gran calidad puede llegar a tener un ROE mucho más alto, por encima del 15% o incluso 20%.<br>
+- **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado, que sabe cómo generar un gran retorno. Por ejemplo, en un banco el ROE puede ser de un 2-3%, pero una empresa de gran calidad puede llegar a tener un ROE mucho más alto, por encima del 15% o incluso 20%.<br>
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(roe > sector_bench['roe_excelente'], f"**Excelente:** > {sector_bench['roe_excelente']}%")}<br>
     - {highlight(sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'], f"**Bueno:** > {sector_bench['roe_bueno']}%")}<br>
@@ -941,14 +948,15 @@ Rangos:<br>
         last_price = tech_data['Close'].iloc[-1]
         sma50 = tech_data['SMA50'].iloc[-1]
         sma200 = tech_data['SMA200'].iloc[-1]
-        rsi = tech_data['RSI'].iloc[-1]
+        # Corrección: uso de tech_data en lugar de tech_1y
+        rsi = tech_data.get('RSI', None)
         beta = datos.get('beta')
 
         # Lógica de interpretación dinámica
         tendencia_alcista_largo = last_price > sma200
         tendencia_alcista_corto = last_price > sma50
-        rsi_sobreventa = rsi < 30
-        rsi_sobrecompra = rsi > 70
+        rsi_sobreventa = rsi is not None and rsi < 30
+        rsi_sobrecompra = rsi is not None and rsi > 70
         
         estado_tendencia_texto = ""
         estado_rsi_texto = ""
@@ -1315,7 +1323,8 @@ if st.button('Analizar Acción'):
                         last_price = tech_data['Close'].iloc[-1]
                         sma50 = tech_data['SMA50'].iloc[-1]
                         sma200 = tech_data['SMA200'].iloc[-1]
-                        rsi = tech_1y.get('RSI', None) if tech_1y is not None else None
+                        # Corrección: uso de tech_data en lugar de tech_1y
+                        rsi = tech_data.get('RSI', None)
                         beta = datos.get('beta')
                         
                         tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
@@ -1354,4 +1363,3 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("El Analizador de Acciones de Sr. Outfit ha encontrado un problema. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
-
