@@ -467,8 +467,9 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y sostenible." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
+    # --- CORRECCIÓN: Usar la variable correcta para el crecimiento ---
     per = datos.get('per')
-    crecimiento_yoy = datos.get('earningsGrowth')
+    crecimiento_yoy = datos.get('crecimiento_beneficios_yoy')
     
     puntuaciones['peg_lynch'] = None
     if per is not None and per > 0 and crecimiento_yoy is not None and crecimiento_yoy > 0:
