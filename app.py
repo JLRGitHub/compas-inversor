@@ -145,7 +145,10 @@ def obtener_datos_completos(ticker):
         "deuda_ebitda": deuda_ebitda,
         "interest_coverage": interest_coverage,
         "beta": info.get('beta', 'N/A'),
-        "net_buybacks_pct": net_buybacks_pct
+        "net_buybacks_pct": net_buybacks_pct,
+        "currency": info.get('currency', 'USD'), # Añadimos la divisa para la validación
+        "financial_currency": info.get('financialCurrency', 'USD'), # Añadimos la divisa de los estados financieros
+        "market_cap": market_cap
     }
 
 def calculate_cagr(end_value, start_value, years):
@@ -236,6 +239,11 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         pers = []
         annual_yields = []
         
+        # Validación de divisa para evitar el error de PER en tickers no USD.
+        financial_currency = info.get('financialCurrency', info.get('currency', 'USD'))
+        if financial_currency != 'USD':
+            st.warning(f"⚠️ **Atención:** El PER Histórico para este ticker podría ser incorrecto. Los estados financieros están en {financial_currency} y la cotización en USD. Se recomienda la verificación manual.")
+            
         if not financials_raw.empty and not balance_sheet_raw.empty:
             net_income_key = 'Net Income'
             share_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_raw.index else 'Diluted Average Shares'
@@ -269,7 +277,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         # --- Análisis Técnico ---
         end_date_1y = hist_10y.index.max()
         start_date_1y = end_date_1y - pd.DateOffset(days=365)
-        hist_1y = hist_10y[hist_10y.index >= start_date_1y].copy()
+        hist_1y = hist_10y[hist_1y.index >= start_date_1y].copy()
         
         hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
         hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
@@ -309,6 +317,9 @@ def analizar_banderas_rojas(datos, financials):
     # Bandera roja para el ratio corriente, ajustado el formato
     if datos.get('ratio_corriente') is not None and datos.get('ratio_corriente') < 1.0:
         banderas.append("🔴 **Ratio Corriente Baja:** El ratio corriente es menor a 1.0. Esto podría indicar que la empresa tiene problemas para cubrir sus obligaciones a corto plazo.")
+    # Nueva bandera roja para baja capitalización de mercado
+    if datos.get('market_cap') is not None and datos.get('market_cap') < 250000000:
+        banderas.append("🔴 **Baja Capitalización de Mercado:** La empresa tiene una capitalización de mercado inferior a $250 millones, lo que puede significar mayor volatilidad e iliquidez.")
     return banderas
 
 def calcular_puntuaciones_y_justificaciones(datos, hist_data):
@@ -378,11 +389,17 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         if datos.get('p_fcf') is not None and datos['p_fcf'] < 16: nota_multiplos += 8
         elif datos.get('p_fcf') is not None and datos['p_fcf'] < 22: nota_multiplos += 5
     else:
-        if datos.get('per') is not None and datos['per'] > 0 and datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
-        if datos.get('p_fcf') is not None and datos['p_fcf'] > 0 and datos['p_fcf'] < 20: nota_multiplos += 4
+        # Se han ajustado los pesos para los múltiplos de valoración
+        if datos.get('per') is not None and datos['per'] > 0 and not np.isnan(datos['per']):
+            if datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
+            elif datos['per'] < sector_bench['per_justo']: nota_multiplos += 2
         
+        if datos.get('p_fcf') is not None and datos['p_fcf'] > 0 and not np.isnan(datos['p_fcf']):
+            if datos['p_fcf'] < 20: nota_multiplos += 4
+            elif datos['p_fcf'] < 30: nota_multiplos += 2
+
     SECTORES_PB_RELEVANTES = ['Financials', 'Industrials', 'Materials', 'Energy', 'Utilities', 'Real Estate']
-    if sector in SECTORES_PB_RELEVANTES and datos.get('p_b') is not None:
+    if sector in SECTORES_PB_RELEVANTES and datos.get('p_b') is not None and not np.isnan(datos['p_b']):
         if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 2
     
     if datos.get('raw_fcf') is not None and datos['raw_fcf'] < 0:
@@ -414,8 +431,8 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     if potencial_yield is not None and potencial_yield > 15: nota_historica += 5
     nota_historica = min(10, nota_historica)
 
-    # Ajuste de ponderación para la valoración, ahora se basa en la calidad
-    nota_valoracion_base = (nota_multiplos * 0.3) + (nota_analistas * 0.4) + (nota_historica * 0.3)
+    # Se han ajustado los pesos de la nota de valoración total
+    nota_valoracion_base = (nota_multiplos * 0.4) + (nota_analistas * 0.3) + (nota_historica * 0.3)
     
     per_actual = datos.get('per')
     per_adelantado = datos.get('per_adelantado')
@@ -1088,9 +1105,13 @@ if st.button('Analizar Acción'):
                         st.caption(justificaciones['salud'])
                         s1, s2 = st.columns(2)
                         with s1:
-                            mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
+                            deuda_ebitda_val = datos.get('deuda_ebitda')
+                            # Se añade un manejo especial para la deuda negativa.
+                            if deuda_ebitda_val is not None and deuda_ebitda_val < 0:
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">⚡ Deuda Neta/EBITDA</div><div class="metric-value color-green">Negativa ({deuda_ebitda_val:.2f})</div></div>', unsafe_allow_html=True)
+                            else:
+                                mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", deuda_ebitda_val, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
                             st.markdown(f'<div class="formula-label">Fórmula: (Deuda Total - Efectivo) / EBITDA</div>', unsafe_allow_html=True)
-                            # Se ha eliminado la bandera roja del Ratio Corriente, pero se mantiene la métrica
                             mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                             st.markdown(f'<div class="formula-label">Fórmula: Activos Corrientes / Pasivos Corrientes</div>', unsafe_allow_html=True)
 
@@ -1119,10 +1140,17 @@ if st.button('Analizar Acción'):
                     with tab1:
                         val1, val2 = st.columns(2)
                         with val1:
-                            mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
+                            per_val = datos.get('per')
+                            # Se añade la lógica de color para el PER actual
+                            if per_val is not None and not np.isnan(per_val):
+                                mostrar_metrica_con_color("⚖️ PER", per_val, sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
+                            else:
+                                mostrar_metrica_con_color("⚖️ PER", None, sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
+
                             mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per_adelantado'), datos.get('per'), lower_is_better=True)
                         with val2:
-                            mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
+                            p_b_val = datos['p_b']
+                            mostrar_metrica_con_color("📚 P/B (Precio/Libros)", p_b_val, sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
                             if datos.get('raw_fcf') is not None and datos['raw_fcf'] < 0:
                                 st.markdown('<div class="metric-container"><div class="metric-label">🌊 P/FCF</div><div class="metric-value color-red">Negativo</div></div>', unsafe_allow_html=True)
                             else:
