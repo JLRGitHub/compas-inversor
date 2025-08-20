@@ -237,28 +237,29 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         pers, annual_yields = [], []
         per_historico, yield_historico = None, None
         
+        # --- MODIFICADO: Se calcula siempre el PER Histórico, pero con advertencia si no es USD ---
         financial_currency = info.get('financialCurrency', 'USD')
         if financial_currency != 'USD':
-            st.warning(f"⚠️ **Análisis PER Histórico Desactivado:** La divisa de los estados financieros ({financial_currency}) no es USD.")
-        else:
-            if not financials_raw.empty:
-                net_income_key = 'Net Income'
-                share_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_raw.index else 'Diluted Average Shares'
-                if net_income_key in financials_raw.index and share_key in financials_raw.index:
-                    for col_date in financials_raw.columns:
-                        net_income = financials_raw.loc[net_income_key, col_date]
-                        shares = financials_raw.loc[share_key, col_date]
-                        if pd.notna(net_income) and pd.notna(shares) and shares > 0 and net_income > 0:
-                            eps = net_income / shares
-                            price_data_year = hist_10y[hist_10y.index.year == col_date.year]
-                            if not price_data_year.empty:
-                                avg_price = price_data_year['Close'].mean()
-                                per_year = avg_price / eps
-                                if 0 < per_year < 200:
-                                    pers.append(per_year)
-            per_historico = np.mean(pers) if pers else None
+            st.warning(f"⚠️ **Precaución con el PER Histórico:** La divisa de los estados financieros ({financial_currency}) no es USD. El cálculo del PER histórico puede ser impreciso debido a las fluctuaciones del tipo de cambio.")
+        
+        if not financials_raw.empty:
+            net_income_key = 'Net Income'
+            share_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_raw.index else 'Diluted Average Shares'
+            if net_income_key in financials_raw.index and share_key in financials_raw.index:
+                for col_date in financials_raw.columns:
+                    net_income = financials_raw.loc[net_income_key, col_date]
+                    shares = financials_raw.loc[share_key, col_date]
+                    if pd.notna(net_income) and pd.notna(shares) and shares > 0 and net_income > 0:
+                        eps = net_income / shares
+                        price_data_year = hist_10y[hist_10y.index.year == col_date.year]
+                        if not price_data_year.empty:
+                            avg_price = price_data_year['Close'].mean()
+                            per_year = avg_price / eps
+                            if 0 < per_year < 200:
+                                pers.append(per_year)
+        per_historico = np.mean(pers) if pers else None
 
-        # --- CORRECCIÓN: Yield histórico se calcula siempre ---
+        # --- Yield histórico se calcula siempre ---
         divs_10y = stock.dividends
         if not divs_10y.empty:
             annual_dividends = divs_10y.resample('YE').sum()
@@ -956,6 +957,11 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(ms_analistas < 0, "Riesgo de Caída: < 0%")}
 <br><br>
 - **Según su PER Histórico:** Compara el PER actual con su media histórica.<br>
+"""
+    if datos.get('financial_currency') != 'USD':
+        leyenda_margen_seguridad += f"""<small><i>(Nota: Para acciones no-USD como esta, este valor es una aproximación y puede ser impreciso.)</i></small><br>"""
+    
+    leyenda_margen_seguridad += f"""
     - {highlight(ms_per > 20, "Alto Potencial: > 20%")}<br>
     - {highlight(0 <= ms_per <= 20, "Potencial Moderado: 0% a 20%")}<br>
     - {highlight(ms_per < 0, "Riesgo de Caída: < 0%")}
