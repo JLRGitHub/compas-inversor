@@ -739,7 +739,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
     leyenda_calidad = f"""
-- **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado, que sabe cómo generar un gran retorno. Por ejemplo, en un banco el ROE puede ser de un 2-3%, pero una empresa de gran calidad puede llegar a tener un ROE mucho más alto, por encima del 15% o incluso 20%.<br>
+- **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado, que sabe cómo generar un gran retorno. Por ejemplo, un particular en un depósito el ROE puede ser de un 2-3%, pero una empresa de gran calidad puede llegar a tener un ROE mucho más alto, por encima del 15% o incluso 20%.<br>
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(roe > sector_bench['roe_excelente'], f"**Excelente:** > {sector_bench['roe_excelente']}%")}<br>
     - {highlight(sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'], f"**Bueno:** > {sector_bench['roe_bueno']}%")}<br>
@@ -1354,3 +1354,4 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("El Analizador de Acciones de Sr. Outfit ha encontrado un problema. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
+
