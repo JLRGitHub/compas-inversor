@@ -287,17 +287,20 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         yield_historico = np.mean(annual_yields) if annual_yields else None
 
         # --- Análisis Técnico ---
-        end_date_1y = hist_10y.index.max()
-        start_date_1y = end_date_1y - pd.DateOffset(days=365)
-        hist_1y = hist_10y[hist_1y.index >= start_date_1y].copy()
-        
-        hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
-        hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
-        delta = hist_1y['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        hist_1y['RSI'] = 100 - (100 / (1 + rs))
+        hist_1y = None # Inicializamos a None para evitar el error
+        if not hist_10y.empty:
+            end_date_1y = hist_10y.index.max()
+            start_date_1y = end_date_1y - pd.DateOffset(days=365)
+            hist_1y = hist_10y[hist_10y.index >= start_date_1y].copy()
+            
+            if not hist_1y.empty: # Verificación adicional
+                hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
+                hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
+                delta = hist_1y['Close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+                rs = gain / loss
+                hist_1y['RSI'] = 100 - (100 / (1 + rs))
 
         return {
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
@@ -1223,9 +1226,7 @@ if st.button('Analizar Acción'):
                         st.markdown(leyendas['peg'], unsafe_allow_html=True)
 
                 # Se ha movido esta lógica dentro del bloque if para mayor claridad
-                div_info_cols = st.columns(3) if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0 else []
-
-                if div_info_cols:
+                if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
                     with st.container(border=True):
                         st.subheader(f"Dividendos & Recompras [{puntuaciones['dividendos']:.1f}/10]")
                         st.caption(justificaciones['dividendos'])
@@ -1314,7 +1315,7 @@ if st.button('Analizar Acción'):
                         last_price = tech_data['Close'].iloc[-1]
                         sma50 = tech_data['SMA50'].iloc[-1]
                         sma200 = tech_data['SMA200'].iloc[-1]
-                        rsi = tech_data['RSI'].iloc[-1]
+                        rsi = tech_1y.get('RSI', None) if tech_1y is not None else None
                         beta = datos.get('beta')
                         
                         tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
@@ -1325,8 +1326,13 @@ if st.button('Analizar Acción'):
                         st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
 
                         rsi_texto, rsi_color = f"{rsi:.2f} (Neutral 🟠)", "color-orange"
-                        if rsi > 70: rsi_texto, rsi_color = f"{rsi:.2f} (Sobrecompra 🔴)", "color-red"
-                        elif rsi < 30: rsi_texto, rsi_color = f"{rsi:.2f} (Sobreventa 🟢)", "color-green"
+                        if rsi is not None:
+                            if rsi > 70: rsi_texto, rsi_color = f"{rsi:.2f} (Sobrecompra 🔴)", "color-red"
+                            elif rsi < 30: rsi_texto, rsi_color = f"{rsi:.2f} (Sobreventa 🟢)", "color-green"
+                        else:
+                            rsi_texto = "N/A"
+                            rsi_color = "color-white"
+                            
                         st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
                         
                         beta_texto = f"{beta:.2f}" if isinstance(beta, (int, float)) and not np.isnan(beta) else 'N/A'
@@ -1337,7 +1343,10 @@ if st.button('Analizar Acción'):
                 
                 with col_tech_legend:
                     st.subheader("Interpretación Técnica")
-                    st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
+                    if tech_data is not None:
+                        st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
+                    else:
+                        st.markdown("No se pudieron generar los datos para el análisis técnico.", unsafe_allow_html=True)
 
         except TypeError as e:
             st.error(f"Error al procesar los datos para '{ticker_input}'. Es posible que los datos de Yahoo Finance para este ticker estén incompletos o no disponibles temporalmente.")
