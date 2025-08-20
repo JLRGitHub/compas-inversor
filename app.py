@@ -79,7 +79,7 @@ def obtener_datos_completos(ticker):
     elif 'Total Liabilities Net Minority Interest' in balance_sheet.index and 'Minority Interest' in balance_sheet.index:
         total_debt_bs = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[0] - balance_sheet.loc['Minority Interest'].iloc[0]
     else:
-        total_debt_bs = info.get('totalDebt')
+        total_debt_bs = info.get('totalDebt') # Fallback to info
         
     stockholder_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index and not balance_sheet.loc['Total Stockholder Equity'].empty else info.get('totalStockholderEquity')
 
@@ -397,13 +397,13 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     potencial_per, potencial_yield = 0, 0
     per_historico = hist_data.get('per_hist')
-    if per_historico is not None and datos.get('per') is not None and datos['per'] > 0:
+    if per_historico is not None and datos.get('per') is not None and datos['per'] > 0 and per_historico > 0:
         potencial_per = ((per_historico / datos['per']) - 1) * 100
     puntuaciones['margen_seguridad_per'] = potencial_per
 
     yield_historico = hist_data.get('yield_hist')
     if yield_historico is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0 and yield_historico > 0:
-        potencial_yield = ((yield_historico / datos['yield_dividendo']) - 1) * 100
+        potencial_yield = ((datos['yield_dividendo'] - yield_historico) / yield_historico) * 100
     else:
         potencial_yield = None
     puntuaciones['margen_seguridad_yield'] = potencial_yield
@@ -783,7 +783,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     p_fcf = datos.get('p_fcf')
     p_b = datos.get('p_b')
     
-    leyenda_valoracion = """
+    leyenda_valoracion = f"""
 - **PER (Price-to-Earnings):** Te dice cuántas veces el beneficio anual estás pagando para comprar la acción. Un PER bajo es atractivo, pero solo si la empresa es de calidad y tiene buenas perspectivas de crecimiento.
 <br>Rangos para el sector **{datos['sector']}**:<br>
 """
