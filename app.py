@@ -766,7 +766,7 @@ Rangos para el sector **{datos['sector']}**:<br>
         leyenda_salud += f' - {highlight(True, "No aplicable o datos no disponibles.")}'
 
     leyenda_salud += f"""
-<br><br>
+<br>
 - **Crecimiento de FCF (CAGR):** El crecimiento anual compuesto del Flujo de Caja Libre. Es una métrica clave para medir la capacidad de la empresa de generar efectivo real para pagar y aumentar los dividendos a largo plazo.
 <br>Rangos para el sector **{datos['sector']}**:<br>
 """
@@ -1207,3 +1207,4 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("El Analizador de Acciones de Sr. Outfit ha encontrado un problema. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
+
