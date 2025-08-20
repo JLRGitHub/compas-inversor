@@ -753,8 +753,12 @@ Rangos para el sector **{datos['sector']}**:<br>
 """
     else:
         leyenda_salud += " - *No aplicable o datos no disponibles.*"
-
-    leyenda_salud += f"""<br><br>- **Deuda / Patrimonio (D/E):** Mide el apalancamiento financiero de la empresa, comparando la deuda total con los fondos propios. Un D/E bajo significa que la empresa se financia principalmente con fondos de los accionistas, no con deuda. Un valor alto puede ser arriesgado.<br>"""
+    
+    leyenda_salud += """<br><br>- **Deuda / Patrimonio (D/E):** Compara el apalancamiento financiero de la empresa, comparando la deuda total con los fondos propios. Un D/E bajo significa que la empresa se financia principalmente con fondos de los accionistas, no con deuda. Un valor alto puede ser arriesgado.
+<br>
+    Es importante entender la relación entre la deuda y la capacidad de la empresa para pagarla. Un D/E alto no es necesariamente un problema si el ratio de **Deuda Neta / EBITDA** es bajo, ya que esto indica que la empresa genera los suficientes beneficios para cubrir sus obligaciones.
+<br>
+"""
     if datos['sector'] == 'Financials':
          leyenda_salud += " - *No aplicable para el sector Financiero ya que la deuda es parte de su modelo de negocio.*"
     elif deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
@@ -1073,7 +1077,8 @@ if st.button('Analizar Acción'):
                                 mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
                                 mostrar_metrica_con_color("🛡️ Cobertura Intereses", datos['interest_coverage'], sector_bench['int_coverage_excelente'], sector_bench['int_coverage_bueno'])
                             with s2:
-                                mostrar_metrica_con_color("⚖️ Deuda/Patrimonio", datos['deuda_patrimonio'], sector_bench['deuda_patrimonio_bueno'], sector_bench['deuda_patrimonio_aceptable'], lower_is_better=True)
+                                # Aquí he cambiado la etiqueta para ser más explícitos con el ratio
+                                mostrar_metrica_con_color("⚖️ Deuda/Patrimonio (D/E)", datos['deuda_patrimonio'], sector_bench['deuda_patrimonio_bueno'], sector_bench['deuda_patrimonio_aceptable'], lower_is_better=True)
                                 mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
                             
                             st.markdown("---")
@@ -1247,4 +1252,3 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("El Analizador de Acciones de Sr. Outfit ha encontrado un problema. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
-
