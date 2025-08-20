@@ -424,7 +424,8 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         nota_multiplos -= 4
 
     nota_analistas, margen_seguridad = 0, 0
-    if datos.get('precio_actual') is not None and datos.et('precio_objetivo') is not None:
+    # Corrección: se utiliza .get en lugar de .et
+    if datos.get('precio_actual') is not None and datos.get('precio_objetivo') is not None:
         margen_seguridad = ((datos['precio_objetivo'] - datos['precio_actual']) / datos['precio_actual']) * 100
         if margen_seguridad > 25: nota_analistas = 10
         elif margen_seguridad > 15: nota_analistas = 8
@@ -1075,7 +1076,7 @@ if st.button('Analizar Acción'):
                 hist_data = obtener_datos_historicos_y_tecnicos(ticker_input)
                 
                 # Se ha añadido esta validación para evitar errores con tickers europeos sin datos históricos completos.
-                if hist_data.get('financials_charts') is None or hist_data.get('financials_charts').empty:
+                if hist_data and (hist_data.get('financials_charts') is None or hist_data.get('financials_charts').empty):
                     st.warning(f"No se pudieron obtener todos los datos históricos para '{ticker_input}'. El análisis puede estar incompleto.")
                 
                 # Se mueve el resto de la lógica dentro del bloque try-except
@@ -1329,7 +1330,6 @@ if st.button('Analizar Acción'):
                         last_price = tech_data['Close'].iloc[-1]
                         sma50 = tech_data['SMA50'].iloc[-1]
                         sma200 = tech_data['SMA200'].iloc[-1]
-                        # Corrección: uso de tech_data en lugar de tech_1y
                         rsi = tech_data.get('RSI', None)
                         beta = datos.get('beta')
                         
