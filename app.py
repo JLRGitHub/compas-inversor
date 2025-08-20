@@ -29,18 +29,18 @@ st.markdown("""
 
 # --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
-    'Information Technology': {'roic_excelente': 20, 'roic_bueno': 15, 'roic_alerta': 15, 'roe_excelente': 25, 'roe_bueno': 18, 'roe_alerta': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_alerta': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'margen_neto_alerta': 15, 'rev_growth_excelente': 15, 'rev_growth_bueno': 10, 'rev_growth_alerta': 10, 'fcf_growth_excelente': 15, 'fcf_growth_bueno': 10, 'fcf_growth_alerta': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'deuda_patrimonio_bueno': 0.7, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 10, 'int_coverage_bueno': 5},
-    'Health Care': {'roic_excelente': 15, 'roic_bueno': 12, 'roic_alerta': 12, 'roe_excelente': 20, 'roe_bueno': 15, 'roe_alerta': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_alerta': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'margen_neto_alerta': 10, 'rev_growth_excelente': 10, 'rev_growth_bueno': 6, 'rev_growth_alerta': 6, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 6, 'fcf_growth_alerta': 6, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 8, 'int_coverage_bueno': 4},
-    'Financials': {'roic_excelente': 10, 'roic_bueno': 8, 'roic_alerta': 8, 'roe_excelente': 12, 'roe_bueno': 10, 'roe_alerta': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'margen_neto_alerta': 8, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90, 'deuda_ebitda_bueno': 1, 'deuda_ebitda_aceptable': 2, 'deuda_patrimonio_bueno': 2.0, 'deuda_patrimonio_aceptable': 4.0, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3},
-    'Industrials': {'roic_excelente': 14, 'roic_bueno': 10, 'roic_alerta': 10, 'roe_excelente': 18, 'roe_bueno': 14, 'roe_alerta': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'margen_neto_alerta': 6, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
-    'Utilities': {'roic_excelente': 8, 'roic_bueno': 6, 'roic_alerta': 6, 'roe_excelente': 10, 'roe_bueno': 8, 'roe_alerta': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_alerta': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 5, 'rev_growth_bueno': 3, 'rev_growth_alerta': 3, 'fcf_growth_excelente': 5, 'fcf_growth_bueno': 3, 'fcf_growth_alerta': 3, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95, 'deuda_ebitda_bueno': 4, 'deuda_ebitda_aceptable': 5.5, 'deuda_patrimonio_bueno': 1.5, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 4, 'int_coverage_bueno': 2.5},
-    'Consumer Discretionary': {'roic_excelente': 14, 'roic_bueno': 10, 'roic_alerta': 10, 'roe_excelente': 18, 'roe_bueno': 14, 'roe_alerta': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_alerta': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'rev_growth_alerta': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'fcf_growth_alerta': 7, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
-    'Consumer Staples': {'roic_excelente': 15, 'roic_bueno': 12, 'roic_alerta': 12, 'roe_excelente': 20, 'roe_bueno': 15, 'roe_alerta': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 7, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 7, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.2, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
-    'Energy': {'roic_excelente': 12, 'roic_bueno': 8, 'roic_alerta': 8, 'roe_excelente': 15, 'roe_bueno': 10, 'roe_alerta': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_alerta': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 8, 'rev_growth_bueno': 0, 'rev_growth_alerta': 0, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 0, 'fcf_growth_alerta': 0, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'deuda_patrimonio_bueno': 0.8, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 8, 'int_coverage_bueno': 5},
-    'Materials': {'roic_excelente': 12, 'roic_bueno': 8, 'roic_alerta': 8, 'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_alerta': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 0.8, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
-    'Real Estate': {'roic_excelente': 6, 'roic_bueno': 4, 'roic_alerta': 4, 'roe_excelente': 8, 'roe_bueno': 6, 'roe_alerta': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_alerta': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'margen_neto_alerta': 10, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100, 'deuda_ebitda_bueno': 5, 'deuda_ebitda_aceptable': 7, 'deuda_patrimonio_bueno': 1.5, 'deuda_patrimonio_aceptable': 3.0, 'int_coverage_excelente': 3, 'int_coverage_bueno': 2},
-    'Communication Services': {'roic_excelente': 12, 'roic_bueno': 9, 'roic_alerta': 9, 'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_alerta': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'margen_neto_alerta': 9, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'rev_growth_alerta': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'fcf_growth_alerta': 7, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
-    'Default': {'roic_excelente': 12, 'roic_bueno': 9, 'roic_alerta': 9, 'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3}
+    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'roe_alerta': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_alerta': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'margen_neto_alerta': 15, 'rev_growth_excelente': 15, 'rev_growth_bueno': 10, 'rev_growth_alerta': 10, 'fcf_growth_excelente': 15, 'fcf_growth_bueno': 10, 'fcf_growth_alerta': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'deuda_patrimonio_bueno': 0.7, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 10, 'int_coverage_bueno': 5},
+    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'roe_alerta': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_alerta': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'margen_neto_alerta': 10, 'rev_growth_excelente': 10, 'rev_growth_bueno': 6, 'rev_growth_alerta': 6, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 6, 'fcf_growth_alerta': 6, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 8, 'int_coverage_bueno': 4},
+    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'roe_alerta': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'margen_neto_alerta': 8, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90, 'deuda_ebitda_bueno': 1, 'deuda_ebitda_aceptable': 2, 'deuda_patrimonio_bueno': 2.0, 'deuda_patrimonio_aceptable': 4.0, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3},
+    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'roe_alerta': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'margen_neto_alerta': 6, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
+    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'roe_alerta': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_alerta': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 5, 'rev_growth_bueno': 3, 'rev_growth_alerta': 3, 'fcf_growth_excelente': 5, 'fcf_growth_bueno': 3, 'fcf_growth_alerta': 3, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95, 'deuda_ebitda_bueno': 4, 'deuda_ebitda_aceptable': 5.5, 'deuda_patrimonio_bueno': 1.5, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 4, 'int_coverage_bueno': 2.5},
+    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'roe_alerta': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_alerta': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'rev_growth_alerta': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'fcf_growth_alerta': 7, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
+    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'roe_alerta': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 7, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 7, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.2, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
+    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'roe_alerta': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_alerta': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 8, 'rev_growth_bueno': 0, 'rev_growth_alerta': 0, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 0, 'fcf_growth_alerta': 0, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'deuda_patrimonio_bueno': 0.8, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 8, 'int_coverage_bueno': 5},
+    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_alerta': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 0.8, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
+    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'roe_alerta': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_alerta': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'margen_neto_alerta': 10, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100, 'deuda_ebitda_bueno': 5, 'deuda_ebitda_aceptable': 7, 'deuda_patrimonio_bueno': 1.5, 'deuda_patrimonio_aceptable': 3.0, 'int_coverage_excelente': 3, 'int_coverage_bueno': 2},
+    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_alerta': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'margen_neto_alerta': 9, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'rev_growth_alerta': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'fcf_growth_alerta': 7, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
+    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3}
 }
 
 # --- BLOQUE 1: OBTENCIÓN DE DATOS ---
@@ -88,21 +88,21 @@ def obtener_datos_completos(ticker):
     if total_debt_bs is not None and stockholder_equity is not None and stockholder_equity > 0:
         debt_to_equity = total_debt_bs / stockholder_equity
 
-    # --- CÁLCULO MANUAL DE ROIC (Return on Invested Capital) ---
-    roic = None
+    # --- Revertimos a ROE según la solicitud del usuario ---
     roe = info.get('returnOnEquity', 0) * 100
+    
+    # --- Cálculo de Recompras Netas (%) ---
+    net_buybacks_pct = None
     try:
-        if 'EBIT' in financials.index and not financials.loc['EBIT'].empty:
-            ebit_last = financials.loc['EBIT'].iloc[0]
-            tax_rate = info.get('trailingPE') / info.get('forwardPE') if info.get('trailingPE') and info.get('forwardPE') else 0.21 # Default tax rate
-            net_operating_profit_after_tax = ebit_last * (1 - tax_rate)
-            total_debt_last = balance_sheet.loc['Total Debt'].iloc[0] if 'Total Debt' in balance_sheet.index else 0
-            total_equity_last = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index else 0
-            invested_capital = total_debt_last + total_equity_last
-            if invested_capital > 0:
-                roic = (net_operating_profit_after_tax / invested_capital) * 100
+        shares_df = stock.get_balancesheet(as_dict=True)
+        shares_df = pd.DataFrame(shares_df).T
+        if 'Common Stock' in shares_df.columns and len(shares_df) >= 2:
+            shares_initial = shares_df['Common Stock'].iloc[-2]
+            shares_final = shares_df['Common Stock'].iloc[-1]
+            if shares_initial > 0:
+                net_buybacks_pct = ((shares_final - shares_initial) / shares_initial) * 100
     except Exception:
-        roic = None
+        net_buybacks_pct = None
 
     # --- Lógica existente ---
     payout = info.get('payoutRatio')
@@ -131,7 +131,7 @@ def obtener_datos_completos(ticker):
         "nombre": info.get('longName', 'N/A'), "sector": info.get('sector', 'N/A'),
         "pais": info.get('country', 'N/A'), "industria": info.get('industry', 'N/A'),
         "descripcion": descripcion_corta,
-        "roic": roic if roic is not None and not np.isinf(roic) else roe, # Fallback a ROE si ROIC es inválido
+        "roe": roe,
         "margen_operativo": info.get('operatingMargins', 0) * 100 if info.get('operatingMargins') is not None else 0,
         "margen_beneficio": info.get('profitMargins', 0) * 100 if info.get('profitMargins') is not None else 0,
         "deuda_patrimonio": debt_to_equity, "ratio_corriente": info.get('currentRatio'),
@@ -149,7 +149,8 @@ def obtener_datos_completos(ticker):
         "dividendo_por_accion": dividend_rate,
         "deuda_ebitda": deuda_ebitda,
         "interest_coverage": interest_coverage,
-        "beta": info.get('beta', 'N/A')
+        "beta": info.get('beta', 'N/A'),
+        "net_buybacks_pct": net_buybacks_pct
     }
 
 def calculate_cagr(end_value, start_value, years):
@@ -174,7 +175,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         cashflow_raw = stock.cashflow
         
         financials_for_charts, dividends_for_charts = None, None
-        cagr_rev, cagr_net, cagr_fcf = None, None, None
+        cagr_rev, cagr_fcf = None, None
 
         if not financials_raw.empty:
             financials_annual = financials_raw.T.sort_index(ascending=True)
@@ -323,15 +324,16 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['geopolitico'], justificaciones['geopolitico'], puntuaciones['penalizador_geo'] = nota_geo, justificacion_geo, penalizador_geo
 
     nota_calidad = 0
-    if datos.get('roic') is not None and datos['roic'] > sector_bench['roic_excelente']: nota_calidad += 2.5
-    elif datos.get('roic') is not None and datos['roic'] > sector_bench['roic_bueno']: nota_calidad += 1.5
+    # Usamos ROE en lugar de ROIC
+    if datos.get('roe') is not None and datos['roe'] > sector_bench['roe_excelente']: nota_calidad += 2.5
+    elif datos.get('roe') is not None and datos['roe'] > sector_bench['roe_bueno']: nota_calidad += 1.5
     if datos.get('margen_operativo') is not None and datos['margen_operativo'] > sector_bench['margen_excelente']: nota_calidad += 2.5
     elif datos.get('margen_operativo') is not None and datos['margen_operativo'] > sector_bench['margen_bueno']: nota_calidad += 1.5
     if datos.get('margen_beneficio') is not None and datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): nota_calidad += 2
     elif datos.get('margen_beneficio') is not None and datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): nota_calidad += 1
     
     cagr_rev = hist_data.get('cagr_rev')
-    if cagr_rev is not None:
+    if cagr_rev is not None and not np.isnan(cagr_rev):
         if cagr_rev > sector_bench['rev_growth_excelente']: nota_calidad += 2
         elif cagr_rev > sector_bench['rev_growth_bueno']: nota_calidad += 1
     if datos.get('crecimiento_ingresos_yoy') is not None and datos['crecimiento_ingresos_yoy'] > sector_bench['rev_growth_excelente']: nota_calidad += 1
@@ -668,32 +670,19 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
         return f"<span {highlight_style}>{text}</span>" if condition else text
 
     # --- Leyenda de Calidad ---
-    roic = datos.get('roic')
+    roe = datos.get('roe', 0)
     margen_op = datos.get('margen_operativo', 0)
     margen_neto = datos.get('margen_beneficio', 0)
     cagr_rev = hist_data.get('cagr_rev')
     cagr_fcf = hist_data.get('cagr_fcf')
     yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
-    # Comprobar si se usa ROIC o ROE
-    if datos['roic'] is not None and datos['roic'] > 0:
-        rentabilidad_label = "ROIC (Return on Invested Capital)"
-        rentabilidad_metric = roic
-        excelente = sector_bench['roic_excelente']
-        bueno = sector_bench['roic_bueno']
-    else:
-        rentabilidad_label = "ROE (Return on Equity)"
-        rentabilidad_metric = datos.get('roe', 0)
-        excelente = sector_bench['roe_excelente']
-        bueno = sector_bench['roe_bueno']
-
     leyenda_calidad = f"""
-- **{rentabilidad_label}:** Mide la rentabilidad sobre el capital total invertido (ROIC) o el capital de los accionistas (ROE). Es la mejor forma de ver la eficiencia del negocio.
+- **ROE (Return on Equity):** Mide la rentabilidad sobre el capital de los accionistas. En términos simples, muestra cuán eficientemente una empresa utiliza el dinero de sus dueños para generar ganancias. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado.<br>
 Rangos para el sector **{datos['sector']}**:<br>
-    - {highlight(rentabilidad_metric is not None and rentabilidad_metric > excelente, f"**Excelente:** > {excelente}%")}<br>
-    - {highlight(rentabilidad_metric is not None and bueno < rentabilidad_metric <= excelente, f"**Bueno:** > {bueno}%")}<br>
-    - {highlight(rentabilidad_metric is not None and rentabilidad_metric <= bueno, f"**Alerta:** < {bueno}%")}<br>
-    - {highlight(rentabilidad_metric is None, "Desconocido.")}
+    - {highlight(roe > sector_bench['roe_excelente'], f"**Excelente:** > {sector_bench['roe_excelente']}%")}<br>
+    - {highlight(sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'], f"**Bueno:** > {sector_bench['roe_bueno']}%")}<br>
+    - {highlight(roe <= sector_bench['roe_bueno'], f"**Alerta:** < {sector_bench['roe_bueno']}%")}
 <br><br>
 - **Margen Operativo:** El porcentaje de beneficio que le queda a la empresa de sus ventas, después de pagar los costes directos de la producción y la gestión. Un margen operativo alto refleja una **fuerte ventaja competitiva** o "foso económico", lo que le permite a la empresa mantener precios estables y altos.
 <br>Rangos para el sector **{datos['sector']}**:<br>
@@ -823,9 +812,10 @@ Rangos para el sector **{datos['sector']}**:<br>
     else:
         leyenda_peg += f' - {highlight(True, "No aplicable: Requiere PER y crecimiento de beneficios positivos.")}'
 
-    # --- Leyenda de Dividendos ---
+    # --- Leyenda de Dividendos & Recompras ---
     yield_div = datos.get('yield_dividendo', 0)
     payout = datos.get('payout_ratio', 0)
+    net_buybacks_pct = datos.get('net_buybacks_pct')
     
     leyenda_dividendos = f"""
 - **Rentabilidad (Yield):** El porcentaje de tu inversión que recibes anualmente en forma de dividendos. Es una de las principales formas en las que los accionistas reciben retorno.
@@ -838,6 +828,11 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(0 < payout < sector_bench['payout_bueno'], f"Saludable: < {sector_bench['payout_bueno']}%")}<br>
     - {highlight(sector_bench['payout_bueno'] <= payout < sector_bench['payout_aceptable'], f"Precaución: > {sector_bench['payout_bueno']}%")}<br>
     - {highlight(payout >= sector_bench['payout_aceptable'], f"Peligroso: > {sector_bench['payout_aceptable']}%")}
+<br><br>
+- **Recompras Netas (%):** Mide el cambio anual en el número de acciones en circulación. Es una forma de remunerar al accionista. Un valor negativo es bueno (recompras), mientras que uno positivo es malo (dilución).
+    - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct < 0, f"**🟢 Aumento de Valor:** La empresa está reduciendo el número de acciones, lo que aumenta el valor de las acciones existentes.")}<br>
+    - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct > 0, f"**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
+    - {highlight(net_buybacks_pct is None or np.isnan(net_buybacks_pct), "Desconocido.")}
 <br><br>
 - **Crecimiento de FCF (CAGR):** El crecimiento anual compuesto del Flujo de Caja Libre. Es una métrica clave para medir la capacidad de la empresa de generar efectivo real para pagar y aumentar los dividendos a largo plazo.
 <br>Rangos para el sector **{datos['sector']}**:<br>
@@ -1029,10 +1024,10 @@ if st.button('Analizar Acción'):
                             st.caption(justificaciones['calidad'])
                             c1, c2 = st.columns(2)
                             with c1:
-                                metric_name = "📈 ROIC" if 'roic' in datos and datos['roic'] is not None and not np.isnan(datos['roic']) else "📈 ROE"
-                                metric_value = datos['roic'] if metric_name == "📈 ROIC" else datos.get('roe', 0)
-                                umbral_excelente = sector_bench.get('roic_excelente') if metric_name == "📈 ROIC" else sector_bench.get('roe_excelente')
-                                umbral_bueno = sector_bench.get('roic_bueno') if metric_name == "📈 ROIC" else sector_bench.get('roe_bueno')
+                                metric_name = "📈 ROE"
+                                metric_value = datos.get('roe', 0)
+                                umbral_excelente = sector_bench.get('roe_excelente')
+                                umbral_bueno = sector_bench.get('roe_bueno')
                                 mostrar_metrica_con_color(metric_name, metric_value, umbral_excelente, umbral_bueno, is_percent=True)
                                 mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
                                 cagr_rev_display = f"{hist_data.get('cagr_rev'):.2f}%" if hist_data.get('cagr_rev') is not None and not np.isnan(hist_data.get('cagr_rev')) else "No disponible"
@@ -1106,7 +1101,7 @@ if st.button('Analizar Acción'):
 
                     if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
                         with st.container(border=True):
-                            st.subheader(f"Dividendos [{puntuaciones['dividendos']:.1f}/10]")
+                            st.subheader(f"Dividendos & Recompras [{puntuaciones['dividendos']:.1f}/10]")
                             st.caption(justificaciones['dividendos'])
                             
                             div1, div2 = st.columns(2)
@@ -1116,7 +1111,9 @@ if st.button('Analizar Acción'):
                             with div2:
                                 cagr_fcf_display = f"{hist_data.get('cagr_fcf'):.2f}%" if hist_data.get('cagr_fcf') is not None and not np.isnan(hist_data.get('cagr_fcf')) else "No disponible"
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">🌊 Crecimiento FCF (CAGR)</div><div class="metric-value color-white">{cagr_fcf_display}</div></div>', unsafe_allow_html=True)
-                                mostrar_metrica_informativa("📈 Yield Medio (Histórico)", hist_data.get('yield_hist'), is_percent=True)
+                                net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "No disponible"
+                                color_buybacks = "color-green" if datos['net_buybacks_pct'] is not None and datos['net_buybacks_pct'] < 0 else "color-red"
+                                st.markdown(f'<div class="metric-container"><div class="metric-label">🔁 Recompras netas</div><div class="metric-value {color_buybacks}">{net_buybacks_display}</div></div>', unsafe_allow_html=True)
                             
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
