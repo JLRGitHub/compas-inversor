@@ -71,6 +71,13 @@ def obtener_datos_completos(ticker):
         net_debt = total_debt - cash
         deuda_ebitda = net_debt / ebitda
 
+    # --- CÁLCULO MANUAL DE DEUDA/PATRIMONIO ---
+    debt_to_equity = None
+    total_debt_bs = balance_sheet.loc['Total Debt'].iloc[0] if 'Total Debt' in balance_sheet.index and not balance_sheet.loc['Total Debt'].empty else None
+    stockholder_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index and not balance_sheet.loc['Total Stockholder Equity'].empty else None
+    if total_debt_bs is not None and stockholder_equity is not None and stockholder_equity > 0:
+        debt_to_equity = total_debt_bs / stockholder_equity
+    
     # --- Lógica existente ---
     payout = info.get('payoutRatio')
     dividend_rate = info.get('dividendRate')
@@ -101,7 +108,7 @@ def obtener_datos_completos(ticker):
         "roe": info.get('returnOnEquity', 0) * 100 if info.get('returnOnEquity') is not None else 0,
         "margen_operativo": info.get('operatingMargins', 0) * 100 if info.get('operatingMargins') is not None else 0,
         "margen_beneficio": info.get('profitMargins', 0) * 100 if info.get('profitMargins') is not None else 0,
-        "deuda_patrimonio": info.get('debtToEquity'), "ratio_corriente": info.get('currentRatio'),
+        "deuda_patrimonio": debt_to_equity, "ratio_corriente": info.get('currentRatio'),
         "per": info.get('trailingPE'), "per_adelantado": info.get('forwardPE'),
         "p_fcf": p_fcf,
         "raw_fcf": free_cash_flow,
@@ -208,7 +215,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
             df_yield.columns = ['Dividends', 'Price']
             if not df_yield.empty and 'Price' in df_yield and 'Dividends' in df_yield:
-                   annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
+                    annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
 
         per_historico = np.mean(pers) if pers else None
         yield_historico = np.mean(annual_yields) if annual_yields else None
@@ -660,13 +667,13 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
         - {highlight(deuda_ebitda < sector_bench['deuda_ebitda_bueno'], f"**Saludable:** < {sector_bench['deuda_ebitda_bueno']}x")}<br>
         - {highlight(sector_bench['deuda_ebitda_bueno'] <= deuda_ebitda < sector_bench['deuda_ebitda_aceptable'], f"**Precaución:** {sector_bench['deuda_ebitda_bueno']}x - {sector_bench['deuda_ebitda_aceptable']}x")}<br>
         - {highlight(deuda_ebitda >= sector_bench['deuda_ebitda_aceptable'], f"**Riesgo Elevado:** > {sector_bench['deuda_ebitda_aceptable']}x")}
-    """
+        """
     else:
         leyenda_salud += " - *No aplicable o datos no disponibles.*"
 
     leyenda_salud += f"<br><br>- **Deuda / Patrimonio (D/E):** Mide el apalancamiento financiero. Compara la deuda total con los fondos propios.<br>"
     if deuda_patrimonio is not None:
-         leyenda_salud += f"""
+            leyenda_salud += f"""
         - {highlight(deuda_patrimonio < sector_bench['deuda_patrimonio_bueno'], f"**Bajo:** < {sector_bench['deuda_patrimonio_bueno']}")}<br>
         - {highlight(sector_bench['deuda_patrimonio_bueno'] <= deuda_patrimonio < sector_bench['deuda_patrimonio_aceptable'], f"**Moderado:** {sector_bench['deuda_patrimonio_bueno']} - {sector_bench['deuda_patrimonio_aceptable']}")}<br>
         - {highlight(deuda_patrimonio >= sector_bench['deuda_patrimonio_aceptable'], f"**Alto:** > {sector_bench['deuda_patrimonio_aceptable']}")}
@@ -676,7 +683,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
 
     leyenda_salud += f"<br><br>- **Cobertura de Intereses:** Cuántas veces el beneficio operativo (EBIT) cubre los gastos de intereses.<br>"
     if int_coverage is not None:
-           leyenda_salud += f"""
+            leyenda_salud += f"""
         - {highlight(int_coverage > sector_bench['int_coverage_excelente'], f"**Excelente:** > {sector_bench['int_coverage_excelente']}x")}<br>
         - {highlight(sector_bench['int_coverage_bueno'] < int_coverage <= sector_bench['int_coverage_excelente'], f"**Bueno:** > {sector_bench['int_coverage_bueno']}x")}<br>
         - {highlight(int_coverage <= sector_bench['int_coverage_bueno'], f"**Alerta:** < {sector_bench['int_coverage_bueno']}x")}
@@ -925,10 +932,10 @@ if st.button('Analizar Acción'):
                             elif peg_lynch > 1.5: prose, color_class = f"Caro ({peg_lynch:.2f})", "color-red"
                             else: prose, color_class = f"Justo ({peg_lynch:.2f})", "color-orange"
                         st.markdown(f'''<div class="metric-container">
-                                        <div class="metric-label">Ratio PEG (Lynch)</div>
-                                        <div class="metric-value {color_class}">{prose}</div>
-                                        <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
-                                    </div>''', unsafe_allow_html=True)
+                                             <div class="metric-label">Ratio PEG (Lynch)</div>
+                                             <div class="metric-value {color_class}">{prose}</div>
+                                             <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
+                                         </div>''', unsafe_allow_html=True)
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['peg'], unsafe_allow_html=True)
 
