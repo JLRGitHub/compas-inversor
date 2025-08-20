@@ -269,7 +269,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         # --- Análisis Técnico ---
         end_date_1y = hist_10y.index.max()
         start_date_1y = end_date_1y - pd.DateOffset(days=365)
-        hist_1y = hist_10y[hist_1y.index >= start_date_1y].copy()
+        hist_1y = hist_10y[hist_10y.index >= start_date_1y].copy()
         
         hist_1y['SMA50'] = hist_1y['Close'].rolling(window=50).mean()
         hist_1y['SMA200'] = hist_1y['Close'].rolling(window=200).mean()
@@ -286,6 +286,8 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf
         }
     except Exception as e:
+        # Aquí se ha añadido un manejo de errores más robusto para evitar que la aplicación se detenga.
+        st.error(f"Se produjo un error al procesar los datos históricos y técnicos. Detalle: {e}")
         return {}
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
@@ -561,6 +563,28 @@ def crear_graficos_financieros(ticker, financials, dividends):
     except Exception:
         return None
 
+# Se ha creado una nueva función para mostrar el crecimiento con color dinámico
+def mostrar_crecimiento_con_color(label, value, umbral_excelente, umbral_bueno):
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        formatted_value = "N/A"
+        color_class = "color-white"
+    else:
+        try:
+            numeric_value = float(str(value).replace('%', ''))
+            if numeric_value > umbral_excelente:
+                color_class = "color-green"
+            elif numeric_value > umbral_bueno:
+                color_class = "color-orange"
+            else:
+                color_class = "color-red"
+            formatted_value = f"{numeric_value:.2f}%"
+        except (ValueError, TypeError):
+            formatted_value = "N/A"
+            color_class = "color-white"
+    
+    st.markdown(f'<div class="metric-container"><div class="metric-label">{label}</div><div class="metric-value {color_class}">{formatted_value}</div></div>', unsafe_allow_html=True)
+
+
 def mostrar_metrica_con_color(label, value, umbral_bueno, umbral_malo=None, lower_is_better=False, is_percent=False, is_currency=False):
     if value is None or (isinstance(value, float) and np.isnan(value)):
         formatted_value = "N/A"
@@ -682,7 +706,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
     leyenda_calidad = f"""
-- **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado, que sabe cómo generar un gran retorno. Por ejemplo, ese dinero en un depósito el ROE puede ser de un 2-3%, pero una empresa de gran calidad puede llegar a tener un ROE mucho más alto porque utiliza mejor el dinero, por encima del 15% o incluso 20%.<br>
+- **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado, que sabe cómo generar un gran retorno. Por ejemplo, en un banco el ROE puede ser de un 2-3%, pero una empresa de gran calidad puede llegar a tener un ROE mucho más alto, por encima del 15% o incluso 20%.<br>
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(roe > sector_bench['roe_excelente'], f"**Excelente:** > {sector_bench['roe_excelente']}%")}<br>
     - {highlight(sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'], f"**Bueno:** > {sector_bench['roe_bueno']}%")}<br>
@@ -978,7 +1002,7 @@ Rangos:<br>
 st.title('El Analizador de Acciones de Sr. Outfit')
 st.caption("Herramienta de análisis. Esto no es una recomendación de compra o venta. Realiza tu propio juicio y análisis antes de invertir.")
 
-ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "PEP").upper()
+ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "NVO").upper()
 
 if st.button('Analizar Acción'):
     with st.spinner('Realizando análisis profesional...'):
@@ -990,250 +1014,250 @@ if st.button('Analizar Acción'):
             else:
                 hist_data = obtener_datos_historicos_y_tecnicos(ticker_input)
                 
-                if not hist_data:
-                    st.error(f"No se pudieron obtener datos históricos para '{ticker_input}'. El análisis no puede continuar.")
-                else:
-                    puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
-                    sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
-                    tech_data = hist_data.get('tech_data')
-                    leyendas = generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data)
-                    
-                    pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
-                    nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
-                    nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
+                # Se ha añadido esta validación para evitar errores con tickers europeos sin datos históricos completos.
+                if hist_data.get('financials_charts') is None or hist_data.get('financials_charts').empty:
+                    st.warning(f"No se pudieron obtener todos los datos históricos para '{ticker_input}'. El análisis puede estar incompleto.")
+                
+                # Se mueve el resto de la lógica dentro del bloque try-except
+                puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
+                sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
+                tech_data = hist_data.get('tech_data')
+                leyendas = generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data)
+                
+                pesos = {'calidad': 0.4, 'valoracion': 0.3, 'salud': 0.2, 'dividendos': 0.1}
+                nota_ponderada = sum(puntuaciones.get(k, 0) * v for k, v in pesos.items())
+                nota_final = max(0, nota_ponderada - puntuaciones['penalizador_geo'])
 
-                    st.header(f"Análisis Fundamental: {datos['nombre']} ({ticker_input})")
-                    
-                    st.markdown(f"### 🧭 Veredicto del Analizador: **{nota_final:.1f} / 10**")
-                    if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
-                    elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
-                    else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
+                st.header(f"Análisis Fundamental: {datos['nombre']} ({ticker_input})")
+                
+                st.markdown(f"### 🧭 Veredicto del Analizador: **{nota_final:.1f} / 10**")
+                if nota_final >= 7.5: st.success("Veredicto: Empresa EXCEPCIONAL a un precio potencialmente atractivo.")
+                elif nota_final >= 6: st.info("Veredicto: Empresa de ALTA CALIDAD a un precio razonable.")
+                else: st.warning("Veredicto: Empresa SÓLIDA, pero vigilar valoración o riesgos.")
 
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    with col2:
-                        st.subheader("Resumen y Nota Global")
-                        fig_radar = crear_grafico_radar(puntuaciones, nota_final)
-                        st.pyplot(fig_radar)
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col2:
+                    st.subheader("Resumen y Nota Global")
+                    fig_radar = crear_grafico_radar(puntuaciones, nota_final)
+                    st.pyplot(fig_radar)
 
-                    with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
-                        # Se ha cambiado el uso de <b> a Markdown ** para un formato correcto.
-                        st.markdown(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
-                        geo_nota = puntuaciones['geopolitico']
-                        if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
-                        else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
-                        
-                        if datos['pais'] in ['China', 'Hong Kong']:
-                            st.warning("⚠️ **Riesgo Regulatorio (ADR/VIE):** Invertir en empresas chinas a través de ADRs conlleva riesgos adicionales.")
-                        st.caption(justificaciones['geopolitico'])
-                        # La descripción ya se ha ajustado en la función de obtención de datos
-                        st.write(f"Descripción: {datos['descripcion']}")
+                with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
+                    # Se ha cambiado el uso de <b> a Markdown ** para un formato correcto.
+                    st.markdown(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
+                    geo_nota = puntuaciones['geopolitico']
+                    if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
+                    else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
                     
+                    if datos['pais'] in ['China', 'Hong Kong']:
+                        st.warning("⚠️ **Riesgo Regulatorio (ADR/VIE):** Invertir en empresas chinas a través de ADRs conlleva riesgos adicionales.")
+                    st.caption(justificaciones['geopolitico'])
+                    # La descripción ya se ha ajustado en la función de obtención de datos
+                    st.write(f"Descripción: {datos['descripcion']}")
+                
+                with st.container(border=True):
+                    st.subheader("Consenso de Analistas")
+                    col_rec, col_obj = st.columns(2)
+                    with col_rec:
+                        recomendacion_str = datos.get('recomendacion_analistas', 'N/A').replace('_', ' ').title()
+                        st.markdown(get_recommendation_html(recomendacion_str), unsafe_allow_html=True)
+                    with col_obj:
+                        mostrar_metrica_informativa("Precio Objetivo Analistas", datos.get('precio_objetivo'), potential_pct=puntuaciones.get('margen_seguridad_analistas'))
+
+                col1, col2 = st.columns(2)
+                with col1:
                     with st.container(border=True):
-                        st.subheader("Consenso de Analistas")
-                        col_rec, col_obj = st.columns(2)
-                        with col_rec:
-                            recomendacion_str = datos.get('recomendacion_analistas', 'N/A').replace('_', ' ').title()
-                            st.markdown(get_recommendation_html(recomendacion_str), unsafe_allow_html=True)
-                        with col_obj:
-                            mostrar_metrica_informativa("Precio Objetivo Analistas", datos.get('precio_objetivo'), potential_pct=puntuaciones.get('margen_seguridad_analistas'))
+                        st.subheader(f"Calidad del Negocio [{puntuaciones['calidad']:.1f}/10]")
+                        st.caption(justificaciones['calidad'])
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
+                            mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
+                            cagr_rev_val = hist_data.get('cagr_rev')
+                            # Se ha añadido la lógica de color para el CAGR de ingresos
+                            mostrar_crecimiento_con_color("🚀 Crec. Ingresos (CAGR)", cagr_rev_val, sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'])
+                        with c2:
+                            mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
+                            yoy_rev_val = datos.get('crecimiento_ingresos_yoy')
+                            # Se ha añadido la lógica de color para el YoY de ingresos
+                            mostrar_crecimiento_con_color("🔥 Crec. Ingresos (YoY)", yoy_rev_val, sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'])
+                        with st.expander("Ver Leyenda Detallada"):
+                            st.markdown(leyendas['calidad'], unsafe_allow_html=True)
+                with col2:
+                    with st.container(border=True):
+                        st.subheader(f"Salud Financiera [{puntuaciones['salud']:.1f}/10]")
+                        st.caption(justificaciones['salud'])
+                        s1, s2 = st.columns(2)
+                        with s1:
+                            mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
+                            st.markdown(f'<div class="formula-label">Fórmula: (Deuda Total - Efectivo) / EBITDA</div>', unsafe_allow_html=True)
+                            # Se ha eliminado la bandera roja del Ratio Corriente, pero se mantiene la métrica
+                            mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
+                            st.markdown(f'<div class="formula-label">Fórmula: Activos Corrientes / Pasivos Corrientes</div>', unsafe_allow_html=True)
 
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        with st.container(border=True):
-                            st.subheader(f"Calidad del Negocio [{puntuaciones['calidad']:.1f}/10]")
-                            st.caption(justificaciones['calidad'])
-                            c1, c2 = st.columns(2)
-                            with c1:
-                                mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
-                                mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
-                                cagr_rev_display = f"{hist_data.get('cagr_rev'):.2f}%" if hist_data.get('cagr_rev') is not None and not np.isnan(hist_data.get('cagr_rev')) else "No disponible"
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">🚀 Crec. Ingresos (CAGR)</div><div class="metric-value color-white">{cagr_rev_display}</div></div>', unsafe_allow_html=True)
-                            with c2:
-                                mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
-                                mostrar_metrica_con_color("🔥 Crec. Ingresos (YoY)", datos['crecimiento_ingresos_yoy'], sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'], is_percent=True)
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['calidad'], unsafe_allow_html=True)
-                    with col2:
-                        with st.container(border=True):
-                            st.subheader(f"Salud Financiera [{puntuaciones['salud']:.1f}/10]")
-                            st.caption(justificaciones['salud'])
-                            s1, s2 = st.columns(2)
-                            with s1:
-                                mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", datos['deuda_ebitda'], sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
-                                st.markdown(f'<div class="formula-label">Fórmula: (Deuda Total - Efectivo) / EBITDA</div>', unsafe_allow_html=True)
-                                # Se ha eliminado la bandera roja del Ratio Corriente, pero se mantiene la métrica
-                                mostrar_metrica_con_color("💧 Ratio Corriente", datos['ratio_corriente'], 1.5, 1.0)
-                                st.markdown(f'<div class="formula-label">Fórmula: Activos Corrientes / Pasivos Corrientes</div>', unsafe_allow_html=True)
-
-                            with s2:
-                                mostrar_metrica_con_color("🛡️ Cobertura Intereses", datos['interest_coverage'], sector_bench['int_coverage_excelente'], sector_bench['int_coverage_bueno'])
-                                st.markdown(f'<div class="formula-label">Fórmula: EBIT / Gasto de Intereses</div>', unsafe_allow_html=True)
-                                
-                            st.markdown("---")
-                            col_fcf1, col_fcf2 = st.columns(2)
-                            with col_fcf1:
-                                mostrar_metrica_con_color("💰 Flujo de Caja Libre (FCF)", datos.get('raw_fcf'), 0, -1, is_currency=True)
-                            with col_fcf2:
-                                cagr_fcf_val = hist_data.get('cagr_fcf')
-                                cagr_fcf_display = f"{cagr_fcf_val:.2f}%" if cagr_fcf_val is not None and not np.isnan(cagr_fcf_val) else "No disponible"
-                                cagr_fcf_color = "color-white"
-                                if cagr_fcf_val is not None and not np.isnan(cagr_fcf_val):
-                                    if cagr_fcf_val > 5: cagr_fcf_color = "color-green"
-                                    elif cagr_fcf_val < 0: cagr_fcf_color = "color-red"
-                                    else: cagr_fcf_color = "color-orange"
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">🌊 Crecimiento FCF (CAGR)</div><div class="metric-value {cagr_fcf_color}">{cagr_fcf_display}</div></div>', unsafe_allow_html=True)
+                        with s2:
+                            mostrar_metrica_con_color("🛡️ Cobertura Intereses", datos['interest_coverage'], sector_bench['int_coverage_excelente'], sector_bench['int_coverage_bueno'])
+                            st.markdown(f'<div class="formula-label">Fórmula: EBIT / Gasto de Intereses</div>', unsafe_allow_html=True)
                             
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['salud'], unsafe_allow_html=True)
+                        st.markdown("---")
+                        col_fcf1, col_fcf2 = st.columns(2)
+                        with col_fcf1:
+                            mostrar_metrica_con_color("💰 Flujo de Caja Libre (FCF)", datos.get('raw_fcf'), 0, -1, is_currency=True)
+                        with col_fcf2:
+                            cagr_fcf_val = hist_data.get('cagr_fcf')
+                            # Se ha añadido la lógica de color para el CAGR de FCF
+                            mostrar_crecimiento_con_color("🌊 Crecimiento FCF (CAGR)", cagr_fcf_val, sector_bench['fcf_growth_excelente'], sector_bench['fcf_growth_bueno'])
+                        
+                        with st.expander("Ver Leyenda Detallada"):
+                            st.markdown(leyendas['salud'], unsafe_allow_html=True)
+                
+                with st.container(border=True):
+                    st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
+                    st.caption(justificaciones['valoracion'])
                     
+                    tab1, tab2 = st.tabs(["Múltiplos Actuales", "Análisis Histórico"])
+                    
+                    with tab1:
+                        val1, val2 = st.columns(2)
+                        with val1:
+                            mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
+                            mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per_adelantado'), datos.get('per'), lower_is_better=True)
+                        with val2:
+                            mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
+                            if datos.get('raw_fcf') is not None and datos['raw_fcf'] < 0:
+                                st.markdown('<div class="metric-container"><div class="metric-label">🌊 P/FCF</div><div class="metric-value color-red">Negativo</div></div>', unsafe_allow_html=True)
+                            else:
+                                mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
+
+                    with tab2:
+                        h1, h2 = st.columns(2)
+                        with h1:
+                            per_hist_display = f"{hist_data.get('per_hist'):.2f}" if hist_data.get('per_hist') is not None and not np.isnan(hist_data.get('per_hist')) else "No disponible"
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">🕰️ PER Medio (Histórico)</div><div class="metric-value color-white">{per_hist_display}</div></div>', unsafe_allow_html=True)
+                        with h2:
+                            yield_hist_display = f"{hist_data.get('yield_hist'):.2f}%" if hist_data.get('yield_hist') is not None and not np.isnan(hist_data.get('yield_hist')) else "No disponible"
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">💸 Yield Medio (Histórico)</div><div class="metric-value color-white">{yield_hist_display}</div></div>', unsafe_allow_html=True)
+
+                    with st.expander("Ver Leyenda Detallada de Múltiplos"):
+                        st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
+
+                with st.container(border=True):
+                    st.subheader("Ratio PEG (Peter Lynch)")
+                    peg_lynch = puntuaciones.get('peg_lynch')
+                    prose, color_class = ("No aplicable", "color-white")
+                    if peg_lynch is not None and not np.isnan(peg_lynch) and peg_lynch > 0:
+                        if peg_lynch < 1: prose, color_class = f"Interesante ({peg_lynch:.2f})", "color-green"
+                        elif peg_lynch > 1.5: prose, color_class = f"No Interesante ({peg_lynch:.2f})", "color-red"
+                        else: prose, color_class = f"Neutral ({peg_lynch:.2f})", "color-orange"
+                    else:
+                        prose, color_class = "No disponible", "color-white"
+                    st.markdown(f'''<div class="metric-container">
+                                    <div class="metric-label">Ratio PEG (Lynch)</div>
+                                    <div class="metric-value {color_class}">{prose}</div>
+                                    <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
+                                </div>''', unsafe_allow_html=True)
+                    with st.expander("Ver Leyenda Detallada"):
+                        st.markdown(leyendas['peg'], unsafe_allow_html=True)
+
+                if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
                     with st.container(border=True):
-                        st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
-                        st.caption(justificaciones['valoracion'])
+                        st.subheader(f"Dividendos & Recompras [{puntuaciones['dividendos']:.1f}/10]")
+                        st.caption(justificaciones['dividendos'])
                         
-                        tab1, tab2 = st.tabs(["Múltiplos Actuales", "Análisis Histórico"])
-                        
-                        with tab1:
-                            val1, val2 = st.columns(2)
-                            with val1:
-                                mostrar_metrica_con_color("⚖️ PER", datos['per'], sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
-                                mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per_adelantado'), datos.get('per'), lower_is_better=True)
-                            with val2:
-                                mostrar_metrica_con_color("📚 P/B (Precio/Libros)", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
-                                if datos.get('raw_fcf') is not None and datos['raw_fcf'] < 0:
-                                    st.markdown('<div class="metric-container"><div class="metric-label">🌊 P/FCF</div><div class="metric-value color-red">Negativo</div></div>', unsafe_allow_html=True)
+                        div1, div2 = st.columns(2)
+                        with div1:  
+                            mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
+                            mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
+                        with div2:
+                            net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "No disponible"
+                            color_buybacks = "color-white"
+                            if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']):
+                                if datos['net_buybacks_pct'] > 1:
+                                    color_buybacks = "color-green"
+                                elif datos['net_buybacks_pct'] < -1:
+                                    color_buybacks = "color-red"
                                 else:
-                                    mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
-
-                        with tab2:
-                            h1, h2 = st.columns(2)
-                            with h1:
-                                per_hist_display = f"{hist_data.get('per_hist'):.2f}" if hist_data.get('per_hist') is not None and not np.isnan(hist_data.get('per_hist')) else "No disponible"
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">🕰️ PER Medio (Histórico)</div><div class="metric-value color-white">{per_hist_display}</div></div>', unsafe_allow_html=True)
-                            with h2:
-                                yield_hist_display = f"{hist_data.get('yield_hist'):.2f}%" if hist_data.get('yield_hist') is not None and not np.isnan(hist_data.get('yield_hist')) else "No disponible"
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">💸 Yield Medio (Histórico)</div><div class="metric-value color-white">{yield_hist_display}</div></div>', unsafe_allow_html=True)
-
-                        with st.expander("Ver Leyenda Detallada de Múltiplos"):
-                            st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
-
-                    with st.container(border=True):
-                        st.subheader("Ratio PEG (Peter Lynch)")
-                        peg_lynch = puntuaciones.get('peg_lynch')
-                        prose, color_class = ("No aplicable", "color-white")
-                        if peg_lynch is not None and not np.isnan(peg_lynch) and peg_lynch > 0:
-                            if peg_lynch < 1: prose, color_class = f"Interesante ({peg_lynch:.2f})", "color-green"
-                            elif peg_lynch > 1.5: prose, color_class = f"No Interesante ({peg_lynch:.2f})", "color-red"
-                            else: prose, color_class = f"Neutral ({peg_lynch:.2f})", "color-orange"
-                        else:
-                            prose, color_class = "No disponible", "color-white"
-                        st.markdown(f'''<div class="metric-container">
-                                        <div class="metric-label">Ratio PEG (Lynch)</div>
-                                        <div class="metric-value {color_class}">{prose}</div>
-                                        <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
-                                    </div>''', unsafe_allow_html=True)
-                        with st.expander("Ver Leyenda Detallada"):
-                            st.markdown(leyendas['peg'], unsafe_allow_html=True)
-
-                    if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0:
-                        with st.container(border=True):
-                            st.subheader(f"Dividendos & Recompras [{puntuaciones['dividendos']:.1f}/10]")
-                            st.caption(justificaciones['dividendos'])
-                            
-                            div1, div2 = st.columns(2)
-                            with div1:  
-                                mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
-                                mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
-                            with div2:
-                                net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "No disponible"
-                                color_buybacks = "color-white"
-                                if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']):
-                                    if datos['net_buybacks_pct'] > 1:
-                                        color_buybacks = "color-green"
-                                    elif datos['net_buybacks_pct'] < -1:
-                                        color_buybacks = "color-red"
-                                    else:
-                                        color_buybacks = "color-orange"
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">🔁 Recompras netas</div><div class="metric-value {color_buybacks}">{net_buybacks_display}</div></div>', unsafe_allow_html=True)
-                                st.markdown(f'<div class="metric-container"><div class="metric-label">📈 Yield Medio (Histórico)</div><div class="metric-value color-white">{hist_data.get("yield_hist"):.2f}%</div></div>', unsafe_allow_html=True)
-                            
-                            with st.expander("Ver Leyenda Detallada"):
-                                st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
-                    
-                    with st.container(border=True):
-                        st.subheader("Potencial de Revalorización (Márgenes de Seguridad)")
-                        ms1, ms2, ms3 = st.columns(3)
-                        with ms1:
-                            mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
-                        with ms2:
-                            mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
-                            mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
-                        with ms3:
-                            mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
-                            mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
+                                    color_buybacks = "color-orange"
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">🔁 Recompras netas</div><div class="metric-value {color_buybacks}">{net_buybacks_display}</div></div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="metric-container"><div class="metric-label">📈 Yield Medio (Histórico)</div><div class="metric-value color-white">{hist_data.get("yield_hist"):.2f}%</div></div>', unsafe_allow_html=True)
                         
                         with st.expander("Ver Leyenda Detallada"):
-                            st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
-
-                    st.header("Análisis Gráfico y Técnico")
+                            st.markdown(leyendas['dividendos'], unsafe_allow_html=True)
+                
+                with st.container(border=True):
+                    st.subheader("Potencial de Revalorización (Márgenes de Seguridad)")
+                    ms1, ms2, ms3 = st.columns(3)
+                    with ms1:
+                        mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
+                    with ms2:
+                        mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
+                        mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), is_percent=False, lower_is_better=True)
+                    with ms3:
+                        mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
+                        mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True, lower_is_better=False)
                     
-                    col_fin, col_flags = st.columns([2, 1])
-                    
-                    with col_fin:
-                        st.subheader("Evolución Financiera")
-                        financials_hist = hist_data.get('financials_charts')
-                        dividends_hist = hist_data.get('dividends_charts')
-                        fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
-                        if fig_financieros:
-                            st.pyplot(fig_financieros)
-                        else:
-                            st.warning("No se pudieron generar los gráficos financieros históricos.")
-                    
-                    with col_flags:
-                        st.subheader("Banderas Rojas")
-                        banderas = analizar_banderas_rojas(datos, financials_hist)
-                        if banderas:
-                            for bandera in banderas:  
-                                # Se ha corregido el uso de <b> a Markdown para el formato
-                                st.error(bandera.replace('<b>', '**').replace('</b>', '**'), unsafe_allow_html=True)
-                        else:
-                            st.success("✅ No se han detectado banderas rojas significativas.")
+                    with st.expander("Ver Leyenda Detallada"):
+                        st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
 
-                    col_tech, col_tech_legend = st.columns(2)
+                st.header("Análisis Gráfico y Técnico")
+                
+                col_fin, col_flags = st.columns([2, 1])
+                
+                with col_fin:
+                    st.subheader("Evolución Financiera")
+                    financials_hist = hist_data.get('financials_charts')
+                    dividends_hist = hist_data.get('dividends_charts')
+                    fig_financieros = crear_graficos_financieros(ticker_input, financials_hist, dividends_hist)
+                    if fig_financieros:
+                        st.pyplot(fig_financieros)
+                    else:
+                        st.warning("No se pudieron generar los gráficos financieros históricos.")
+                
+                with col_flags:
+                    st.subheader("Banderas Rojas")
+                    banderas = analizar_banderas_rojas(datos, financials_hist)
+                    if banderas:
+                        for bandera in banderas:  
+                            # Se ha corregido el uso de <b> a Markdown para el formato
+                            st.error(bandera.replace('<b>', '**').replace('</b>', '**'), unsafe_allow_html=True)
+                    else:
+                        st.success("✅ No se han detectado banderas rojas significativas.")
 
-                    with col_tech:
-                        st.subheader("Análisis Técnico")
-                        tech_data = hist_data.get('tech_data')
-                        if tech_data is not None and not tech_data.empty:
-                            fig_tecnico = crear_grafico_tecnico(tech_data)
-                            st.pyplot(fig_tecnico)
-                            
-                            last_price = tech_data['Close'].iloc[-1]
-                            sma50 = tech_data['SMA50'].iloc[-1]
-                            sma200 = tech_data['SMA200'].iloc[-1]
-                            rsi = tech_data['RSI'].iloc[-1]
-                            beta = datos.get('beta')
-                            
-                            tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
-                            if last_price > sma50 and sma50 > sma200: tendencia_texto, tendencia_color = "Alcista Fuerte 🟢", "color-green"
-                            elif last_price > sma200: tendencia_texto, tendencia_color = "Alcista 🟢", "color-green"
-                            elif last_price < sma50 and sma50 < sma200: tendencia_texto, tendencia_color = "Bajista Fuerte 🔴", "color-red"
-                            elif last_price < sma200: tendencia_texto, tendencia_color = "Bajista 🔴", "color-red"
-                            st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
+                col_tech, col_tech_legend = st.columns(2)
 
-                            rsi_texto, rsi_color = f"{rsi:.2f} (Neutral 🟠)", "color-orange"
-                            if rsi > 70: rsi_texto, rsi_color = f"{rsi:.2f} (Sobrecompra 🔴)", "color-red"
-                            elif rsi < 30: rsi_texto, rsi_color = f"{rsi:.2f} (Sobreventa 🟢)", "color-green"
-                            st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
-                            
-                            beta_texto = f"{beta:.2f}" if isinstance(beta, (int, float)) and not np.isnan(beta) else 'N/A'
-                            st.markdown(f'<div class="metric-container"><div class="metric-label">Beta</div><div class="metric-value color-white">{beta_texto}</div></div>', unsafe_allow_html=True)
+                with col_tech:
+                    st.subheader("Análisis Técnico")
+                    tech_data = hist_data.get('tech_data')
+                    if tech_data is not None and not tech_data.empty:
+                        fig_tecnico = crear_grafico_tecnico(tech_data)
+                        st.pyplot(fig_tecnico)
+                        
+                        last_price = tech_data['Close'].iloc[-1]
+                        sma50 = tech_data['SMA50'].iloc[-1]
+                        sma200 = tech_data['SMA200'].iloc[-1]
+                        rsi = tech_data['RSI'].iloc[-1]
+                        beta = datos.get('beta')
+                        
+                        tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
+                        if last_price > sma50 and sma50 > sma200: tendencia_texto, tendencia_color = "Alcista Fuerte 🟢", "color-green"
+                        elif last_price > sma200: tendencia_texto, tendencia_color = "Alcista 🟢", "color-green"
+                        elif last_price < sma50 and sma50 < sma200: tendencia_texto, tendencia_color = "Bajista Fuerte 🔴", "color-red"
+                        elif last_price < sma200: tendencia_texto, tendencia_color = "Bajista 🔴", "color-red"
+                        st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
 
-                        else:
-                            st.warning("No se pudieron generar los datos para el análisis técnico.")
-                    
-                    with col_tech_legend:
-                        st.subheader("Interpretación Técnica")
-                        st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
+                        rsi_texto, rsi_color = f"{rsi:.2f} (Neutral 🟠)", "color-orange"
+                        if rsi > 70: rsi_texto, rsi_color = f"{rsi:.2f} (Sobrecompra 🔴)", "color-red"
+                        elif rsi < 30: rsi_texto, rsi_color = f"{rsi:.2f} (Sobreventa 🟢)", "color-green"
+                        st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
+                        
+                        beta_texto = f"{beta:.2f}" if isinstance(beta, (int, float)) and not np.isnan(beta) else 'N/A'
+                        st.markdown(f'<div class="metric-container"><div class="metric-label">Beta</div><div class="metric-value color-white">{beta_texto}</div></div>', unsafe_allow_html=True)
+
+                    else:
+                        st.warning("No se pudieron generar los datos para el análisis técnico.")
+                
+                with col_tech_legend:
+                    st.subheader("Interpretación Técnica")
+                    st.markdown(leyendas['tecnico'], unsafe_allow_html=True)
 
         except TypeError as e:
             st.error(f"Error al procesar los datos para '{ticker_input}'. Es posible que los datos de Yahoo Finance para este ticker estén incompletos o no disponibles temporalmente.")
