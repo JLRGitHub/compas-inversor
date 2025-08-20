@@ -300,7 +300,8 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                 delta = tech_data['Close'].diff()
                 gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                rs = gain / loss
+                # Para evitar ZeroDivisionError
+                rs = gain / (loss + 1e-10)
                 tech_data['RSI'] = 100 - (100 / (1 + rs))
 
         return {
@@ -423,7 +424,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         nota_multiplos -= 4
 
     nota_analistas, margen_seguridad = 0, 0
-    if datos.get('precio_actual') is not None and datos.get('precio_objetivo') is not None:
+    if datos.get('precio_actual') is not None and datos.et('precio_objetivo') is not None:
         margen_seguridad = ((datos['precio_objetivo'] - datos['precio_actual']) / datos['precio_actual']) * 100
         if margen_seguridad > 25: nota_analistas = 10
         elif margen_seguridad > 15: nota_analistas = 8
@@ -953,10 +954,11 @@ Rangos:<br>
         beta = datos.get('beta')
 
         # Lógica de interpretación dinámica
-        tendencia_alcista_largo = last_price > sma200
-        tendencia_alcista_corto = last_price > sma50
-        rsi_sobreventa = rsi is not None and rsi < 30
-        rsi_sobrecompra = rsi is not None and rsi > 70
+        # Se ha corregido la lógica de las condiciones para evitar errores.
+        tendencia_alcista_largo = last_price is not None and not np.isnan(last_price) and sma200 is not None and last_price > sma200
+        tendencia_alcista_corto = last_price is not None and not np.isnan(last_price) and sma50 is not None and last_price > sma50
+        rsi_sobreventa = rsi is not None and not np.isnan(rsi) and rsi < 30
+        rsi_sobrecompra = rsi is not None and not np.isnan(rsi) and rsi > 70
         
         estado_tendencia_texto = ""
         estado_rsi_texto = ""
@@ -978,7 +980,11 @@ Rangos:<br>
         elif rsi_sobreventa:
             estado_rsi_texto = f"El RSI actual ({rsi:.2f}) sugiere que la acción ha caído demasiado rápido y podría rebotar."
         else:
-            estado_rsi_texto = f"El RSI actual ({rsi:.2f}) no da una señal clara de sobrecompra o sobreventa."
+            if rsi is not None:
+                estado_rsi_texto = f"El RSI actual ({rsi:.2f}) no da una señal clara de sobrecompra o sobreventa."
+            else:
+                estado_rsi_texto = "El RSI no está disponible."
+
 
         # Conclusión
         if (tendencia_alcista_largo or tendencia_alcista_corto) and rsi_sobreventa:
