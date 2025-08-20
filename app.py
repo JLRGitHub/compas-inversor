@@ -721,8 +721,8 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     margen_op = datos.get('margen_operativo', 0)
     margen_neto = datos.get('margen_beneficio', 0)
     cagr_rev = hist_data.get('cagr_rev')
-    yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
+    # --- CORRECCIÓN: Lógica de highlight exclusiva ---
     leyenda_calidad = f"""
 - **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado.<br>
 Rangos para el sector **{datos['sector']}**:<br>
@@ -733,13 +733,13 @@ Rangos para el sector **{datos['sector']}**:<br>
 - **Margen Operativo:** El porcentaje de beneficio que le queda a la empresa de sus ventas tras pagar los costes de producción y gestión. Un margen alto refleja una **fuerte ventaja competitiva**.<br>
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(margen_op > sector_bench['margen_excelente'], f"**Excelente:** > {sector_bench['margen_excelente']}%")}<br>
-    - {highlight(margen_op > sector_bench['margen_bueno'], f"**Bueno:** > {sector_bench['margen_bueno']}%")}<br>
+    - {highlight(sector_bench['margen_bueno'] < margen_op <= sector_bench['margen_excelente'], f"**Bueno:** > {sector_bench['margen_bueno']}%")}<br>
     - {highlight(margen_op <= sector_bench['margen_bueno'], f"**Alerta:** < {sector_bench['margen_bueno']}%")}
 <br><br>
 - **Margen Neto:** El porcentaje final de las ventas que se convierte en beneficio para el accionista. Es el "dinero de verdad" que queda después de todos los gastos e impuestos.<br>
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(margen_neto > sector_bench['margen_neto_excelente'], f"**Excelente:** > {sector_bench['margen_neto_excelente']}%")}<br>
-    - {highlight(margen_neto > sector_bench['margen_neto_bueno'], f"**Bueno:** > {sector_bench['margen_neto_bueno']}%")}<br>
+    - {highlight(sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'], f"**Bueno:** > {sector_bench['margen_neto_bueno']}%")}<br>
     - {highlight(margen_neto <= sector_bench['margen_neto_bueno'], f"**Alerta:** < {sector_bench['margen_neto_bueno']}%")}
 <br><br>
 - **Crecimiento Ingresos (CAGR):** El crecimiento anual compuesto de las ventas. Indica la salud y el potencial a largo plazo.<br>
@@ -748,7 +748,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if cagr_rev is not None and not np.isnan(cagr_rev):
         leyenda_calidad += f"""
     - {highlight(cagr_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(cagr_rev > sector_bench['rev_growth_bueno'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
+    - {highlight(sector_bench['rev_growth_bueno'] < cagr_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
     - {highlight(cagr_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
 """
     else:
@@ -758,7 +758,6 @@ Rangos para el sector **{datos['sector']}**:<br>
     deuda_ebitda = datos.get('deuda_ebitda')
     int_coverage = datos.get('interest_coverage')
     raw_fcf = datos.get('raw_fcf')
-    cagr_fcf = hist_data.get('cagr_fcf')
     ratio_corriente = datos.get('ratio_corriente')
 
     leyenda_salud = f"""
