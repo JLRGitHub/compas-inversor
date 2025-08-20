@@ -73,17 +73,15 @@ def obtener_datos_completos(ticker):
 
     # --- CÁLCULO MANUAL DE DEUDA/PATRIMONIO (AÚN MÁS ROBUSTO) ---
     debt_to_equity = None
-    total_debt_bs = balance_sheet.loc['Total Debt'].iloc[0] if 'Total Debt' in balance_sheet.index and not balance_sheet.loc['Total Debt'].empty else None
-    stockholder_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index and not balance_sheet.loc['Total Stockholder Equity'].empty else None
-    
-    if total_debt_bs is None:
-        if 'Total Liabilities Net Minority Interest' in balance_sheet.index and 'Minority Interest' in balance_sheet.index:
-            total_debt_bs = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[0] - balance_sheet.loc['Minority Interest'].iloc[0]
-        else:
-            total_debt_bs = info.get('totalDebt') # Fallback to info
-    
-    if stockholder_equity is None:
-        stockholder_equity = info.get('totalStockholderEquity') # Fallback to info
+    total_debt_bs = None
+    if 'Total Debt' in balance_sheet.index and not balance_sheet.loc['Total Debt'].empty:
+        total_debt_bs = balance_sheet.loc['Total Debt'].iloc[0]
+    elif 'Total Liabilities Net Minority Interest' in balance_sheet.index and 'Minority Interest' in balance_sheet.index:
+        total_debt_bs = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[0] - balance_sheet.loc['Minority Interest'].iloc[0]
+    else:
+        total_debt_bs = info.get('totalDebt')
+        
+    stockholder_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index and not balance_sheet.loc['Total Stockholder Equity'].empty else info.get('totalStockholderEquity')
 
     if total_debt_bs is not None and stockholder_equity is not None and stockholder_equity > 0:
         debt_to_equity = total_debt_bs / stockholder_equity
@@ -405,7 +403,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     yield_historico = hist_data.get('yield_hist')
     if yield_historico is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 0 and yield_historico > 0:
-        potencial_yield = ((datos['yield_dividendo'] - yield_historico) / yield_historico) * 100
+        potencial_yield = ((yield_historico / datos['yield_dividendo']) - 1) * 100
     else:
         potencial_yield = None
     puntuaciones['margen_seguridad_yield'] = potencial_yield
@@ -678,7 +676,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
     
     leyenda_calidad = f"""
-- **ROE (Return on Equity):** Mide la rentabilidad sobre el capital de los accionistas. En términos simples, muestra cuán eficientemente una empresa utiliza el dinero de sus dueños para generar ganancias. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado.
+- **ROE (Return on Equity):** Mide la rentabilidad sobre el capital de los accionistas. En términos simples, muestra cuán eficientemente una empresa utiliza el dinero de sus dueños para generar ganancias. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado.<br>
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(roe > sector_bench['roe_excelente'], f"**Excelente:** > {sector_bench['roe_excelente']}%")}<br>
     - {highlight(sector_bench['roe_bueno'] < roe <= sector_bench['roe_excelente'], f"**Bueno:** > {sector_bench['roe_bueno']}%")}<br>
@@ -704,7 +702,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if cagr_rev is not None and not np.isnan(cagr_rev):
         leyenda_calidad += f"""
     - {highlight(cagr_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(sector_bench['rev_growth_bueno'] < cagr_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
+    - {highlight(cagr_rev > sector_bench['rev_growth_bueno'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
     - {highlight(cagr_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
 """
     else:
@@ -814,7 +812,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     if p_b is not None and not np.isnan(p_b):
         leyenda_valoracion += f"""Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(p_b < sector_bench['pb_barato'], f"**Atractivo:** < {sector_bench['pb_barato']}")}<br>
-    - {highlight(sector_bench['pb_barato'] <= p_b <= sector_bench['pb_justo'], f"**Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}")}<br>
+    - {highlight(p_b <= sector_bench['pb_justo'], f"**Justo:** {sector_bench['pb_barato']} - {sector_bench['pb_justo']}")}<br>
     - {highlight(p_b > sector_bench['pb_justo'], f"**Caro:** > {sector_bench['pb_justo']}")}"""
     else:
         leyenda_valoracion += f""" - {highlight(True, "No aplicable o datos no disponibles.")}"""
@@ -837,19 +835,19 @@ Rangos para el sector **{datos['sector']}**:<br>
     
     leyenda_dividendos = f"""
 - **Rentabilidad (Yield):** El porcentaje de tu inversión que recibes anualmente en forma de dividendos. Es una de las principales formas en las que los accionistas reciben retorno.
-<br>Rangos:<br>
-    - {highlight(yield_div > 3.5, "Excelente: > 3.5%")}<br>
-    - {highlight(2.0 < yield_div <= 3.5, "Bueno: > 2.0%")}<br>
-    - {highlight(yield_div <= 2.0, "Bajo: < 2.0%")}
+Rangos:<br>
+    - {highlight(yield_div > 3.5, "**Excelente:** > 3.5%")}<br>
+    - {highlight(2.0 < yield_div <= 3.5, "**Bueno:** > 2.0%")}<br>
+    - {highlight(yield_div <= 2.0, "**Bajo:** < 2.0%")}
 <br><br>
 - **Ratio de Reparto (Payout):** El porcentaje del beneficio neto que la empresa destina al pago de dividendos. Un payout sostenible, que no sea demasiado alto, te dice que la empresa tiene margen para seguir invirtiendo en el negocio y para mantener el dividendo en el futuro. Rangos para el sector **{datos['sector']}**:<br>
-    - {highlight(0 < payout < sector_bench['payout_bueno'], f"Saludable: < {sector_bench['payout_bueno']}%")}<br>
-    - {highlight(payout <= sector_bench['payout_aceptable'], f"Precaución: > {sector_bench['payout_bueno']}%")}<br>
-    - {highlight(payout > sector_bench['payout_aceptable'], f"Peligroso: > {sector_bench['payout_aceptable']}%")}
+    - {highlight(0 < payout < sector_bench['payout_bueno'], f"**Saludable:** < {sector_bench['payout_bueno']}%")}<br>
+    - {highlight(payout <= sector_bench['payout_aceptable'], f"**Precaución:** > {sector_bench['payout_bueno']}%")}<br>
+    - {highlight(payout > sector_bench['payout_aceptable'], f"**Peligroso:** > {sector_bench['payout_aceptable']}%")}
 <br><br>
 - **Recompras Netas (%):** Mide el cambio anual en el número de acciones en circulación. Es una forma de remunerar al accionista. Un valor negativo es bueno (recompras), mientras que uno positivo es malo (dilución).
-    - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct < 0, f"**🟢 Aumento de Valor:** La empresa está reduciendo el número de acciones, lo que aumenta el valor de las acciones existentes.")}<br>
-    - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct > 0, f"**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
+    - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct < 0, "**🟢 Aumento de Valor:** La empresa está reduciendo el número de acciones, lo que aumenta el valor de las acciones existentes.")}<br>
+    - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct > 0, "**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
     - {highlight(net_buybacks_pct is None or np.isnan(net_buybacks_pct), "Desconocido.")}
 """
     # --- Leyenda Técnica ---
