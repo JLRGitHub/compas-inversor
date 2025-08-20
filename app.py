@@ -299,7 +299,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                 delta = tech_data['Close'].diff()
                 gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                # Para evitar ZeroDivisionError
                 rs = gain / (loss + 1e-10)
                 tech_data['RSI'] = 100 - (100 / (1 + rs))
 
@@ -367,7 +366,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
     nota_salud = 0
-    # Lógica especial para el sector Financiero, donde la deuda es parte del negocio
     if sector != 'Financials':
         deuda_ebitda = datos.get('deuda_ebitda')
         if deuda_ebitda is not None and not np.isnan(deuda_ebitda):
@@ -1305,9 +1303,9 @@ if st.button('Analizar Acción'):
                         st.pyplot(fig_tecnico)
                         
                         last_price_val = tech_data['Close'].iloc[-1] if not tech_data.empty else None
-                        sma50_val = tech_data['SMA50'].iloc[-1] if not tech_data.empty and 'SMA50' in tech_data.columns else None
-                        sma200_val = tech_data['SMA200'].iloc[-1] if not tech_data.empty and 'SMA200' in tech_data.columns else None
-                        rsi = tech_data.get('RSI', None).iloc[-1] if not tech_data.empty and 'RSI' in tech_data.columns and not tech_data['RSI'].isnull().all() else None
+                        sma50_val = tech_data['SMA50'].iloc[-1] if not tech_data['SMA50'].isnull().all() else None
+                        sma200_val = tech_data['SMA200'].iloc[-1] if not tech_data['SMA200'].isnull().all() else None
+                        rsi = tech_data.get('RSI', None).iloc[-1] if 'RSI' in tech_data.columns and not tech_data['RSI'].isnull().all() else None
                         beta = datos.get('beta')
                         
                         tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
