@@ -127,9 +127,15 @@ def obtener_datos_completos(ticker):
     descripcion_completa = info.get('longBusinessSummary', 'No disponible.')
     descripcion_corta = 'No disponible.'
     if descripcion_completa and descripcion_completa != 'No disponible.':
-        primer_punto = descripcion_completa.find('.')
-        descripcion_corta = descripcion_completa[:primer_punto + 1] if primer_punto != -1 else descripcion_completa
-            
+        # Buscamos la segunda instancia del punto para cortar la descripción
+        first_period = descripcion_completa.find('.')
+        if first_period != -1:
+            second_period = descripcion_completa.find('.', first_period + 1)
+            if second_period != -1:
+                descripcion_corta = descripcion_completa[:second_period + 1]
+            else:
+                descripcion_corta = descripcion_completa
+    
     return {
         "nombre": info.get('longName', 'N/A'), "sector": info.get('sector', 'N/A'),
         "pais": info.get('country', 'N/A'), "industria": info.get('industry', 'N/A'),
@@ -268,7 +274,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             df_yield = pd.concat([annual_dividends, annual_prices], axis=1).dropna()
             df_yield.columns = ['Dividends', 'Price']
             if not df_yield.empty and 'Price' in df_yield and 'Dividends' in df_yield:
-                    annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
+                        annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
 
         per_historico = np.mean(pers) if pers else None
         yield_historico = np.mean(annual_yields) if annual_yields else None
@@ -344,16 +350,18 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
     nota_salud = 0
-    deuda_ebitda = datos.get('deuda_ebitda')
-    if deuda_ebitda is not None and not np.isnan(deuda_ebitda):
-        if deuda_ebitda < 0: nota_salud += 2.5
-        elif deuda_ebitda < sector_bench['deuda_ebitda_bueno']: nota_salud += 2.5
-        elif deuda_ebitda < sector_bench['deuda_ebitda_aceptable']: nota_salud += 1.5
-    
-    deuda_patrimonio = datos.get('deuda_patrimonio')
-    if deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
-        if deuda_patrimonio < sector_bench['deuda_patrimonio_bueno']: nota_salud += 2.5
-        elif deuda_patrimonio < sector_bench['deuda_patrimonio_aceptable']: nota_salud += 1.5
+    # Lógica especial para el sector Financiero, donde la deuda es parte del negocio
+    if sector != 'Financials':
+        deuda_ebitda = datos.get('deuda_ebitda')
+        if deuda_ebitda is not None and not np.isnan(deuda_ebitda):
+            if deuda_ebitda < 0: nota_salud += 2.5
+            elif deuda_ebitda < sector_bench['deuda_ebitda_bueno']: nota_salud += 2.5
+            elif deuda_ebitda < sector_bench['deuda_ebitda_aceptable']: nota_salud += 1.5
+        
+        deuda_patrimonio = datos.get('deuda_patrimonio')
+        if deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
+            if deuda_patrimonio < sector_bench['deuda_patrimonio_bueno']: nota_salud += 2.5
+            elif deuda_patrimonio < sector_bench['deuda_patrimonio_aceptable']: nota_salud += 1.5
 
     interest_coverage = datos.get('interest_coverage')
     if interest_coverage is not None:
@@ -372,7 +380,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         nota_salud += 1
     elif cagr_fcf is not None and not np.isnan(cagr_fcf) and cagr_fcf < 0:
         nota_salud -= 1
-
 
     puntuaciones['salud'] = max(0, min(10, nota_salud))
     justificaciones['salud'] = "Balance muy sólido y solvente." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
@@ -442,8 +449,14 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     elif datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 2: nota_dividendos += 2
     if datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 4
     elif datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 2
-    if hist_data.get('yield_hist') is not None and datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > hist_data['yield_hist']:
-        nota_dividendos += 2
+
+    # Lógica de puntuación de Recompras (Buybacks)
+    net_buybacks_pct = datos.get('net_buybacks_pct')
+    if net_buybacks_pct is not None and not np.isnan(net_buybacks_pct):
+        if net_buybacks_pct > 1:
+            nota_dividendos += 2  # Suma 2 puntos por una recompra significativa
+        elif net_buybacks_pct < -1:
+            nota_dividendos -= 2 # Resta 2 puntos por una dilución significativa
     
     puntuaciones['dividendos'] = min(10, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y potencialmente infravalorado." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
@@ -642,7 +655,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     color_class = "color-orange" 
     
     is_comparable = (isinstance(current_value, (int, float)) and not np.isnan(current_value)) and \
-                      (isinstance(historical_value, (int, float)) and not np.isnan(historical_value))
+                    (isinstance(historical_value, (int, float)) and not np.isnan(historical_value))
 
     if is_comparable:
         if lower_is_better:
@@ -730,7 +743,9 @@ Rangos para el sector **{datos['sector']}**:<br>
     cagr_fcf = hist_data.get('cagr_fcf')
 
     leyenda_salud = f"""- **Deuda Neta / EBITDA:** Esta métrica te dice en cuántos años la empresa podría pagar su deuda neta usando sus ganancias operativas. Un valor bajo es mejor, ya que indica un balance más sólido y menos riesgo de quiebra. Rangos para el sector **{datos['sector']}**:<br>"""
-    if deuda_ebitda is not None and not np.isnan(deuda_ebitda):
+    if datos['sector'] == 'Financials':
+        leyenda_salud += " - *No aplicable para el sector Financiero ya que la deuda es parte de su modelo de negocio.*"
+    elif deuda_ebitda is not None and not np.isnan(deuda_ebitda):
         leyenda_salud += f"""
 - {highlight(deuda_ebitda < sector_bench['deuda_ebitda_bueno'], f"**Saludable:** < {sector_bench['deuda_ebitda_bueno']}x")}<br>
 - {highlight(sector_bench['deuda_ebitda_bueno'] <= deuda_ebitda <= sector_bench['deuda_ebitda_aceptable'], f"**Precaución:** {sector_bench['deuda_ebitda_bueno']}x - {sector_bench['deuda_ebitda_aceptable']}x")}<br>
@@ -740,7 +755,9 @@ Rangos para el sector **{datos['sector']}**:<br>
         leyenda_salud += " - *No aplicable o datos no disponibles.*"
 
     leyenda_salud += f"""<br><br>- **Deuda / Patrimonio (D/E):** Mide el apalancamiento financiero de la empresa, comparando la deuda total con los fondos propios. Un D/E bajo significa que la empresa se financia principalmente con fondos de los accionistas, no con deuda. Un valor alto puede ser arriesgado.<br>"""
-    if deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
+    if datos['sector'] == 'Financials':
+         leyenda_salud += " - *No aplicable para el sector Financiero ya que la deuda es parte de su modelo de negocio.*"
+    elif deuda_patrimonio is not None and not np.isnan(deuda_patrimonio):
             leyenda_salud += f"""
 - {highlight(deuda_patrimonio < sector_bench['deuda_patrimonio_bueno'], f"**Bajo:** < {sector_bench['deuda_patrimonio_bueno']}")}<br>
 - {highlight(sector_bench['deuda_patrimonio_bueno'] <= deuda_patrimonio <= sector_bench['deuda_patrimonio_aceptable'], f"**Moderado:** {sector_bench['deuda_patrimonio_bueno']} - {sector_bench['deuda_patrimonio_aceptable']}")}<br>
@@ -751,7 +768,7 @@ Rangos para el sector **{datos['sector']}**:<br>
 
     leyenda_salud += f"""<br><br>- **Cobertura de Intereses:** Te indica cuántas veces el beneficio operativo (EBIT) de la empresa cubre los gastos de intereses de su deuda. Un ratio alto significa que la empresa puede pagar fácilmente los intereses, lo que reduce el riesgo financiero.<br>"""
     if int_coverage is not None and not np.isnan(int_coverage):
-            leyenda_salud += f"""
+        leyenda_salud += f"""
 - {highlight(int_coverage > sector_bench['int_coverage_excelente'], f"**Excelente:** > {sector_bench['int_coverage_excelente']}x")}<br>
 - {highlight(sector_bench['int_coverage_bueno'] < int_coverage <= sector_bench['int_coverage_excelente'], f"**Bueno:** > {sector_bench['int_coverage_bueno']}x")}<br>
 - {highlight(int_coverage <= sector_bench['int_coverage_bueno'], f"**Alerta:** < {sector_bench['int_coverage_bueno']}x")}
@@ -827,9 +844,9 @@ Rangos para el sector **{datos['sector']}**:<br>
     leyenda_peg = f"""- **Ratio PEG (Peter Lynch):** Es uno de los ratios de valoración más potentes. Relaciona el PER con el crecimiento de los beneficios (`PER / Crecimiento %`). Un valor por debajo de 1 indica que la acción está infravalorada en relación a su tasa de crecimiento.
 <br>Rangos:<br>"""
     if peg is not None and not np.isnan(peg) and peg > 0:
-        leyenda_peg += f' - {highlight(peg < 1, "Barato (PEG < 1): El precio parece bajo en relación al crecimiento.")}<br>'
-        leyenda_peg += f' - {highlight(1 <= peg <= 1.5, "Justo (PEG 1-1.5): El precio está alineado con el crecimiento.")}<br>'
-        leyenda_peg += f' - {highlight(peg > 1.5, "Caro (PEG > 1.5): El precio parece alto para su crecimiento.")}'
+        leyenda_peg += f' - {highlight(peg < 1, "Interesante (PEG < 1): El precio parece bajo en relación al crecimiento.")}<br>'
+        leyenda_peg += f' - {highlight(1 <= peg <= 1.5, "Neutral (PEG 1-1.5): El precio está alineado con el crecimiento.")}<br>'
+        leyenda_peg += f' - {highlight(peg > 1.5, "No Interesante (PEG > 1.5): El precio parece alto para su crecimiento.")}'
     else:
         leyenda_peg += f' - {highlight(True, "No aplicable: Requiere PER y crecimiento de beneficios positivos.")}'
 
@@ -854,8 +871,9 @@ Rangos:<br>
 """
     if net_buybacks_pct is not None and not np.isnan(net_buybacks_pct):
         leyenda_dividendos += f"""
-    - {highlight(net_buybacks_pct > 0, "**🟢 Aumento de Valor:** La empresa está reduciendo el número de acciones, lo que aumenta el valor de las acciones existentes.")}<br>
-    - {highlight(net_buybacks_pct < 0, "**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
+    - {highlight(net_buybacks_pct > 1, "**🟢 Aumento de Valor:** La empresa ha recomprado acciones de forma significativa.")}<br>
+    - {highlight(-1 <= net_buybacks_pct <= 1, "**⚪ Neutral:** El número de acciones se ha mantenido estable.")}<br>
+    - {highlight(net_buybacks_pct < -1, "**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
 """
     else:
         leyenda_dividendos += f"    - {highlight(True, 'Desconocido.')}"
@@ -887,7 +905,7 @@ Rangos:<br>
         elif not tendencia_alcista_largo and not tendencia_alcista_corto:
                 estado_tendencia_texto = "El precio está por debajo de ambas medias móviles, confirmando una tendencia negativa a corto y largo plazo."
         else:
-                estado_tendencia_texto = "El precio ha cruzado al alza la media de 50 días, pero sigue por debajo de la de 200. Esto podría ser el inicio de una reversión."
+            estado_tendencia_texto = "El precio ha cruzado al alza la media de 50 días, pero sigue por debajo de la de 200. Esto podría ser el inicio de una reversión."
 
         # Resumen de RSI
         if rsi_sobrecompra:
@@ -1072,7 +1090,6 @@ if st.button('Analizar Acción'):
                                     else: cagr_fcf_color = "color-orange"
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">🌊 Crecimiento FCF (CAGR)</div><div class="metric-value {cagr_fcf_color}">{cagr_fcf_display}</div></div>', unsafe_allow_html=True)
                             
-
                             with st.expander("Ver Leyenda Detallada"):
                                 st.markdown(leyendas['salud'], unsafe_allow_html=True)
                     
@@ -1111,9 +1128,9 @@ if st.button('Analizar Acción'):
                         peg_lynch = puntuaciones.get('peg_lynch')
                         prose, color_class = ("No aplicable", "color-white")
                         if peg_lynch is not None and not np.isnan(peg_lynch) and peg_lynch > 0:
-                            if peg_lynch < 1: prose, color_class = f"Barato ({peg_lynch:.2f})", "color-green"
-                            elif peg_lynch > 1.5: prose, color_class = f"Caro ({peg_lynch:.2f})", "color-red"
-                            else: prose, color_class = f"Justo ({peg_lynch:.2f})", "color-orange"
+                            if peg_lynch < 1: prose, color_class = f"Interesante ({peg_lynch:.2f})", "color-green"
+                            elif peg_lynch > 1.5: prose, color_class = f"No Interesante ({peg_lynch:.2f})", "color-red"
+                            else: prose, color_class = f"Neutral ({peg_lynch:.2f})", "color-orange"
                         else:
                             prose, color_class = "No disponible", "color-white"
                         st.markdown(f'''<div class="metric-container">
@@ -1137,10 +1154,12 @@ if st.button('Analizar Acción'):
                                 net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "No disponible"
                                 color_buybacks = "color-white"
                                 if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']):
-                                    if datos['net_buybacks_pct'] > 0:
+                                    if datos['net_buybacks_pct'] > 1:
                                         color_buybacks = "color-green"
-                                    else:
+                                    elif datos['net_buybacks_pct'] < -1:
                                         color_buybacks = "color-red"
+                                    else:
+                                        color_buybacks = "color-orange"
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">🔁 Recompras netas</div><div class="metric-value {color_buybacks}">{net_buybacks_display}</div></div>', unsafe_allow_html=True)
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">📈 Yield Medio (Histórico)</div><div class="metric-value color-white">{hist_data.get("yield_hist"):.2f}%</div></div>', unsafe_allow_html=True)
                             
@@ -1228,3 +1247,4 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("El Analizador de Acciones de Sr. Outfit ha encontrado un problema. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
+
