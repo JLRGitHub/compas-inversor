@@ -76,8 +76,10 @@ def obtener_datos_completos(ticker):
     total_debt_bs = None
     if 'Total Debt' in balance_sheet.index and not balance_sheet.loc['Total Debt'].empty:
         total_debt_bs = balance_sheet.loc['Total Debt'].iloc[0]
-    elif 'Total Liabilities Net Minority Interest' in balance_sheet.index and 'Minority Interest' in balance_sheet.index:
-        total_debt_bs = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[0] - balance_sheet.loc['Minority Interest'].iloc[0]
+    elif 'Long Term Debt' in balance_sheet.index and 'Current Debt' in balance_sheet.index:
+        long_term_debt = balance_sheet.loc['Long Term Debt'].iloc[0] if pd.notna(balance_sheet.loc['Long Term Debt'].iloc[0]) else 0
+        current_debt = balance_sheet.loc['Current Debt'].iloc[0] if pd.notna(balance_sheet.loc['Current Debt'].iloc[0]) else 0
+        total_debt_bs = long_term_debt + current_debt
     else:
         total_debt_bs = info.get('totalDebt') # Fallback to info
         
@@ -89,16 +91,19 @@ def obtener_datos_completos(ticker):
     # --- ROE es la métrica de rentabilidad ahora ---
     roe = info.get('returnOnEquity', 0) * 100
     
-    # --- Cálculo de Recompras Netas (%) ---
+    # --- CÁLCULO DE RECOMPRAS NETAS (%) ---
     net_buybacks_pct = None
     try:
-        shares_df = stock.get_balancesheet(as_dict=True)
-        shares_df = pd.DataFrame(shares_df).T
-        if 'Common Stock' in shares_df.columns and len(shares_df) >= 2:
-            shares_initial = shares_df['Common Stock'].iloc[-2]
-            shares_final = shares_df['Common Stock'].iloc[-1]
-            if shares_initial > 0:
-                net_buybacks_pct = ((shares_final - shares_initial) / shares_initial) * 100
+        financials_df = stock.financials
+        shares_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_df.index else 'Diluted Average Shares'
+        
+        if shares_key in financials_df.index and len(financials_df.columns) >= 2:
+            shares_series = financials_df.loc[shares_key].dropna().loc[lambda x: x > 0]
+            if len(shares_series) >= 2:
+                shares_final = shares_series.iloc[0]
+                shares_initial = shares_series.iloc[1]
+                if shares_initial > 0:
+                    net_buybacks_pct = ((shares_initial - shares_final) / shares_initial) * 100
     except Exception:
         net_buybacks_pct = None
 
@@ -637,7 +642,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     color_class = "color-orange" 
     
     is_comparable = (isinstance(current_value, (int, float)) and not np.isnan(current_value)) and \
-                    (isinstance(historical_value, (int, float)) and not np.isnan(historical_value))
+                      (isinstance(historical_value, (int, float)) and not np.isnan(historical_value))
 
     if is_comparable:
         if lower_is_better:
@@ -842,14 +847,19 @@ Rangos:<br>
 <br><br>
 - **Ratio de Reparto (Payout):** El porcentaje del beneficio neto que la empresa destina al pago de dividendos. Un payout sostenible, que no sea demasiado alto, te dice que la empresa tiene margen para seguir invirtiendo en el negocio y para mantener el dividendo en el futuro. Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(0 < payout < sector_bench['payout_bueno'], f"**Saludable:** < {sector_bench['payout_bueno']}%")}<br>
-    - {highlight(payout <= sector_bench['payout_aceptable'], f"**Precaución:** > {sector_bench['payout_bueno']}%")}<br>
+    - {highlight(sector_bench['payout_bueno'] <= payout <= sector_bench['payout_aceptable'], f"**Precaución:** > {sector_bench['payout_bueno']}%")}<br>
     - {highlight(payout > sector_bench['payout_aceptable'], f"**Peligroso:** > {sector_bench['payout_aceptable']}%")}
 <br><br>
-- **Recompras Netas (%):** Mide el cambio anual en el número de acciones en circulación. Es una forma de remunerar al accionista. Un valor negativo es bueno (recompras), mientras que uno positivo es malo (dilución).
-    - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct < 0, "**🟢 Aumento de Valor:** La empresa está reduciendo el número de acciones, lo que aumenta el valor de las acciones existentes.")}<br>
-    - {highlight(net_buybacks_pct is not None and not np.isnan(net_buybacks_pct) and net_buybacks_pct > 0, "**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
-    - {highlight(net_buybacks_pct is None or np.isnan(net_buybacks_pct), "Desconocido.")}
+- **Recompras Netas (%):** Mide el cambio anual en el número de acciones en circulación. Es una forma de remunerar al accionista. Un valor positivo es bueno (recompras), mientras que uno negativo es malo (dilución).
 """
+    if net_buybacks_pct is not None and not np.isnan(net_buybacks_pct):
+        leyenda_dividendos += f"""
+    - {highlight(net_buybacks_pct > 0, "**🟢 Aumento de Valor:** La empresa está reduciendo el número de acciones, lo que aumenta el valor de las acciones existentes.")}<br>
+    - {highlight(net_buybacks_pct < 0, "**🔴 Dilución:** La empresa está emitiendo más acciones, lo que puede reducir el valor de las acciones existentes.")}<br>
+"""
+    else:
+        leyenda_dividendos += f"    - {highlight(True, 'Desconocido.')}"
+
     # --- Leyenda Técnica ---
     leyenda_tecnico = ""
     if tech_data is not None and not tech_data.empty:
@@ -875,9 +885,9 @@ Rangos:<br>
         elif tendencia_alcista_largo and not tendencia_alcista_corto:
             estado_tendencia_texto = "El precio se encuentra por encima de la media de 200 días (largo plazo), pero ha caído por debajo de la de 50 (corto plazo), indicando un posible retroceso o consolidación."
         elif not tendencia_alcista_largo and not tendencia_alcista_corto:
-             estado_tendencia_texto = "El precio está por debajo de ambas medias móviles, confirmando una tendencia negativa a corto y largo plazo."
+                estado_tendencia_texto = "El precio está por debajo de ambas medias móviles, confirmando una tendencia negativa a corto y largo plazo."
         else:
-             estado_tendencia_texto = "El precio ha cruzado al alza la media de 50 días, pero sigue por debajo de la de 200. Esto podría ser el inicio de una reversión."
+                estado_tendencia_texto = "El precio ha cruzado al alza la media de 50 días, pero sigue por debajo de la de 200. Esto podría ser el inicio de una reversión."
 
         # Resumen de RSI
         if rsi_sobrecompra:
@@ -1101,10 +1111,10 @@ if st.button('Analizar Acción'):
                         else:
                             prose, color_class = "No disponible", "color-white"
                         st.markdown(f'''<div class="metric-container">
-                                             <div class="metric-label">Ratio PEG (Lynch)</div>
-                                             <div class="metric-value {color_class}">{prose}</div>
-                                             <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
-                                         </div>''', unsafe_allow_html=True)
+                                                <div class="metric-label">Ratio PEG (Lynch)</div>
+                                                <div class="metric-value {color_class}">{prose}</div>
+                                                <div class="formula-label">PER / Crecimiento Beneficios (%)</div>
+                                            </div>''', unsafe_allow_html=True)
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['peg'], unsafe_allow_html=True)
 
@@ -1119,7 +1129,12 @@ if st.button('Analizar Acción'):
                                 mostrar_metrica_con_color("🤲 Ratio de Reparto (Payout)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                             with div2:
                                 net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "No disponible"
-                                color_buybacks = "color-green" if datos['net_buybacks_pct'] is not None and datos['net_buybacks_pct'] < 0 else "color-red"
+                                color_buybacks = "color-white"
+                                if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']):
+                                    if datos['net_buybacks_pct'] > 0:
+                                        color_buybacks = "color-green"
+                                    else:
+                                        color_buybacks = "color-red"
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">🔁 Recompras netas</div><div class="metric-value {color_buybacks}">{net_buybacks_display}</div></div>', unsafe_allow_html=True)
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">📈 Yield Medio (Histórico)</div><div class="metric-value color-white">{hist_data.get("yield_hist"):.2f}%</div></div>', unsafe_allow_html=True)
                             
