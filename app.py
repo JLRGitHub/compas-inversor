@@ -112,14 +112,16 @@ def obtener_datos_completos(ticker):
     descripcion_completa = info.get('longBusinessSummary', 'No disponible.')
     descripcion_corta = 'No disponible.'
     if descripcion_completa and descripcion_completa != 'No disponible.':
-        # Buscamos la segunda instancia del punto para cortar la descripción
+        # Buscamos la primera instancia del punto y luego la segunda para cortar la descripción
         first_period = descripcion_completa.find('.')
         if first_period != -1:
             second_period = descripcion_completa.find('.', first_period + 1)
             if second_period != -1:
-                descripcion_corta = descripcion_completa[:second_period + 1]
+                # Se ha modificado el slicing para obtener la segunda oración.
+                descripcion_corta = descripcion_completa[first_period + 1:second_period + 1].strip()
             else:
-                descripcion_corta = descripcion_completa
+                # Si no hay un segundo punto, usamos la oración completa desde el primer punto
+                descripcion_corta = descripcion_completa[first_period + 1:].strip()
     
     return {
         "nombre": info.get('longName', 'N/A'), "sector": info.get('sector', 'N/A'),
@@ -1012,15 +1014,17 @@ if st.button('Analizar Acción'):
                         st.pyplot(fig_radar)
 
                     with st.expander("1. Identidad y Riesgo Geopolítico", expanded=True):
-                        st.write(f"<b>Sector:</b> {datos['sector']} | <b>Industria:</b> {datos['industria']}")
+                        # Se ha cambiado el uso de <b> a Markdown ** para un formato correcto.
+                        st.markdown(f"**Sector:** {datos['sector']} | **Industria:** {datos['industria']}")
                         geo_nota = puntuaciones['geopolitico']
-                        if geo_nota >= 8: st.markdown(f"<b>País:</b> {datos['pais']} | <b>Nivel de Riesgo:</b> BAJO 🟢")
-                        else: st.markdown(f"<b>País:</b> {datos['pais']} | <b>Nivel de Riesgo:</b> PRECAUCIÓN 🟠")
+                        if geo_nota >= 8: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** BAJO 🟢")
+                        else: st.markdown(f"**País:** {datos['pais']} | **Nivel de Riesgo:** PRECAUCIÓN 🟠")
                         
                         if datos['pais'] in ['China', 'Hong Kong']:
                             st.warning("⚠️ <b>Riesgo Regulatorio (ADR/VIE):</b> Invertir en empresas chinas a través de ADRs conlleva riesgos adicionales.")
                         st.caption(justificaciones['geopolitico'])
-                        st.write(f"<b>Descripción:</b> {datos['descripcion']}")
+                        # La descripción ya se ha ajustado en la función de obtención de datos
+                        st.write(f"Descripción: {datos['descripcion']}")
                     
                     with st.container(border=True):
                         st.subheader("Consenso de Analistas")
