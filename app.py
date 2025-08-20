@@ -287,14 +287,13 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         yield_historico = np.mean(annual_yields) if annual_yields else None
 
         # --- Análisis Técnico ---
-        tech_data = None # Inicializamos tech_data a None
+        tech_data = None
         if not hist_10y.empty:
             end_date_1y = hist_10y.index.max()
             start_date_1y = end_date_1y - pd.DateOffset(days=365)
-            # Asignamos el resultado a tech_data
             tech_data = hist_10y[hist_10y.index >= start_date_1y].copy()
             
-            if not tech_data.empty: # Verificación adicional
+            if not tech_data.empty:
                 tech_data['SMA50'] = tech_data['Close'].rolling(window=50).mean()
                 tech_data['SMA200'] = tech_data['Close'].rolling(window=200).mean()
                 delta = tech_data['Close'].diff()
@@ -307,7 +306,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         return {
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
             "per_hist": per_historico, "yield_hist": yield_historico,
-            "tech_data": tech_data, # Retornamos tech_data
+            "tech_data": tech_data,
             "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf,
             "div_consecutive_years": div_consecutive_years
         }
@@ -319,10 +318,8 @@ def obtener_datos_historicos_y_tecnicos(ticker):
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
     banderas = []
-    # Corrección de formato para la bandera de Payout
     if datos.get('sector') != 'Real Estate' and datos.get('payout_ratio') is not None and datos.get('payout_ratio', 0) > 100:
         banderas.append("🔴 **Payout Peligroso:** El ratio de reparto de dividendos es superior al 100%. Esto podría indicar que los dividendos no son sostenibles a largo plazo.")
-    # Resto de banderas, se corrige el formato para usar Markdown
     if financials is not None and not financials.empty:
         if 'Operating Margin' in financials.columns and len(financials) >= 3 and (financials['Operating Margin'].iloc[-3:].diff().iloc[1:] < 0).all():
             banderas.append("🔴 **Márgenes Decrecientes:** Los márgenes de beneficio llevan 3 años seguidos bajando. Esto podría indicar una pérdida de ventaja competitiva o problemas en la gestión de costes.")
@@ -332,10 +329,8 @@ def analizar_banderas_rojas(datos, financials):
         banderas.append("🔴 **Flujo de Caja Libre Negativo:** La empresa está quemando más dinero del que genera en sus operaciones. Esta situación es peligrosa si se prolonga en el tiempo.")
     if datos.get('interest_coverage') is not None and datos.get('interest_coverage') < 2:
         banderas.append("🔴 **Cobertura de Intereses Baja:** El beneficio operativo apenas cubre el pago de intereses de la deuda. En caso de una crisis, la empresa podría tener problemas para pagar sus obligaciones.")
-    # Bandera roja para el ratio corriente, ajustado el formato
     if datos.get('ratio_corriente') is not None and datos.get('ratio_corriente') < 1.0:
         banderas.append("🔴 **Ratio Corriente Baja:** El ratio corriente es menor a 1.0. Esto podría indicar que la empresa tiene problemas para cubrir sus obligaciones a corto plazo.")
-    # Nueva bandera roja para baja capitalización de mercado
     if datos.get('market_cap') is not None and datos.get('market_cap') < 250000000:
         banderas.append("🔴 **Baja Capitalización de Mercado:** La empresa tiene una capitalización de mercado inferior a $250 millones, lo que puede significar mayor volatilidad e iliquidez.")
     return banderas
@@ -785,8 +780,8 @@ Rangos para el sector **{datos['sector']}**:<br>
 - **Crecimiento Ingresos (YoY):** El crecimiento de ventas en el último año, comparado con el anterior. Indica la salud actual del negocio.
 Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(yoy_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(sector_bench['rev_growth_bueno'] < yoy_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
-    - {highlight(yoy_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
+    - {highlight(yoy_rev is not None and yoy_rev > sector_bench['rev_growth_bueno'] and yoy_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
+    - {highlight(yoy_rev is not None and yoy_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
 """
 
     # --- Leyenda de Salud Financiera ---
@@ -1161,7 +1156,7 @@ if st.button('Analizar Acción'):
                         with s1:
                             deuda_ebitda_val = datos.get('deuda_ebitda')
                             # Se ha mejorado el manejo de deuda negativa para ser más claro
-                            if deuda_ebitda_val is not None and deuda_ebitda_val < 0:
+                            if deuda_ebitda_val is not None and (isinstance(deuda_ebitda_val, float) and deuda_ebitda_val < 0):
                                 st.markdown(f'<div class="metric-container"><div class="metric-label">⚡ Deuda Neta/EBITDA</div><div class="metric-value color-green">Negativa ({deuda_ebitda_val:.2f})</div><div class="formula-label">Fórmula: (Deuda Total - Efectivo) / EBITDA</div></div>', unsafe_allow_html=True)
                             else:
                                 mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", deuda_ebitda_val, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
@@ -1334,19 +1329,21 @@ if st.button('Analizar Acción'):
                         beta = datos.get('beta')
                         
                         tendencia_texto, tendencia_color = "Lateral 🟠", "color-orange"
-                        if last_price > sma50 and sma50 > sma200: tendencia_texto, tendencia_color = "Alcista Fuerte 🟢", "color-green"
-                        elif last_price > sma200: tendencia_texto, tendencia_color = "Alcista 🟢", "color-green"
-                        elif last_price < sma50 and sma50 < sma200: tendencia_texto, tendencia_color = "Bajista Fuerte 🔴", "color-red"
-                        elif last_price < sma200: tendencia_texto, tendencia_color = "Bajista 🔴", "color-red"
+                        # Corrección: Se ha ajustado la lógica para evitar el error de 'truth value'
+                        if last_price is not None and not np.isnan(last_price) and sma50 is not None and not np.isnan(sma50) and sma200 is not None and not np.isnan(sma200):
+                            if last_price > sma50 and sma50 > sma200: tendencia_texto, tendencia_color = "Alcista Fuerte 🟢", "color-green"
+                            elif last_price > sma200: tendencia_texto, tendencia_color = "Alcista 🟢", "color-green"
+                            elif last_price < sma50 and sma50 < sma200: tendencia_texto, tendencia_color = "Bajista Fuerte 🔴", "color-red"
+                            elif last_price < sma200: tendencia_texto, tendencia_color = "Bajista 🔴", "color-red"
+                        
                         st.markdown(f'<div class="metric-container"><div class="metric-label">Tendencia Actual</div><div class="metric-value {tendencia_color}">{tendencia_texto}</div></div>', unsafe_allow_html=True)
 
-                        rsi_texto, rsi_color = f"{rsi:.2f} (Neutral 🟠)", "color-orange"
-                        if rsi is not None:
+                        rsi_texto, rsi_color = "N/A", "color-white"
+                        if rsi is not None and not np.isnan(rsi):
+                            rsi_texto = f"{rsi:.2f} (Neutral 🟠)"
+                            rsi_color = "color-orange"
                             if rsi > 70: rsi_texto, rsi_color = f"{rsi:.2f} (Sobrecompra 🔴)", "color-red"
                             elif rsi < 30: rsi_texto, rsi_color = f"{rsi:.2f} (Sobreventa 🟢)", "color-green"
-                        else:
-                            rsi_texto = "N/A"
-                            rsi_color = "color-white"
                             
                         st.markdown(f'<div class="metric-container"><div class="metric-label">Estado RSI</div><div class="metric-value {rsi_color}">{rsi_texto}</div></div>', unsafe_allow_html=True)
                         
