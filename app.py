@@ -149,11 +149,9 @@ def obtener_datos_completos(ticker):
 def calculate_cagr(end_value, start_value, years):
     if start_value is None or end_value is None or start_value == 0 or years <= 0:
         return None
-    # La fórmula CAGR no funciona bien si el valor inicial es negativo
     if start_value < 0:
         return None
     try:
-        # Se añade un pequeño valor para evitar errores si el valor final es negativo
         sign = -1 if end_value < 0 else 1
         return ((((abs(end_value) + 1e-9) / start_value) ** (1 / years)) - 1) * 100 * sign
     except (ZeroDivisionError, ValueError):
@@ -173,12 +171,11 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         cashflow_raw = stock.cashflow
         
         financials_for_charts, dividends_for_charts = None, None
-        cagr_rev, cagr_fcf, bpa_cagr_5y = None, None, None
+        cagr_fcf, bpa_cagr_5y = None, None
 
         if not financials_raw.empty:
             financials_annual = financials_raw.T.sort_index(ascending=True)
             if len(financials_annual) >= 5:
-                # --- CÁLCULO DEL CAGR DEL BPA a 5 años ---
                 net_income = financials_annual.get('Net Income', pd.Series(dtype=float))
                 shares_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_annual.columns else 'Diluted Average Shares'
                 shares = financials_annual.get(shares_key, pd.Series(dtype=float))
@@ -188,7 +185,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                     if len(eps_series) >= 5:
                         start_eps = eps_series.iloc[-5]
                         end_eps = eps_series.iloc[-1]
-                        bpa_cagr_5y = calculate_cagr(end_eps, start_eps, 4) # 4 periodos en 5 años
+                        bpa_cagr_5y = calculate_cagr(end_eps, start_eps, 4)
         
         if not cashflow_raw.empty:
             cashflow_annual = cashflow_raw.T.sort_index(ascending=True)
@@ -476,7 +473,13 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         if datos['net_buybacks_pct'] > 1: puntos_obtenidos_dividendos += 2
         elif datos['net_buybacks_pct'] < -1: puntos_obtenidos_dividendos += 0
     
-    puntuaciones['dividendos'] = (puntos_obtenidos_dividendos / puntos_posibles_dividendos) * 10 if puntos_posibles_dividendos > 0 else 0
+    nota_dividendos = (puntos_obtenidos_dividendos / puntos_posibles_dividendos) * 10 if puntos_posibles_dividendos > 0 else 0
+    
+    # Penalización si el yield actual es menor que el histórico
+    if yield_historico is not None and datos.get('yield_dividendo') is not None and datos.get('yield_dividendo') < yield_historico:
+        nota_dividendos -= 2
+
+    puntuaciones['dividendos'] = max(0, nota_dividendos)
     justificaciones['dividendos'] = "Dividendo excelente y sostenible." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
     # 5. PEG
@@ -895,7 +898,7 @@ Rangos:<br>"""
     net_buybacks_pct = datos.get('net_buybacks_pct')
     
     leyenda_dividendos = f"""
-- **Rentabilidad (Yield):** El porcentaje de tu inversión que recibes anualmente en forma de dividendos.<br>
+- **Rentabilidad (Yield):** El porcentaje de tu inversión que recibes anualmente en forma de dividendos. Un yield actual inferior a su media histórica puede ser una señal de alerta y penaliza la nota.<br>
 Rangos:<br>
     - {highlight(yield_div > 3.5, "**Excelente:** > 3.5%")}<br>
     - {highlight(2.0 < yield_div <= 3.5, "**Bueno:** > 2.0%")}<br>
@@ -1013,7 +1016,7 @@ if st.button('Analizar Acción'):
                     st.warning(f"No se pudieron obtener todos los datos históricos para '{ticker_input}'. El análisis puede estar incompleto.")
                 
                 puntuaciones, justificaciones, benchmarks = calcular_puntuaciones_y_justificaciones(datos, hist_data)
-                sector_bench = benchmarks.get(datos['sector'], benchmarks['Default'])
+                sector_bench = benchmarks.get(datos['sector'], SECTOR_BENCHMARKS['Default'])
                 tech_data = hist_data.get('tech_data')
                 leyendas = generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data)
                 
@@ -1105,21 +1108,18 @@ if st.button('Analizar Acción'):
                     st.subheader(f"Análisis de Valoración [{puntuaciones['valoracion']:.1f}/10]")
                     st.caption(justificaciones['valoracion'])
                     
-                    tab1, tab2 = st.tabs(["Múltiplos Actuales", "Análisis Histórico"])
-                    
-                    with tab1:
-                        val1, val2, val3, val4 = st.columns(4)
-                        with val1:
-                            mostrar_metrica_con_color("⚖️ PER", datos.get('per'), sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
-                        with val2:
-                            mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per_adelantado'), datos.get('per'), lower_is_better=True)
-                        with val3:
-                            mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
-                        with val4:
-                            mostrar_metrica_con_color("📚 P/B", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
+                    val1, val2, val3, val4 = st.columns(4)
+                    with val1:
+                        mostrar_metrica_con_color("⚖️ PER", datos.get('per'), sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
+                    with val2:
+                        mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per_adelantado'), datos.get('per'), lower_is_better=True)
+                    with val3:
+                        mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
+                    with val4:
+                        mostrar_metrica_con_color("📚 P/B", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
 
-                    with tab2:
-                        mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), lower_is_better=True)
+                    st.markdown("---")
+                    mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), lower_is_better=True)
 
                     with st.expander("Ver Leyenda Detallada de Múltiplos"):
                         st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
