@@ -737,6 +737,65 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     </div>
     ''', unsafe_allow_html=True)
 
+def generar_resumen_ejecutivo(datos, puntuaciones):
+    calidad = puntuaciones.get('calidad', 0)
+    valoracion = puntuaciones.get('valoracion', 0)
+    salud = puntuaciones.get('salud', 0)
+    dividendos = puntuaciones.get('dividendos', 0)
+    
+    resumen = ""
+    
+    # Veredicto Inicial
+    if calidad >= 7.5 and valoracion >= 7.5:
+        resumen += "Nos encontramos ante una **empresa excepcional a un precio que parece muy atractivo**. "
+    elif calidad >= 7.5 and valoracion < 5:
+        resumen += "Estamos ante una **joya de negocio, pero su valoración actual es exigente**. "
+    elif calidad < 5 and valoracion >= 7.5:
+        resumen += "Esta es una **posible ganga con riesgos asociados**. Su bajo precio refleja debilidades en el negocio que deben ser consideradas. "
+    else:
+        resumen += "Se trata de una **empresa sólida con una valoración razonable**, que presenta un equilibrio entre sus puntos fuertes y débiles. "
+
+    # Fortalezas
+    fortalezas = []
+    if calidad >= 7.5:
+        fortalezas.append("un **modelo de negocio de alta calidad**, con márgenes robustos y un crecimiento del BPA sólido y consistente")
+    if salud >= 7.5:
+        fortalezas.append("una **fortaleza financiera incuestionable**, con un bajo nivel de deuda y una gran capacidad para generar caja")
+    if valoracion >= 7.5:
+        fortalezas.append("una **valoración muy atractiva** por múltiplos (PER, P/FCF) en comparación con su sector y su historia")
+    if dividendos >= 7.5:
+        fortalezas.append("una **excelente política de retribución al accionista**, con un dividendo que parece seguro y sostenible")
+    
+    if fortalezas:
+        resumen += "\n\n**✅ Fortalezas:**\n- " + "\n- ".join(fortalezas) + "."
+
+    # Debilidades
+    debilidades = []
+    if calidad < 5:
+        debilidades.append("la **calidad de su negocio**, ya que sus márgenes son ajustados o el crecimiento de beneficios es lento o inconsistente")
+    if salud < 5:
+        debilidades.append("su **salud financiera**, que podría ser un punto de riesgo debido a un nivel de deuda elevado o una generación de caja débil")
+    if valoracion < 5:
+        debilidades.append("su **valoración exigente**, ya que los múltiplos actuales son elevados y dejan poco margen de seguridad")
+    if datos.get('yield_dividendo', 0) > 0 and dividendos < 5:
+        debilidades.append("la **sostenibilidad de su dividendo**, que podría estar en duda por un Payout Ratio elevado o un crecimiento débil")
+
+    if debilidades:
+        resumen += "\n\n**⚠️ Debilidades:**\n- " + "\n- ".join(debilidades) + "."
+
+    # Perfil de Inversor
+    resumen += "\n\n**👤 Perfil Ideal de Inversor:** "
+    if calidad >= 7 and dividendos >= 7:
+        resumen += "**Inversor en Dividendos (DGI).** Busca empresas de alta calidad que ofrezcan una renta estable y creciente."
+    elif calidad >= 7 and valoracion < 5:
+        resumen += "**Inversor en Crecimiento (Growth).** Dispuesto a pagar un precio más alto por un negocio de calidad superior con altas expectativas de futuro."
+    elif calidad < 5 and valoracion >= 7:
+        resumen += "**Inversor de Valor Profundo (Deep Value).** Busca activos infravalorados que el mercado ha castigado, asumiendo un riesgo mayor a la espera de una revalorización."
+    else:
+        resumen += "**Inversor Mixto (Blend/GARP).** Busca un equilibrio entre calidad, crecimiento y un precio razonable."
+        
+    return resumen
+
 def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data):
     highlight_style = 'style="background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
     
@@ -1072,13 +1131,9 @@ if st.button('Analizar Acción'):
                     st.write(f"Descripción: {datos['descripcion']}")
                 
                 with st.container(border=True):
-                    st.subheader("Consenso de Analistas")
-                    col_rec, col_obj = st.columns(2)
-                    with col_rec:
-                        recomendacion_str = datos.get('recomendacion_analistas', 'N/A').replace('_', ' ').title()
-                        st.markdown(get_recommendation_html(recomendacion_str), unsafe_allow_html=True)
-                    with col_obj:
-                        mostrar_metrica_informativa("Precio Objetivo Analistas", datos.get('precio_objetivo'), potential_pct=puntuaciones.get('margen_seguridad_analistas'))
+                    st.subheader("Consenso de Analistas y Resumen Ejecutivo")
+                    resumen = generar_resumen_ejecutivo(datos, puntuaciones)
+                    st.markdown(resumen)
 
                 col1, col2 = st.columns(2)
                 with col1:
