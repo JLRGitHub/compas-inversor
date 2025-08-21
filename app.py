@@ -229,9 +229,13 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             financials_for_charts, dividends_for_charts = financials, dividends_chart_data
 
         hist_10y = stock.history(period="10y")
+        hist_max = stock.history(period="max")
+        ath_price = None
+        if not hist_max.empty:
+            ath_price = hist_max['Close'].max()
         
         if hist_10y.empty:
-            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period}
+            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period, "ath_price": ath_price}
         
         pers, annual_yields = [], []
         per_historico, yield_historico = None, None
@@ -287,11 +291,12 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "per_hist": per_historico, "yield_hist": yield_historico,
             "tech_data": tech_data,
             "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period,
-            "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period
+            "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period,
+            "ath_price": ath_price
         }
     except Exception as e:
         st.error(f"Se produjo un error al procesar los datos históricos y técnicos. Detalle: {e}")
-        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "fcf_cagr_period": None, "bpa_cagr": None, "bpa_cagr_period": None}
+        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "fcf_cagr_period": None, "bpa_cagr": None, "bpa_cagr_period": None, "ath_price": None}
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
@@ -676,20 +681,26 @@ def mostrar_margen_seguridad(label, value):
     </div>
     ''', unsafe_allow_html=True)
 
-def mostrar_metrica_informativa(label, value, is_percent=False, potential_pct=None):
-    formatted_value = "N/A"
+def mostrar_distancia_maximo(label, value, current_price, ath_price):
+    color_class = "color-red"
+    prose = "N/A"
     if isinstance(value, (int, float)) and not np.isnan(value):
-        formatted_value = f"{value:.2f}%" if is_percent else f"{value:.2f}"
+        if value > -5:
+            color_class = "color-green"
+            prose = f"Cerca del Máximo ({value:.2f}%)"
+        elif value > -20:
+            color_class = "color-orange"
+            prose = f"Caída Moderada ({value:.2f}%)"
+        else:
+            prose = f"Caída Fuerte ({value:.2f}%)"
     
-    if potential_pct is not None and not np.isnan(potential_pct):
-        color_class = "color-green" if potential_pct > 0 else "color-red"
-        sign = "+" if potential_pct > 0 else ""
-        formatted_value += f' <span class="{color_class}">({sign}{potential_pct:.2f}%)</span>'
+    formatted_prices = f"${current_price:.2f} vs ${ath_price:.2f}" if current_price is not None and ath_price is not None else ""
 
     st.markdown(f'''
     <div class="metric-container">
         <div class="metric-label">{label}</div>
-        <div class="metric-value color-white">{formatted_value}</div>
+        <div class="metric-value {color_class}">{prose}</div>
+        <div class="metric-label" style="line-height: 1; color: #FAFAFA;">{formatted_prices}</div>
     </div>
     ''', unsafe_allow_html=True)
 
@@ -1065,6 +1076,8 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(ms_yield is not None and ms_yield > 20, "Alto Potencial: > 20%")}<br>
     - {highlight(ms_yield is not None and 0 <= ms_yield <= 20, "Potencial Moderado: 0% a 20%")}<br>
     - {highlight(ms_yield is not None and ms_yield < 0, "Riesgo de Caída: < 0%")}
+<br><br>
+- **Distancia desde Máximo Histórico:** Mide el porcentaje que ha caído la acción desde su precio más alto de la historia. Una caída grande puede indicar una oportunidad de compra, pero también puede ser una señal de que los fundamentales de la empresa han empeorado.
 """
     return {'calidad': leyenda_calidad, 'salud': leyenda_salud, 'valoracion': leyenda_valoracion, 'peg': leyenda_peg, 'dividendos': leyenda_dividendos, 'tecnico': leyenda_tecnico, 'margen_seguridad': leyenda_margen_seguridad}
 
@@ -1231,13 +1244,16 @@ if st.button('Analizar Acción'):
                 
                 with st.container(border=True):
                     st.subheader("Potencial de Revalorización (Márgenes de Seguridad)")
-                    ms1, ms2, ms3 = st.columns(3)
+                    ms1, ms2, ms3, ms4 = st.columns(4)
                     with ms1:
                         mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
                     with ms2:
                         mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
                     with ms3:
                         mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
+                    with ms4:
+                        distancia_ath = ((datos.get('precio_actual', 0) - hist_data.get('ath_price', 0)) / hist_data.get('ath_price', 1)) * 100 if hist_data.get('ath_price') else None
+                        mostrar_distancia_maximo("📉 Distancia Máx. Histórico", distancia_ath, datos.get('precio_actual'), hist_data.get('ath_price'))
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
 
