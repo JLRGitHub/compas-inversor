@@ -171,8 +171,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         cashflow_raw = stock.cashflow
         
         financials_for_charts, dividends_for_charts = None, None
-        cagr_fcf, bpa_cagr = None, None
-        bpa_cagr_period = None
+        cagr_fcf, bpa_cagr, fcf_cagr_period, bpa_cagr_period = None, None, None, None
 
         if not financials_raw.empty:
             financials_annual = financials_raw.T.sort_index(ascending=True)
@@ -186,13 +185,13 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                     start_eps = eps_series.iloc[-5]
                     end_eps = eps_series.iloc[-1]
                     bpa_cagr = calculate_cagr(end_eps, start_eps, 4)
-                    bpa_cagr_period = "5A"
+                    if bpa_cagr is not None: bpa_cagr_period = "5A"
                 
                 if bpa_cagr is None and len(eps_series) >= 3:
                     start_eps = eps_series.iloc[-3]
                     end_eps = eps_series.iloc[-1]
                     bpa_cagr = calculate_cagr(end_eps, start_eps, 2)
-                    bpa_cagr_period = "3A"
+                    if bpa_cagr is not None: bpa_cagr_period = "3A"
         
         if not cashflow_raw.empty:
             cashflow_annual = cashflow_raw.T.sort_index(ascending=True)
@@ -202,6 +201,14 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                 start_fcf = cashflow_annual[fcf_key].iloc[-5]
                 end_fcf = cashflow_annual[fcf_key].iloc[-1]
                 cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
+                if cagr_fcf is not None: fcf_cagr_period = "5A"
+            
+            if cagr_fcf is None and fcf_key and len(cashflow_annual) >= 3:
+                years_cf = 2
+                start_fcf = cashflow_annual[fcf_key].iloc[-3]
+                end_fcf = cashflow_annual[fcf_key].iloc[-1]
+                cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
+                if cagr_fcf is not None: fcf_cagr_period = "3A"
 
         if not financials_raw.empty and not balance_sheet_raw.empty and not cashflow_raw.empty:
             financials = financials_raw.T.sort_index(ascending=True).tail(4)
@@ -224,7 +231,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         hist_10y = stock.history(period="10y")
         
         if hist_10y.empty:
-            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period}
+            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period}
         
         pers, annual_yields = [], []
         per_historico, yield_historico = None, None
@@ -279,13 +286,12 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
             "per_hist": per_historico, "yield_hist": yield_historico,
             "tech_data": tech_data,
-            "cagr_fcf": cagr_fcf,
-            "bpa_cagr": bpa_cagr,
-            "bpa_cagr_period": bpa_cagr_period
+            "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period,
+            "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period
         }
     except Exception as e:
         st.error(f"Se produjo un error al procesar los datos históricos y técnicos. Detalle: {e}")
-        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "bpa_cagr": None, "bpa_cagr_period": None}
+        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "fcf_cagr_period": None, "bpa_cagr": None, "bpa_cagr_period": None}
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
@@ -1106,7 +1112,8 @@ if st.button('Analizar Acción'):
                                 mostrar_metrica_con_color("⚡ Deuda Neta/EBITDA", deuda_ebitda_val, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True)
                             mostrar_metrica_con_color("💧 Ratio Corriente (Liquidez)", datos['ratio_corriente'], 1.5, 1.0)
                             cagr_fcf_val = hist_data.get('cagr_fcf')
-                            mostrar_crecimiento_con_color("🌊 Crecimiento FCF (CAGR)", cagr_fcf_val, sector_bench['fcf_growth_excelente'], sector_bench['fcf_growth_bueno'])
+                            fcf_cagr_period = hist_data.get('fcf_cagr_period', '')
+                            mostrar_crecimiento_con_color(f"🌊 Crec. FCF (CAGR {fcf_cagr_period})", cagr_fcf_val, sector_bench['fcf_growth_excelente'], sector_bench['fcf_growth_bueno'])
                         with s2:
                             mostrar_metrica_con_color("🛡️ Cobertura Intereses", datos['interest_coverage'], sector_bench['int_coverage_excelente'], sector_bench['int_coverage_bueno'])
                             mostrar_metrica_con_color("💰 Flujo de Caja Libre (FCF)", datos.get('raw_fcf'), 0, -1, is_currency=True)
