@@ -685,16 +685,16 @@ def mostrar_distancia_maximo(label, value, current_price, ath_price):
     color_class = "color-red"
     prose = "N/A"
     if isinstance(value, (int, float)) and not np.isnan(value):
-        if value > -5:
+        if value < -40:
             color_class = "color-green"
-            prose = f"Cerca del Máximo ({value:.2f}%)"
-        elif value > -20:
+            prose = f"Alto Potencial ({value:.2f}%)"
+        elif value < -15:
             color_class = "color-orange"
-            prose = f"Caída Moderada ({value:.2f}%)"
+            prose = f"Potencial Interesante ({value:.2f}%)"
         else:
-            prose = f"Caída Fuerte ({value:.2f}%)"
+            prose = f"Sobrecalentada ({value:.2f}%)"
     
-    formatted_prices = f"${current_price:.2f} vs ${ath_price:.2f}" if current_price is not None and ath_price is not None else ""
+    formatted_prices = f"Actual: ${current_price:.2f} vs Máx: ${ath_price:.2f}" if current_price is not None and ath_price is not None else ""
 
     st.markdown(f'''
     <div class="metric-container">
