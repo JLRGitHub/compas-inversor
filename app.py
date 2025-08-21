@@ -338,72 +338,99 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     elif pais not in paises_seguros and pais != 'N/A': nota_geo, justificacion_geo, penalizador_geo = 5, "PRECAUCIÓN: Jurisdicción no clasificada.", 2.0
     puntuaciones['geopolitico'], justificaciones['geopolitico'], puntuaciones['penalizador_geo'] = nota_geo, justificacion_geo, penalizador_geo
 
-    nota_calidad = 0
-    if datos.get('roe') is not None and datos['roe'] > sector_bench['roe_excelente']: nota_calidad += 2.5
-    elif datos.get('roe') is not None and datos['roe'] > sector_bench['roe_bueno']: nota_calidad += 1.5
-    if datos.get('margen_operativo') is not None and datos['margen_operativo'] > sector_bench['margen_excelente']: nota_calidad += 2.5
-    elif datos.get('margen_operativo') is not None and datos['margen_operativo'] > sector_bench['margen_bueno']: nota_calidad += 1.5
-    if datos.get('margen_beneficio') is not None and datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): nota_calidad += 2
-    elif datos.get('margen_beneficio') is not None and datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): nota_calidad += 1
+    # --- NUEVO: Lógica de Puntuación Proporcional ---
+
+    # 1. Calidad
+    puntos_obtenidos_calidad, puntos_posibles_calidad = 0, 0
     
+    if datos.get('roe') is not None:
+        puntos_posibles_calidad += 2.5
+        if datos['roe'] > sector_bench['roe_excelente']: puntos_obtenidos_calidad += 2.5
+        elif datos['roe'] > sector_bench['roe_bueno']: puntos_obtenidos_calidad += 1.5
+
+    if datos.get('margen_operativo') is not None:
+        puntos_posibles_calidad += 2.5
+        if datos['margen_operativo'] > sector_bench['margen_excelente']: puntos_obtenidos_calidad += 2.5
+        elif datos['margen_operativo'] > sector_bench['margen_bueno']: puntos_obtenidos_calidad += 1.5
+
+    if datos.get('margen_beneficio') is not None:
+        puntos_posibles_calidad += 2
+        if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): puntos_obtenidos_calidad += 2
+        elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): puntos_obtenidos_calidad += 1
+
     cagr_rev = hist_data.get('cagr_rev')
     if cagr_rev is not None and not np.isnan(cagr_rev):
-        if cagr_rev > sector_bench['rev_growth_excelente']: nota_calidad += 2
-        elif cagr_rev > sector_bench['rev_growth_bueno']: nota_calidad += 1
-    if datos.get('crecimiento_ingresos_yoy') is not None and datos['crecimiento_ingresos_yoy'] > sector_bench['rev_growth_excelente']: nota_calidad += 1
+        puntos_posibles_calidad += 2
+        if cagr_rev > sector_bench['rev_growth_excelente']: puntos_obtenidos_calidad += 2
+        elif cagr_rev > sector_bench['rev_growth_bueno']: puntos_obtenidos_calidad += 1
     
-    puntuaciones['calidad'] = min(10, nota_calidad)
+    if datos.get('crecimiento_ingresos_yoy') is not None:
+        puntos_posibles_calidad += 1
+        if datos['crecimiento_ingresos_yoy'] > sector_bench['rev_growth_excelente']: puntos_obtenidos_calidad += 1
+    
+    puntuaciones['calidad'] = (puntos_obtenidos_calidad / puntos_posibles_calidad) * 10 if puntos_posibles_calidad > 0 else 0
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
 
-    nota_salud = 0
-    if sector != 'Financials':
-        deuda_ebitda = datos.get('deuda_ebitda')
-        if deuda_ebitda is not None and not np.isnan(deuda_ebitda):
-            if deuda_ebitda < 0: nota_salud += 2.5
-            elif deuda_ebitda < sector_bench['deuda_ebitda_bueno']: nota_salud += 2.5
-            elif deuda_ebitda < sector_bench['deuda_ebitda_aceptable']: nota_salud += 1.5
-
-    interest_coverage = datos.get('interest_coverage')
-    if interest_coverage is not None:
-        if interest_coverage > sector_bench['int_coverage_excelente']: nota_salud += 2.5
-        elif interest_coverage > sector_bench['int_coverage_bueno']: nota_salud += 1.5
-        
-    ratio_corriente = datos.get('ratio_corriente')
-    if ratio_corriente is not None and ratio_corriente > 1.5:
-        nota_salud += 2.5
-        
-    if datos.get('raw_fcf', 0) is not None and datos.get('raw_fcf', 0) <= 0:
-        nota_salud -= 4
+    # 2. Salud Financiera
+    puntos_obtenidos_salud, puntos_posibles_salud = 0, 0
     
-    # --- RESTAURADO: Puntuación para Crecimiento de FCF ---
-    cagr_fcf = hist_data.get('cagr_fcf')
-    if cagr_fcf is not None and not np.isnan(cagr_fcf) and cagr_fcf > 0:
-        nota_salud += 1
-    elif cagr_fcf is not None and not np.isnan(cagr_fcf) and cagr_fcf < 0:
-        nota_salud -= 1
+    if sector != 'Financials' and datos.get('deuda_ebitda') is not None and not np.isnan(datos.get('deuda_ebitda')):
+        puntos_posibles_salud += 2.5
+        deuda_ebitda = datos.get('deuda_ebitda')
+        if deuda_ebitda < 0: puntos_obtenidos_salud += 2.5
+        elif deuda_ebitda < sector_bench['deuda_ebitda_bueno']: puntos_obtenidos_salud += 2.5
+        elif deuda_ebitda < sector_bench['deuda_ebitda_aceptable']: puntos_obtenidos_salud += 1.5
 
-    puntuaciones['salud'] = max(0, min(10, nota_salud))
+    if datos.get('interest_coverage') is not None:
+        puntos_posibles_salud += 2.5
+        interest_coverage = datos.get('interest_coverage')
+        if interest_coverage > sector_bench['int_coverage_excelente']: puntos_obtenidos_salud += 2.5
+        elif interest_coverage > sector_bench['int_coverage_bueno']: puntos_obtenidos_salud += 1.5
+        
+    if datos.get('ratio_corriente') is not None:
+        puntos_posibles_salud += 2.5
+        if datos.get('ratio_corriente') > 1.5: puntos_obtenidos_salud += 2.5
+        
+    cagr_fcf = hist_data.get('cagr_fcf')
+    if cagr_fcf is not None and not np.isnan(cagr_fcf):
+        puntos_posibles_salud += 2
+        if cagr_fcf > sector_bench['fcf_growth_excelente']: puntos_obtenidos_salud += 2
+        elif cagr_fcf > sector_bench['fcf_growth_bueno']: puntos_obtenidos_salud += 1
+
+    nota_salud_base = (puntos_obtenidos_salud / puntos_posibles_salud) * 10 if puntos_posibles_salud > 0 else 0
+    
+    # Penalización directa por FCF negativo (si el dato existe y es negativo)
+    if datos.get('raw_fcf') is not None and datos.get('raw_fcf') < 0:
+        nota_salud_base -= 4
+
+    puntuaciones['salud'] = max(0, nota_salud_base)
     justificaciones['salud'] = "Balance muy sólido y solvente." if puntuaciones['salud'] >= 8 else "Salud financiera aceptable."
     
-    nota_multiplos = 0
+    # 3. Valoración
+    puntos_obtenidos_multiplos, puntos_posibles_multiplos = 0, 0
+
     if sector == 'Real Estate':
-        if datos.get('p_fcf') is not None and datos['p_fcf'] < 16: nota_multiplos += 8
-        elif datos.get('p_fcf') is not None and datos['p_fcf'] < 22: nota_multiplos += 5
+        if datos.get('p_fcf') is not None and datos.get('p_fcf') > 0:
+            puntos_posibles_multiplos += 8
+            if datos['p_fcf'] < 16: puntos_obtenidos_multiplos += 8
+            elif datos['p_fcf'] < 22: puntos_obtenidos_multiplos += 5
     else:
-        if datos.get('per') is not None and datos['per'] > 0 and not np.isnan(datos['per']):
-            if datos['per'] < sector_bench['per_barato']: nota_multiplos += 4
-            elif datos['per'] < sector_bench['per_justo']: nota_multiplos += 2
+        if datos.get('per') is not None and datos.get('per') > 0:
+            puntos_posibles_multiplos += 4
+            if datos['per'] < sector_bench['per_barato']: puntos_obtenidos_multiplos += 4
+            elif datos['per'] < sector_bench['per_justo']: puntos_obtenidos_multiplos += 2
         
-        if datos.get('p_fcf') is not None and datos['p_fcf'] > 0 and not np.isnan(datos['p_fcf']):
-            if datos['p_fcf'] < 20: nota_multiplos += 4
-            elif datos['p_fcf'] < 30: nota_multiplos += 2
+        if datos.get('p_fcf') is not None and datos.get('p_fcf') > 0:
+            puntos_posibles_multiplos += 4
+            if datos['p_fcf'] < 20: puntos_obtenidos_multiplos += 4
+            elif datos['p_fcf'] < 30: puntos_obtenidos_multiplos += 2
 
     SECTORES_PB_RELEVANTES = ['Financials', 'Industrials', 'Materials', 'Energy', 'Utilities', 'Real Estate']
-    if sector in SECTORES_PB_RELEVANTES and datos.get('p_b') is not None and not np.isnan(datos['p_b']):
-        if datos['p_b'] < sector_bench['pb_barato']: nota_multiplos += 2
+    if sector in SECTORES_PB_RELEVANTES and datos.get('p_b') is not None and datos.get('p_b') > 0:
+        puntos_posibles_multiplos += 2
+        if datos['p_b'] < sector_bench['pb_barato']: puntos_obtenidos_multiplos += 2
     
-    if datos.get('raw_fcf') is not None and datos['raw_fcf'] < 0:
-        nota_multiplos -= 4
+    nota_multiplos = (puntos_obtenidos_multiplos / puntos_posibles_multiplos) * 10 if puntos_posibles_multiplos > 0 else 0
 
     nota_analistas, margen_seguridad = 0, 0
     if datos.get('precio_actual') is not None and datos.get('precio_objetivo') is not None:
@@ -427,7 +454,7 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     puntuaciones['margen_seguridad_yield'] = potencial_yield
     
     nota_historica = 0
-    if potencial_per is not None and potencial_per > 15: nota_historica += 5
+    if potencial_per > 15: nota_historica += 5
     if potencial_yield is not None and potencial_yield > 15: nota_historica += 5
     nota_historica = min(10, nota_historica)
 
@@ -436,41 +463,40 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     per_actual = datos.get('per')
     per_adelantado = datos.get('per_adelantado')
     if per_actual is not None and per_adelantado is not None and per_actual > 0 and per_adelantado > 0:
-        if per_adelantado < per_actual * 0.9:
-            nota_valoracion_base += 1
-        elif per_adelantado > per_actual:
-            nota_valoracion_base -= 1
+        if per_adelantado < per_actual * 0.9: nota_valoracion_base += 1
+        elif per_adelantado > per_actual: nota_valoracion_base -= 1
 
-    if puntuaciones['calidad'] < 3:
-        nota_valoracion_base *= 0.5
-    elif puntuaciones['calidad'] < 5:
-        nota_valoracion_base *= 0.75
+    if puntuaciones['calidad'] < 3: nota_valoracion_base *= 0.5
+    elif puntuaciones['calidad'] < 5: nota_valoracion_base *= 0.75
 
     puntuaciones['valoracion'] = max(0, min(10, nota_valoracion_base))
     if puntuaciones['valoracion'] >= 8: justificaciones['valoracion'] = "Valoración muy atractiva."
     else: justificaciones['valoracion'] = "Valoración razonable o exigente."
 
-    nota_dividendos = 0
-    if datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 3.5: nota_dividendos += 5
-    elif datos.get('yield_dividendo') is not None and datos['yield_dividendo'] > 2: nota_dividendos += 3
+    # 4. Dividendos
+    puntos_obtenidos_dividendos, puntos_posibles_dividendos = 0, 0
     
-    if datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_bueno']: nota_dividendos += 5
-    elif datos.get('payout_ratio') is not None and 0 < datos['payout_ratio'] < sector_bench['payout_aceptable']: nota_dividendos += 3
+    if datos.get('yield_dividendo') is not None and datos.get('yield_dividendo') > 0:
+        puntos_posibles_dividendos += 5
+        if datos['yield_dividendo'] > 3.5: puntos_obtenidos_dividendos += 5
+        elif datos['yield_dividendo'] > 2: puntos_obtenidos_dividendos += 3
+    
+    if datos.get('payout_ratio') is not None and datos.get('payout_ratio') > 0:
+        puntos_posibles_dividendos += 5
+        if datos['payout_ratio'] < sector_bench['payout_bueno']: puntos_obtenidos_dividendos += 5
+        elif datos['payout_ratio'] < sector_bench['payout_aceptable']: puntos_obtenidos_dividendos += 3
 
-    net_buybacks_pct = datos.get('net_buybacks_pct')
-    if net_buybacks_pct is not None and not np.isnan(net_buybacks_pct):
-        if net_buybacks_pct > 1:
-            nota_dividendos += 2
-        elif net_buybacks_pct < -1:
-            nota_dividendos -= 2
+    if datos.get('net_buybacks_pct') is not None:
+        puntos_posibles_dividendos += 2
+        if datos['net_buybacks_pct'] > 1: puntos_obtenidos_dividendos += 2
+        elif datos['net_buybacks_pct'] < -1: puntos_obtenidos_dividendos += 0 # No se resta, solo no se suma
     
-    puntuaciones['dividendos'] = min(10, nota_dividendos)
+    puntuaciones['dividendos'] = (puntos_obtenidos_dividendos / puntos_posibles_dividendos) * 10 if puntos_posibles_dividendos > 0 else 0
     justificaciones['dividendos'] = "Dividendo excelente y sostenible." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
-    # --- CORRECCIÓN: Usar la variable correcta para el crecimiento ---
+    # 5. PEG
     per = datos.get('per')
     crecimiento_yoy = datos.get('crecimiento_beneficios_yoy')
-    
     puntuaciones['peg_lynch'] = None
     if per is not None and per > 0 and crecimiento_yoy is not None and crecimiento_yoy > 0:
         puntuaciones['peg_lynch'] = per / (crecimiento_yoy * 100)
