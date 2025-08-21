@@ -29,18 +29,19 @@ st.markdown("""
 
 # --- Benchmarks Centralizados y Completos para los 11 Sectores GICS ---
 SECTOR_BENCHMARKS = {
-    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'roe_alerta': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_alerta': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'margen_neto_alerta': 15, 'rev_growth_excelente': 15, 'rev_growth_bueno': 10, 'rev_growth_alerta': 10, 'fcf_growth_excelente': 15, 'fcf_growth_bueno': 10, 'fcf_growth_alerta': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'deuda_patrimonio_bueno': 0.7, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 10, 'int_coverage_bueno': 5},
-    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'roe_alerta': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_alerta': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'margen_neto_alerta': 10, 'rev_growth_excelente': 10, 'rev_growth_bueno': 6, 'rev_growth_alerta': 6, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 6, 'fcf_growth_alerta': 6, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 8, 'int_coverage_bueno': 4},
-    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'roe_alerta': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'margen_neto_alerta': 8, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90, 'deuda_ebitda_bueno': 1, 'deuda_ebitda_aceptable': 2, 'deuda_patrimonio_bueno': 2.0, 'deuda_patrimonio_aceptable': 4.0, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3},
-    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'roe_alerta': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'margen_neto_alerta': 6, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
-    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'roe_alerta': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_alerta': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 5, 'rev_growth_bueno': 3, 'rev_growth_alerta': 3, 'fcf_growth_excelente': 5, 'fcf_growth_bueno': 3, 'fcf_growth_alerta': 3, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95, 'deuda_ebitda_bueno': 4, 'deuda_ebitda_aceptable': 5.5, 'deuda_patrimonio_bueno': 1.5, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 4, 'int_coverage_bueno': 2.5},
-    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'roe_alerta': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_alerta': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'rev_growth_alerta': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'fcf_growth_alerta': 7, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
-    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'roe_alerta': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 7, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 7, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.2, 'deuda_patrimonio_aceptable': 2.5, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
-    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'roe_alerta': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_alerta': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 8, 'rev_growth_bueno': 0, 'rev_growth_alerta': 0, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 0, 'fcf_growth_alerta': 0, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'deuda_patrimonio_bueno': 0.8, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 8, 'int_coverage_bueno': 5},
-    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_alerta': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'deuda_patrimonio_bueno': 0.8, 'deuda_patrimonio_aceptable': 1.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
-    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'roe_alerta': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_alerta': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'margen_neto_alerta': 10, 'rev_growth_excelente': 8, 'rev_growth_bueno': 4, 'rev_growth_alerta': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'fcf_growth_alerta': 4, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100, 'deuda_ebitda_bueno': 5, 'deuda_ebitda_aceptable': 7, 'deuda_patrimonio_bueno': 1.5, 'deuda_patrimonio_aceptable': 3.0, 'int_coverage_excelente': 3, 'int_coverage_bueno': 2},
-    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_alerta': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'margen_neto_alerta': 9, 'rev_growth_excelente': 12, 'rev_growth_bueno': 7, 'rev_growth_alerta': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'fcf_growth_alerta': 7, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
-    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'roe_alerta': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_alerta': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'margen_neto_alerta': 5, 'rev_growth_excelente': 10, 'rev_growth_bueno': 5, 'rev_growth_alerta': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'fcf_growth_alerta': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 5, 'deuda_patrimonio_bueno': 1.0, 'deuda_patrimonio_aceptable': 2.0, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3}
+    'Information Technology': {'roe_excelente': 25, 'roe_bueno': 18, 'margen_excelente': 25, 'margen_bueno': 18, 'margen_neto_excelente': 20, 'margen_neto_bueno': 15, 'bpa_growth_excelente': 15, 'bpa_growth_bueno': 10, 'fcf_growth_excelente': 15, 'fcf_growth_bueno': 10, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 4, 'pb_justo': 8, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'int_coverage_excelente': 10, 'int_coverage_bueno': 5},
+    'Health Care': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'bpa_growth_excelente': 12, 'bpa_growth_bueno': 7, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 6, 'per_barato': 20, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4, 'int_coverage_excelente': 8, 'int_coverage_bueno': 4},
+    'Financials': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'bpa_growth_excelente': 10, 'bpa_growth_bueno': 5, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90, 'deuda_ebitda_bueno': 1, 'deuda_ebitda_aceptable': 2, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3},
+    'Financial Services': {'roe_excelente': 12, 'roe_bueno': 10, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 10, 'margen_neto_bueno': 8, 'bpa_growth_excelente': 10, 'bpa_growth_bueno': 5, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'per_barato': 12, 'per_justo': 18, 'pb_barato': 1, 'pb_justo': 1.5, 'payout_bueno': 70, 'payout_aceptable': 90, 'deuda_ebitda_bueno': 1, 'deuda_ebitda_aceptable': 2, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3},
+    'Industrials': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 6, 'bpa_growth_excelente': 10, 'bpa_growth_bueno': 6, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2.5, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
+    'Utilities': {'roe_excelente': 10, 'roe_bueno': 8, 'margen_excelente': 15, 'margen_bueno': 12, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 6, 'bpa_growth_bueno': 3, 'fcf_growth_excelente': 5, 'fcf_growth_bueno': 3, 'per_barato': 18, 'per_justo': 22, 'pb_barato': 1.5, 'pb_justo': 2, 'payout_bueno': 80, 'payout_aceptable': 95, 'deuda_ebitda_bueno': 4, 'deuda_ebitda_aceptable': 5.5, 'int_coverage_excelente': 4, 'int_coverage_bueno': 2.5},
+    'Consumer Discretionary': {'roe_excelente': 18, 'roe_bueno': 14, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 12, 'bpa_growth_bueno': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'per_barato': 20, 'per_justo': 28, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
+    'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 8, 'bpa_growth_bueno': 5, 'fcf_growth_excelente': 7, 'fcf_growth_bueno': 4, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
+    'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 8, 'bpa_growth_bueno': 0, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 0, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'int_coverage_excelente': 8, 'int_coverage_bueno': 5},
+    'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 10, 'bpa_growth_bueno': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
+    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'bpa_growth_excelente': 8, 'bpa_growth_bueno': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100, 'deuda_ebitda_bueno': 5, 'deuda_ebitda_aceptable': 7, 'int_coverage_excelente': 3, 'int_coverage_bueno': 2},
+    'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'bpa_growth_excelente': 12, 'bpa_growth_bueno': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
+    'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 10, 'bpa_growth_bueno': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 5, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3}
 }
 
 # --- BLOQUE 1: OBTENCIÓN DE DATOS ---
@@ -55,7 +56,6 @@ def obtener_datos_completos(ticker):
     balance_sheet = stock.balance_sheet
     cashflow = stock.cashflow
     
-    # --- CÁLCULO MANUAL Y FIABLE DE MÉTRICAS DE DEUDA Y CAPITAL ---
     ebit = financials.loc['EBIT'].iloc[0] if 'EBIT' in financials.index and not financials.loc['EBIT'].empty else None
     interest_expense = financials.loc['Interest Expense'].iloc[0] if 'Interest Expense' in financials.index and not financials.loc['Interest Expense'].empty else None
     
@@ -74,7 +74,6 @@ def obtener_datos_completos(ticker):
     
     roe = info.get('returnOnEquity', 0) * 100
     
-    # --- CÁLCULO DE RECOMPRAS NETAS (%) ---
     net_buybacks_pct = None
     try:
         shares_key = 'Basic Average Shares' if 'Basic Average Shares' in financials.index else 'Diluted Average Shares'
@@ -88,7 +87,6 @@ def obtener_datos_completos(ticker):
     except Exception:
         net_buybacks_pct = None
 
-    # --- LÓGICA DE DIVIDENDOS Y PAYOUT ---
     payout = info.get('payoutRatio')
     dividend_rate = info.get('dividendRate')
     precio = info.get('currentPrice')
@@ -105,7 +103,6 @@ def obtener_datos_completos(ticker):
     market_cap = info.get('marketCap')
     p_fcf = (market_cap / free_cash_flow) if market_cap and free_cash_flow and free_cash_flow > 0 else None
 
-    # --- NUEVO: CÁLCULO DE PAYOUT SOBRE FCF ---
     payout_fcf_ratio = None
     dividends_paid = cashflow.loc['Cash Dividends Paid'].iloc[0] if 'Cash Dividends Paid' in cashflow.index and not cashflow.loc['Cash Dividends Paid'].empty else None
     if dividends_paid is not None and free_cash_flow is not None and free_cash_flow > 0:
@@ -134,14 +131,13 @@ def obtener_datos_completos(ticker):
         "p_fcf": p_fcf,
         "raw_fcf": free_cash_flow,
         "p_b": info.get('priceToBook'),
-        "crecimiento_ingresos_yoy": info.get('revenueGrowth', 0) * 100 if info.get('revenueGrowth') is not None else 0,
         "yield_dividendo": div_yield,
         "payout_ratio": payout * 100 if payout is not None else 0,
         "payout_fcf_ratio": payout_fcf_ratio * 100 if payout_fcf_ratio is not None else None,
         "recomendacion_analistas": info.get('recommendationKey', 'N/A'),
         "precio_objetivo": info.get('targetMeanPrice'), "precio_actual": info.get('currentPrice'),
         "bpa": info.get('trailingEps'),
-        "crecimiento_beneficios_yoy": info.get('earningsGrowth'),
+        "bpa_growth_yoy": info.get('earningsGrowth'),
         "deuda_ebitda": deuda_ebitda,
         "interest_coverage": interest_coverage,
         "beta": info.get('beta', 'N/A'),
@@ -151,10 +147,15 @@ def obtener_datos_completos(ticker):
     }
 
 def calculate_cagr(end_value, start_value, years):
-    if start_value is None or end_value is None or start_value <= 0 or years <= 0:
+    if start_value is None or end_value is None or start_value == 0 or years <= 0:
+        return None
+    # La fórmula CAGR no funciona bien si el valor inicial es negativo
+    if start_value < 0:
         return None
     try:
-        return ((end_value / start_value) ** (1 / years) - 1) * 100
+        # Se añade un pequeño valor para evitar errores si el valor final es negativo
+        sign = -1 if end_value < 0 else 1
+        return ((((abs(end_value) + 1e-9) / start_value) ** (1 / years)) - 1) * 100 * sign
     except (ZeroDivisionError, ValueError):
         return None
 
@@ -172,42 +173,29 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         cashflow_raw = stock.cashflow
         
         financials_for_charts, dividends_for_charts = None, None
-        cagr_rev, cagr_fcf = None, None
+        cagr_rev, cagr_fcf, bpa_cagr_5y = None, None, None
 
         if not financials_raw.empty:
             financials_annual = financials_raw.T.sort_index(ascending=True)
             if len(financials_annual) >= 5:
-                years = 5
-                start_year = financials_annual.index[-1].year - years
-                start_rev_series = financials_annual[financials_annual.index.year == start_year].get('Total Revenue', pd.Series())
-                start_rev = start_rev_series.iloc[0] if not start_rev_series.empty else None
-                end_rev = financials_annual['Total Revenue'].iloc[-1] if 'Total Revenue' in financials_annual.columns else None
-                cagr_rev = calculate_cagr(end_rev, start_rev, years)
-            
-            if cagr_rev is None and len(financials_annual) >= 3:
-                years = 3
-                start_year = financials_annual.index[-1].year - years
-                start_rev_series = financials_annual[financials_annual.index.year == start_year].get('Total Revenue', pd.Series())
-                start_rev = start_rev_series.iloc[0] if not start_rev_series.empty else None
-                end_rev = financials_annual['Total Revenue'].iloc[-1] if 'Total Revenue' in financials_annual.columns else None
-                cagr_rev = calculate_cagr(end_rev, start_rev, years)
+                # --- CÁLCULO DEL CAGR DEL BPA a 5 años ---
+                net_income = financials_annual.get('Net Income', pd.Series(dtype=float))
+                shares_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_annual.columns else 'Diluted Average Shares'
+                shares = financials_annual.get(shares_key, pd.Series(dtype=float))
+                
+                if not net_income.empty and not shares.empty:
+                    eps_series = (net_income / shares).dropna()
+                    if len(eps_series) >= 5:
+                        start_eps = eps_series.iloc[-5]
+                        end_eps = eps_series.iloc[-1]
+                        bpa_cagr_5y = calculate_cagr(end_eps, start_eps, 4) # 4 periodos en 5 años
         
         if not cashflow_raw.empty:
             cashflow_annual = cashflow_raw.T.sort_index(ascending=True)
             fcf_key = next((key for key in ['Free Cash Flow', 'Net Cash Flow From Continuing Investing Activities'] if key in cashflow_annual.columns), None)
             if fcf_key and len(cashflow_annual) >= 5:
-                years_cf = 5
-                start_year = cashflow_annual.index[-1].year - years_cf
-                start_fcf_series = cashflow_annual[cashflow_annual.index.year == start_year].get(fcf_key, pd.Series())
-                start_fcf = start_fcf_series.iloc[0] if not start_fcf_series.empty else None
-                end_fcf = cashflow_annual[fcf_key].iloc[-1]
-                cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
-            
-            if cagr_fcf is None and fcf_key and len(cashflow_annual) >= 3:
-                years_cf = 3
-                start_year = cashflow_annual.index[-1].year - years_cf
-                start_fcf_series = cashflow_annual[cashflow_annual.index.year == start_year].get(fcf_key, pd.Series())
-                start_fcf = start_fcf_series.iloc[0] if not start_fcf_series.empty else None
+                years_cf = 4
+                start_fcf = cashflow_annual[fcf_key].iloc[-5]
                 end_fcf = cashflow_annual[fcf_key].iloc[-1]
                 cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
 
@@ -232,12 +220,11 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         hist_10y = stock.history(period="10y")
         
         if hist_10y.empty:
-            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf}
+            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "bpa_cagr_5y": bpa_cagr_5y}
         
         pers, annual_yields = [], []
         per_historico, yield_historico = None, None
         
-        # --- MODIFICADO: Se calcula siempre el PER Histórico, pero con advertencia si no es USD ---
         financial_currency = info.get('financialCurrency', 'USD')
         if financial_currency != 'USD':
             st.warning(f"⚠️ **Precaución con el PER Histórico:** La divisa de los estados financieros ({financial_currency}) no es USD. El cálculo del PER histórico puede ser impreciso debido a las fluctuaciones del tipo de cambio.")
@@ -259,7 +246,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                                 pers.append(per_year)
         per_historico = np.mean(pers) if pers else None
 
-        # --- Yield histórico se calcula siempre ---
         divs_10y = stock.dividends
         if not divs_10y.empty:
             annual_dividends = divs_10y.resample('YE').sum()
@@ -270,7 +256,6 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                 annual_yields = ((df_yield['Dividends'] / df_yield['Price']) * 100).tolist()
         yield_historico = np.mean(annual_yields) if annual_yields else None
 
-        # --- Análisis Técnico ---
         tech_data = None
         if not hist_10y.empty:
             end_date_1y = hist_10y.index.max()
@@ -290,11 +275,12 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts,
             "per_hist": per_historico, "yield_hist": yield_historico,
             "tech_data": tech_data,
-            "cagr_rev": cagr_rev, "cagr_fcf": cagr_fcf,
+            "cagr_fcf": cagr_fcf,
+            "bpa_cagr_5y": bpa_cagr_5y
         }
     except Exception as e:
         st.error(f"Se produjo un error al procesar los datos históricos y técnicos. Detalle: {e}")
-        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_rev": None, "cagr_fcf": None}
+        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "bpa_cagr_5y": None}
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
@@ -313,7 +299,7 @@ def analizar_banderas_rojas(datos, financials):
             banderas.append("🔴 **Márgenes Decrecientes:** Los márgenes de beneficio llevan 3 años seguidos bajando.")
         if 'Total Debt' in financials.columns and len(financials) >= 3 and financials['Total Debt'].iloc[-1] > financials['Total Debt'].iloc[-3] * 1.5:
             banderas.append("🔴 **Deuda Creciente:** La deuda total ha aumentado significativamente.")
-    if datos.get('raw_fcf') is not None and datos.get('raw_fcf', 0) < 0:
+    if datos.get('raw_fcf') is not None and datos.get('raw_fcf') < 0:
         banderas.append("🔴 **Flujo de Caja Libre Negativo:** La empresa está quemando más dinero del que genera.")
     if datos.get('interest_coverage') is not None and datos.get('interest_coverage') < 2:
         banderas.append("🔴 **Cobertura de Intereses Baja:** El beneficio operativo apenas cubre el pago de intereses.")
@@ -358,15 +344,15 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): puntos_obtenidos_calidad += 2
         elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): puntos_obtenidos_calidad += 1
 
-    cagr_rev = hist_data.get('cagr_rev')
-    if cagr_rev is not None and not np.isnan(cagr_rev):
+    bpa_cagr_5y = hist_data.get('bpa_cagr_5y')
+    if bpa_cagr_5y is not None and not np.isnan(bpa_cagr_5y):
         puntos_posibles_calidad += 2
-        if cagr_rev > sector_bench['rev_growth_excelente']: puntos_obtenidos_calidad += 2
-        elif cagr_rev > sector_bench['rev_growth_bueno']: puntos_obtenidos_calidad += 1
+        if bpa_cagr_5y > sector_bench['bpa_growth_excelente']: puntos_obtenidos_calidad += 2
+        elif bpa_cagr_5y > sector_bench['bpa_growth_bueno']: puntos_obtenidos_calidad += 1
     
-    if datos.get('crecimiento_ingresos_yoy') is not None:
+    if datos.get('bpa_growth_yoy') is not None:
         puntos_posibles_calidad += 1
-        if datos['crecimiento_ingresos_yoy'] > sector_bench['rev_growth_excelente']: puntos_obtenidos_calidad += 1
+        if datos['bpa_growth_yoy'] * 100 > sector_bench['bpa_growth_excelente']: puntos_obtenidos_calidad += 1
     
     puntuaciones['calidad'] = (puntos_obtenidos_calidad / puntos_posibles_calidad) * 10 if puntos_posibles_calidad > 0 else 0
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
@@ -399,7 +385,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
 
     nota_salud_base = (puntos_obtenidos_salud / puntos_posibles_salud) * 10 if puntos_posibles_salud > 0 else 0
     
-    # Penalización directa por FCF negativo (si el dato existe y es negativo)
     if datos.get('raw_fcf') is not None and datos.get('raw_fcf') < 0:
         nota_salud_base -= 4
 
@@ -489,14 +474,14 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     if datos.get('net_buybacks_pct') is not None:
         puntos_posibles_dividendos += 2
         if datos['net_buybacks_pct'] > 1: puntos_obtenidos_dividendos += 2
-        elif datos['net_buybacks_pct'] < -1: puntos_obtenidos_dividendos += 0 # No se resta, solo no se suma
+        elif datos['net_buybacks_pct'] < -1: puntos_obtenidos_dividendos += 0
     
     puntuaciones['dividendos'] = (puntos_obtenidos_dividendos / puntos_posibles_dividendos) * 10 if puntos_posibles_dividendos > 0 else 0
     justificaciones['dividendos'] = "Dividendo excelente y sostenible." if puntuaciones['dividendos'] >= 8 else "Dividendo sólido."
     
     # 5. PEG
     per = datos.get('per')
-    crecimiento_yoy = datos.get('crecimiento_beneficios_yoy')
+    crecimiento_yoy = datos.get('bpa_growth_yoy')
     puntuaciones['peg_lynch'] = None
     if per is not None and per > 0 and crecimiento_yoy is not None and crecimiento_yoy > 0:
         puntuaciones['peg_lynch'] = per / (crecimiento_yoy * 100)
@@ -745,8 +730,9 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     roe = datos.get('roe', 0)
     margen_op = datos.get('margen_operativo', 0)
     margen_neto = datos.get('margen_beneficio', 0)
-    cagr_rev = hist_data.get('cagr_rev')
-    yoy_rev = datos.get('crecimiento_ingresos_yoy', 0)
+    bpa_cagr = hist_data.get('bpa_cagr_5y')
+    bpa_yoy = datos.get('bpa_growth_yoy')
+    bpa_yoy_pct = bpa_yoy * 100 if bpa_yoy is not None else None
     
     leyenda_calidad = f"""
 - **ROE (Return on Equity):** Mide la rentabilidad que la empresa es capaz de sacar de nuestro dinero, el de los accionistas. Un ROE alto es un indicativo de un negocio fuerte y bien gestionado.<br>
@@ -767,25 +753,25 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'], f"**Bueno:** > {sector_bench['margen_neto_bueno']}%")}<br>
     - {highlight(margen_neto <= sector_bench['margen_neto_bueno'], f"**Alerta:** < {sector_bench['margen_neto_bueno']}%")}
 <br><br>
-- **Crecimiento Ingresos (CAGR):** El crecimiento anual compuesto de las ventas. Indica la salud y el potencial a largo plazo.<br>
+- **Crecimiento del BPA (CAGR a 5 años):** Mide la consistencia y calidad del crecimiento del beneficio por acción a largo plazo. Es una de las métricas más importantes.<br>
 Rangos para el sector **{datos['sector']}**:<br>
 """
-    if cagr_rev is not None and not np.isnan(cagr_rev):
+    if bpa_cagr is not None and not np.isnan(bpa_cagr):
         leyenda_calidad += f"""
-    - {highlight(cagr_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(sector_bench['rev_growth_bueno'] < cagr_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
-    - {highlight(cagr_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
+    - {highlight(bpa_cagr > sector_bench['bpa_growth_excelente'], f"**Excelente:** > {sector_bench['bpa_growth_excelente']}%")}<br>
+    - {highlight(sector_bench['bpa_growth_bueno'] < bpa_cagr <= sector_bench['bpa_growth_excelente'], f"**Bueno:** > {sector_bench['bpa_growth_bueno']}%")}<br>
+    - {highlight(bpa_cagr <= sector_bench['bpa_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['bpa_growth_bueno']}%")}
 """
     else:
         leyenda_calidad += " - <i>Datos no disponibles.</i>"
         
     leyenda_calidad += f"""
 <br><br>
-- **Crecimiento Ingresos (YoY):** El crecimiento de ventas en el último año. Indica la salud actual del negocio.<br>
+- **Crecimiento del BPA (Interanual - YoY):** Mide la salud y el momentum actual del negocio.<br>
 Rangos para el sector **{datos['sector']}**:<br>
-    - {highlight(yoy_rev > sector_bench['rev_growth_excelente'], f"**Excelente:** > {sector_bench['rev_growth_excelente']}%")}<br>
-    - {highlight(yoy_rev is not None and sector_bench['rev_growth_bueno'] < yoy_rev <= sector_bench['rev_growth_excelente'], f"**Bueno:** > {sector_bench['rev_growth_bueno']}%")}<br>
-    - {highlight(yoy_rev is not None and yoy_rev <= sector_bench['rev_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['rev_growth_bueno']}%")}
+    - {highlight(bpa_yoy_pct is not None and bpa_yoy_pct > sector_bench['bpa_growth_excelente'], f"**Excelente:** > {sector_bench['bpa_growth_excelente']}%")}<br>
+    - {highlight(bpa_yoy_pct is not None and sector_bench['bpa_growth_bueno'] < bpa_yoy_pct <= sector_bench['bpa_growth_excelente'], f"**Bueno:** > {sector_bench['bpa_growth_bueno']}%")}<br>
+    - {highlight(bpa_yoy_pct is not None and bpa_yoy_pct <= sector_bench['bpa_growth_bueno'], f"**Lento/Negativo:** < {sector_bench['bpa_growth_bueno']}%")}
 """
 
     # --- Leyenda de Salud Financiera ---
@@ -850,6 +836,7 @@ Rangos para el sector **{datos['sector']}**:<br>
 
     # --- Leyenda de Valoración ---
     per = datos.get('per')
+    per_adelantado = datos.get('per_adelantado')
     p_fcf = datos.get('p_fcf')
     p_b = datos.get('p_b')
     
@@ -866,6 +853,11 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(per > sector_bench['per_justo'], f"**Caro:** > {sector_bench['per_justo']}")}"""
     else:
         leyenda_valoracion += f"""- {highlight(True, "**No aplicable (negativo o N/A).**")}"""
+
+    leyenda_valoracion += f"""<br><br>- **PER Adelantado (Forward PE):** Es el PER calculado con los beneficios que los analistas esperan para el próximo año. Si es más bajo que el PER actual, significa que se espera un crecimiento de los beneficios.<br>
+    - {highlight(per_adelantado is not None and per is not None and per_adelantado < per, "🟢 **Positivo:** Se espera crecimiento.")}<br>
+    - {highlight(per_adelantado is not None and per is not None and per_adelantado >= per, "🔴 **Negativo:** Se espera un estancamiento o caída de beneficios.")}
+"""
 
     if p_fcf is not None and p_fcf > 0 and not np.isnan(p_fcf):
         p_fcf_barato, p_fcf_justo = (16, 22) if datos.get('sector') == 'Real Estate' else (20, 30)
@@ -1080,12 +1072,13 @@ if st.button('Analizar Acción'):
                         with c1:
                             mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
                             mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
-                            cagr_rev_val = hist_data.get('cagr_rev')
-                            mostrar_crecimiento_con_color("🚀 Crec. Ingresos (CAGR)", cagr_rev_val, sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'])
+                            bpa_cagr_val = hist_data.get('bpa_cagr_5y')
+                            mostrar_crecimiento_con_color("🚀 Crec. BPA (CAGR 5A)", bpa_cagr_val, sector_bench['bpa_growth_excelente'], sector_bench['bpa_growth_bueno'])
                         with c2:
                             mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
-                            yoy_rev_val = datos.get('crecimiento_ingresos_yoy')
-                            mostrar_crecimiento_con_color("🔥 Crec. Ingresos (YoY)", yoy_rev_val, sector_bench['rev_growth_excelente'], sector_bench['rev_growth_bueno'])
+                            bpa_yoy_val = datos.get('bpa_growth_yoy')
+                            bpa_yoy_val_pct = bpa_yoy_val * 100 if bpa_yoy_val is not None else None
+                            mostrar_crecimiento_con_color("🔥 Crec. BPA (YoY)", bpa_yoy_val_pct, sector_bench['bpa_growth_excelente'], sector_bench['bpa_growth_bueno'])
                         with st.expander("Ver Leyenda Detallada"):
                             st.markdown(leyendas['calidad'], unsafe_allow_html=True)
                 with col2:
@@ -1115,23 +1108,18 @@ if st.button('Analizar Acción'):
                     tab1, tab2 = st.tabs(["Múltiplos Actuales", "Análisis Histórico"])
                     
                     with tab1:
-                        val1, val2, val3 = st.columns(3)
+                        val1, val2, val3, val4 = st.columns(4)
                         with val1:
                             mostrar_metrica_con_color("⚖️ PER", datos.get('per'), sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)
                         with val2:
-                            mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
+                            mostrar_metrica_con_color("🔮 PER Adelantado", datos.get('per_adelantado'), datos.get('per'), lower_is_better=True)
                         with val3:
+                            mostrar_metrica_con_color("🌊 P/FCF", datos['p_fcf'], 20, 30, lower_is_better=True)
+                        with val4:
                             mostrar_metrica_con_color("📚 P/B", datos['p_b'], sector_bench['pb_barato'], sector_bench['pb_justo'], lower_is_better=True)
 
                     with tab2:
-                        if hist_data.get('per_hist') is None and hist_data.get('yield_hist') is None:
-                            st.info("El análisis histórico no está disponible para esta acción.")
-                        else:
-                            h1, h2 = st.columns(2)
-                            with h1:
-                                mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), lower_is_better=True)
-                            with h2:
-                                mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True)
+                        mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), lower_is_better=True)
 
                     with st.expander("Ver Leyenda Detallada de Múltiplos"):
                         st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
@@ -1156,6 +1144,7 @@ if st.button('Analizar Acción'):
                         div1, div2, div3 = st.columns(3)
                         with div1:  
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
+                            mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True)
                         with div2:
                             mostrar_metrica_con_color("🤲 Payout (Beneficios)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                         with div3:
@@ -1176,10 +1165,8 @@ if st.button('Analizar Acción'):
                         mostrar_margen_seguridad("🛡️ Según Analistas", puntuaciones['margen_seguridad_analistas'])
                     with ms2:
                         mostrar_margen_seguridad("📈 Según su PER Histórico", puntuaciones['margen_seguridad_per'])
-                        mostrar_metrica_blue_chip("PER Actual vs Histórico", datos.get('per'), hist_data.get('per_hist'), lower_is_better=True)
                     with ms3:
                         mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
-                        mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True)
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
 
@@ -1202,7 +1189,6 @@ if st.button('Analizar Acción'):
                     banderas = analizar_banderas_rojas(datos, financials_hist)
                     if not banderas:
                         st.success("✅ No se han detectado banderas rojas significativas.")
-                    # Las banderas amarillas y rojas se muestran desde la función analizar_banderas_rojas
 
                 col_tech, col_tech_legend = st.columns(2)
                 with col_tech:
@@ -1211,7 +1197,6 @@ if st.button('Analizar Acción'):
                         fig_tecnico = crear_grafico_tecnico(tech_data)
                         st.pyplot(fig_tecnico)
                         
-                        # --- CÓDIGO RESTAURADO ---
                         last_price_val = tech_data['Close'].iloc[-1] if not tech_data.empty else None
                         sma50_val = tech_data['SMA50'].iloc[-1] if not tech_data['SMA50'].isnull().all() else None
                         sma200_val = tech_data['SMA200'].iloc[-1] if not tech_data['SMA200'].isnull().all() else None
@@ -1238,7 +1223,6 @@ if st.button('Analizar Acción'):
                         
                         beta_texto = f"{beta:.2f}" if isinstance(beta, (int, float)) and not np.isnan(beta) else 'N/A'
                         st.markdown(f'<div class="metric-container"><div class="metric-label">Beta</div><div class="metric-value color-white">{beta_texto}</div></div>', unsafe_allow_html=True)
-                        # --- FIN DEL CÓDIGO RESTAURADO ---
 
                     else:
                         st.warning("No se pudieron generar los datos para el análisis técnico.")
