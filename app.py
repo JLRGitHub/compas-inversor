@@ -1260,6 +1260,8 @@ if st.button('Analizar Acción'):
                     banderas = analizar_banderas_rojas(datos, financials_hist)
                     if not banderas:
                         st.success("✅ No se han detectado banderas rojas significativas.")
+                    for bandera in banderas:
+                        st.error(bandera)
 
                 col_tech, col_tech_legend = st.columns(2)
                 with col_tech:
