@@ -154,7 +154,7 @@ def calculate_cagr(end_value, start_value, years):
     try:
         sign = -1 if end_value < 0 else 1
         return ((((abs(end_value) + 1e-9) / start_value) ** (1 / years)) - 1) * 100 * sign
-    except (ZeroDivisionError, ValueError):
+    except (ZeroDivisionError, ValueError, TypeError):
         return None
 
 @st.cache_data(ttl=3600)
@@ -171,21 +171,28 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         cashflow_raw = stock.cashflow
         
         financials_for_charts, dividends_for_charts = None, None
-        cagr_fcf, bpa_cagr_5y = None, None
+        cagr_fcf, bpa_cagr = None, None
+        bpa_cagr_period = None
 
         if not financials_raw.empty:
             financials_annual = financials_raw.T.sort_index(ascending=True)
-            if len(financials_annual) >= 5:
-                net_income = financials_annual.get('Net Income', pd.Series(dtype=float))
-                shares_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_annual.columns else 'Diluted Average Shares'
-                shares = financials_annual.get(shares_key, pd.Series(dtype=float))
+            net_income = financials_annual.get('Net Income', pd.Series(dtype=float))
+            shares_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_annual.columns else 'Diluted Average Shares'
+            shares = financials_annual.get(shares_key, pd.Series(dtype=float))
+            
+            if not net_income.empty and not shares.empty:
+                eps_series = (net_income / shares).dropna()
+                if len(eps_series) >= 5:
+                    start_eps = eps_series.iloc[-5]
+                    end_eps = eps_series.iloc[-1]
+                    bpa_cagr = calculate_cagr(end_eps, start_eps, 4)
+                    bpa_cagr_period = "5A"
                 
-                if not net_income.empty and not shares.empty:
-                    eps_series = (net_income / shares).dropna()
-                    if len(eps_series) >= 5:
-                        start_eps = eps_series.iloc[-5]
-                        end_eps = eps_series.iloc[-1]
-                        bpa_cagr_5y = calculate_cagr(end_eps, start_eps, 4)
+                if bpa_cagr is None and len(eps_series) >= 3:
+                    start_eps = eps_series.iloc[-3]
+                    end_eps = eps_series.iloc[-1]
+                    bpa_cagr = calculate_cagr(end_eps, start_eps, 2)
+                    bpa_cagr_period = "3A"
         
         if not cashflow_raw.empty:
             cashflow_annual = cashflow_raw.T.sort_index(ascending=True)
@@ -217,7 +224,7 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         hist_10y = stock.history(period="10y")
         
         if hist_10y.empty:
-            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "bpa_cagr_5y": bpa_cagr_5y}
+            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period}
         
         pers, annual_yields = [], []
         per_historico, yield_historico = None, None
@@ -273,11 +280,12 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "per_hist": per_historico, "yield_hist": yield_historico,
             "tech_data": tech_data,
             "cagr_fcf": cagr_fcf,
-            "bpa_cagr_5y": bpa_cagr_5y
+            "bpa_cagr": bpa_cagr,
+            "bpa_cagr_period": bpa_cagr_period
         }
     except Exception as e:
         st.error(f"Se produjo un error al procesar los datos históricos y técnicos. Detalle: {e}")
-        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "bpa_cagr_5y": None}
+        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "bpa_cagr": None, "bpa_cagr_period": None}
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
@@ -341,15 +349,16 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
         if datos['margen_beneficio'] > sector_bench.get('margen_neto_excelente', 8): puntos_obtenidos_calidad += 2
         elif datos['margen_beneficio'] > sector_bench.get('margen_neto_bueno', 5): puntos_obtenidos_calidad += 1
 
-    bpa_cagr_5y = hist_data.get('bpa_cagr_5y')
-    if bpa_cagr_5y is not None and not np.isnan(bpa_cagr_5y):
+    bpa_cagr = hist_data.get('bpa_cagr')
+    if bpa_cagr is not None and not np.isnan(bpa_cagr):
         puntos_posibles_calidad += 2
-        if bpa_cagr_5y > sector_bench['bpa_growth_excelente']: puntos_obtenidos_calidad += 2
-        elif bpa_cagr_5y > sector_bench['bpa_growth_bueno']: puntos_obtenidos_calidad += 1
+        if bpa_cagr > sector_bench['bpa_growth_excelente']: puntos_obtenidos_calidad += 2
+        elif bpa_cagr > sector_bench['bpa_growth_bueno']: puntos_obtenidos_calidad += 1
     
-    if datos.get('bpa_growth_yoy') is not None:
+    bpa_yoy = datos.get('bpa_growth_yoy')
+    if bpa_yoy is not None:
         puntos_posibles_calidad += 1
-        if datos['bpa_growth_yoy'] * 100 > sector_bench['bpa_growth_excelente']: puntos_obtenidos_calidad += 1
+        if bpa_yoy * 100 > sector_bench['bpa_growth_excelente']: puntos_obtenidos_calidad += 1
     
     puntuaciones['calidad'] = (puntos_obtenidos_calidad / puntos_posibles_calidad) * 10 if puntos_posibles_calidad > 0 else 0
     justificaciones['calidad'] = "Rentabilidad, márgenes y crecimiento de élite." if puntuaciones['calidad'] >= 8 else "Negocio de buena calidad."
@@ -475,7 +484,6 @@ def calcular_puntuaciones_y_justificaciones(datos, hist_data):
     
     nota_dividendos = (puntos_obtenidos_dividendos / puntos_posibles_dividendos) * 10 if puntos_posibles_dividendos > 0 else 0
     
-    # Penalización si el yield actual es menor que el histórico
     if yield_historico is not None and datos.get('yield_dividendo') is not None and datos.get('yield_dividendo') < yield_historico:
         nota_dividendos -= 2
 
@@ -733,7 +741,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     roe = datos.get('roe', 0)
     margen_op = datos.get('margen_operativo', 0)
     margen_neto = datos.get('margen_beneficio', 0)
-    bpa_cagr = hist_data.get('bpa_cagr_5y')
+    bpa_cagr = hist_data.get('bpa_cagr')
     bpa_yoy = datos.get('bpa_growth_yoy')
     bpa_yoy_pct = bpa_yoy * 100 if bpa_yoy is not None else None
     
@@ -756,7 +764,7 @@ Rangos para el sector **{datos['sector']}**:<br>
     - {highlight(sector_bench['margen_neto_bueno'] < margen_neto <= sector_bench['margen_neto_excelente'], f"**Bueno:** > {sector_bench['margen_neto_bueno']}%")}<br>
     - {highlight(margen_neto <= sector_bench['margen_neto_bueno'], f"**Alerta:** < {sector_bench['margen_neto_bueno']}%")}
 <br><br>
-- **Crecimiento del BPA (CAGR a 5 años):** Mide la consistencia y calidad del crecimiento del beneficio por acción a largo plazo. Es una de las métricas más importantes.<br>
+- **Crecimiento del BPA (CAGR):** Mide la consistencia y calidad del crecimiento del beneficio por acción a largo plazo. Es una de las métricas más importantes.<br>
 Rangos para el sector **{datos['sector']}**:<br>
 """
     if bpa_cagr is not None and not np.isnan(bpa_cagr):
@@ -1075,8 +1083,9 @@ if st.button('Analizar Acción'):
                         with c1:
                             mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
                             mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
-                            bpa_cagr_val = hist_data.get('bpa_cagr_5y')
-                            mostrar_crecimiento_con_color("🚀 Crec. BPA (CAGR 5A)", bpa_cagr_val, sector_bench['bpa_growth_excelente'], sector_bench['bpa_growth_bueno'])
+                            bpa_cagr_val = hist_data.get('bpa_cagr')
+                            bpa_cagr_period = hist_data.get('bpa_cagr_period', '')
+                            mostrar_crecimiento_con_color(f"🚀 Crec. BPA (CAGR {bpa_cagr_period})", bpa_cagr_val, sector_bench['bpa_growth_excelente'], sector_bench['bpa_growth_bueno'])
                         with c2:
                             mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
                             bpa_yoy_val = datos.get('bpa_growth_yoy')
