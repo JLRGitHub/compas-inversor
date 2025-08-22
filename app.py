@@ -866,8 +866,7 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data):
     return resumen
 
 def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data):
-    highlight_style = 'style="font-weight: bold; background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
-    
+    # --- CORRECCIÓN: Se aplica el estilo de negrita directamente en el span para evitar problemas de renderizado ---
     def highlight(condition, text):
         clean_text = text.replace('**', '')
         if condition:
