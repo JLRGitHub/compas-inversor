@@ -692,51 +692,62 @@ def crear_grafico_valoracion_historica(valuation_df, current_per, current_pb):
     if valuation_df is None or valuation_df.empty:
         return None
     
-    fig, axs = plt.subplots(2, 1, figsize=(8, 5), sharex=True)
+    pe_data = valuation_df['P/E'].dropna() if 'P/E' in valuation_df.columns else pd.Series(dtype=float)
+    pb_data = valuation_df['P/B'].dropna() if 'P/B' in valuation_df.columns else pd.Series(dtype=float)
+
+    num_charts = 0
+    if not pe_data.empty:
+        num_charts += 1
+    if not pb_data.empty:
+        num_charts += 1
+
+    if num_charts == 0:
+        return None
+
+    fig, axs = plt.subplots(num_charts, 1, figsize=(8, 3 * num_charts), sharex=True, squeeze=False)
     plt.style.use('dark_background')
     fig.patch.set_facecolor('#0E1117')
     
+    current_ax_idx = 0
+
     # --- P/E Ratio Chart ---
-    if 'P/E' in valuation_df.columns:
-        pe_data = valuation_df['P/E'].dropna()
-        if not pe_data.empty:
-            ax1 = axs[0]
-            ax1.set_facecolor('#0E1117')
-            ax1.plot(pe_data.index, pe_data, marker='o', linestyle='-', color='#87CEEB', label='P/E Histórico')
-            
-            mean_pe = pe_data.mean()
-            std_pe = pe_data.std()
-            
-            ax1.axhline(current_per, color='#D4AF37', linestyle='--', label=f'P/E Actual ({current_per:.2f})')
-            ax1.axhline(mean_pe, color='white', linestyle=':', label=f'Media ({mean_pe:.2f})')
-            ax1.axhline(mean_pe + std_pe, color='red', linestyle=':', alpha=0.5, label='+1 Desv. Est.')
-            ax1.axhline(mean_pe - std_pe, color='green', linestyle=':', alpha=0.5, label='-1 Desv. Est.')
-            
-            ax1.set_ylabel('Ratio P/E')
-            ax1.set_title('Evolución Histórica del P/E Ratio', color='white')
-            ax1.legend()
-            ax1.grid(color='gray', linestyle='--', linewidth=0.5)
+    if not pe_data.empty:
+        ax = axs[current_ax_idx, 0]
+        ax.set_facecolor('#0E1117')
+        ax.plot(pe_data.index, pe_data, marker='o', linestyle='-', color='#87CEEB', label='P/E Histórico')
+        
+        mean_pe = pe_data.mean()
+        std_pe = pe_data.std()
+        
+        if current_per: ax.axhline(current_per, color='#D4AF37', linestyle='--', label=f'P/E Actual ({current_per:.2f})')
+        ax.axhline(mean_pe, color='white', linestyle=':', label=f'Media ({mean_pe:.2f})')
+        ax.axhline(mean_pe + std_pe, color='red', linestyle=':', alpha=0.5, label='+1 Desv. Est.')
+        ax.axhline(mean_pe - std_pe, color='green', linestyle=':', alpha=0.5, label='-1 Desv. Est.')
+        
+        ax.set_ylabel('Ratio P/E')
+        ax.set_title('Evolución Histórica del P/E Ratio', color='white')
+        ax.legend()
+        ax.grid(color='gray', linestyle='--', linewidth=0.5)
+        current_ax_idx += 1
 
     # --- P/B Ratio Chart ---
-    if 'P/B' in valuation_df.columns:
-        pb_data = valuation_df['P/B'].dropna()
-        if not pb_data.empty:
-            ax2 = axs[1]
-            ax2.set_facecolor('#0E1117')
-            ax2.plot(pb_data.index, pb_data, marker='o', linestyle='-', color='#90EE90', label='P/B Histórico')
-            
-            mean_pb = pb_data.mean()
-            std_pb = pb_data.std()
-            
-            ax2.axhline(current_pb, color='#D4AF37', linestyle='--', label=f'P/B Actual ({current_pb:.2f})')
-            ax2.axhline(mean_pb, color='white', linestyle=':', label=f'Media ({mean_pb:.2f})')
-            ax2.axhline(mean_pb + std_pb, color='red', linestyle=':', alpha=0.5, label='+1 Desv. Est.')
-            ax2.axhline(mean_pb - std_pb, color='green', linestyle=':', alpha=0.5, label='-1 Desv. Est.')
+    if not pb_data.empty:
+        ax = axs[current_ax_idx, 0]
+        ax.set_facecolor('#0E1117')
+        ax.plot(pb_data.index, pb_data, marker='o', linestyle='-', color='#90EE90', label='P/B Histórico')
+        
+        mean_pb = pb_data.mean()
+        std_pb = pb_data.std()
+        
+        if current_pb: ax.axhline(current_pb, color='#D4AF37', linestyle='--', label=f'P/B Actual ({current_pb:.2f})')
+        ax.axhline(mean_pb, color='white', linestyle=':', label=f'Media ({mean_pb:.2f})')
+        ax.axhline(mean_pb + std_pb, color='red', linestyle=':', alpha=0.5, label='+1 Desv. Est.')
+        ax.axhline(mean_pb - std_pb, color='green', linestyle=':', alpha=0.5, label='-1 Desv. Est.')
 
-            ax2.set_ylabel('Ratio P/B')
-            ax2.set_title('Evolución Histórica del P/B Ratio', color='white')
-            ax2.legend()
-            ax2.grid(color='gray', linestyle='--', linewidth=0.5)
+        ax.set_ylabel('Ratio P/B')
+        ax.set_title('Evolución Histórica del P/B Ratio', color='white')
+        ax.legend()
+        ax.grid(color='gray', linestyle='--', linewidth=0.5)
             
     plt.tight_layout()
     return fig
@@ -877,7 +888,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
 
 def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     """
-    Genera un análisis textual profundo y profesional de la empresa,
+    Genera un análisis textual profundo y profundo de la empresa,
     combinando métricas cuantitativas con una interpretación cualitativa y estética mejorada.
     """
     
