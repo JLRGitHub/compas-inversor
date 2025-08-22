@@ -963,6 +963,8 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
         resumen_parts.append('<strong style="color: #28a745;">Fortalezas:</strong><ul><li>' + "</li><li>".join(calidad_fortalezas) + '</li></ul>')
     if calidad_debilidades:
         resumen_parts.append('<br><strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(calidad_debilidades) + '</li></ul>')
+    if not calidad_fortalezas and not calidad_debilidades:
+        resumen_parts.append('<p style="font-style: italic; color: #adb5bd;">En esta área, la empresa se encuentra dentro de los parámetros normales para su sector, sin fortalezas o debilidades que destaquen significativamente.</p>')
 
     # --- 3. Análisis de Salud Financiera ---
     resumen_parts.append(f"<h6>🛡️ Análisis de Salud Financiera</h6>")
@@ -982,6 +984,8 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
         resumen_parts.append('<strong style="color: #28a745;">Fortalezas:</strong><ul><li>' + "</li><li>".join(salud_fortalezas) + '</li></ul>')
     if salud_debilidades:
         resumen_parts.append('<br><strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(salud_debilidades) + '</li></ul>')
+    if not salud_fortalezas and not salud_debilidades:
+        resumen_parts.append('<p style="font-style: italic; color: #adb5bd;">El balance de la compañía se considera adecuado y dentro de la normalidad para su sector, sin puntos de riesgo o solidez excepcionales.</p>')
 
     # --- 4. Análisis de Valoración ---
     resumen_parts.append(f"<h6>⚖️ Análisis de Valoración</h6>")
@@ -1011,6 +1015,8 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
         if valoracion_oportunidades:
             resumen_parts.append('<br>')
         resumen_parts.append('<strong style="color: #dc3545;">Riesgos:</strong><ul><li>' + "</li><li>".join(valoracion_riesgos) + '</li></ul>')
+    if not valoracion_oportunidades and not valoracion_riesgos:
+        resumen_parts.append('<p style="font-style: italic; color: #adb5bd;">La valoración actual no presenta oportunidades ni riesgos evidentes en comparación con su histórico y su sector. Se considera que cotiza a un precio justo.</p>')
     
     # --- 5. Perfil de Inversor ---
     resumen_parts.append("<h6>👤 Perfil Ideal de Inversor</h6>")
