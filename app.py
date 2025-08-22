@@ -923,12 +923,6 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     return resumen
 
 def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data):
-    # --- CORRECCIÓN APLICADA ---
-    # La causa del problema era la sangría dentro de las cadenas de texto multilínea (f-strings).
-    # Streamlit interpreta el texto con sangría como un bloque de código, lo que provoca que
-    # las etiquetas HTML se muestren como texto plano en lugar de ser renderizadas.
-    # La solución es eliminar toda la sangría inicial de las líneas dentro de las f-strings.
-    
     def highlight(condition, text):
         if condition:
             return f'<span style="font-weight: bold; background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;">{text}</span>'
@@ -1137,6 +1131,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     leyenda_valoracion_parts.extend([
         "<br>",
         "<li><b>P/B (Precio/Libros):</b> Compara el precio con su valor contable. Útil para sectores con activos tangibles.</li>",
+        f"Rangos para el sector <b>{datos['sector']}</b>:",
         "<ul>"
     ])
     if p_b is not None and not np.isnan(p_b):
@@ -1272,7 +1267,7 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
         f"<li>{highlight(ms_analistas < 0, 'Riesgo de Caída: < 0%')}</li>",
         "</ul>",
         "<br>",
-        "<li><b>Según su PER Histórico:</b> Compara el PER actual con su media histórica.</li>"
+        "<li><b>Según su PER Histórico:</b> Compara el PER actual con su media de los últimos años. Un PER por debajo de su media puede indicar una oportunidad de compra si la empresa sigue siendo de calidad.</li>"
     ]
     if datos.get('financial_currency') != 'USD':
         leyenda_margen_seguridad_parts.append("<small><i>(Nota: Para acciones no-USD, este valor es una aproximación.)</i></small>")
@@ -1284,14 +1279,14 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
         f"<li>{highlight(ms_per < 0, 'Riesgo de Caída: < 0%')}</li>",
         "</ul>",
         "<br>",
-        "<li><b>Según su Yield Histórico:</b> Compara el yield actual con su media histórica.</li>",
+        "<li><b>Según su Yield Histórico:</b> Compara la rentabilidad por dividendo actual con su media. Un yield superior a la media puede ser una señal de infravaloración.</li>",
         "<ul>",
         f"<li>{highlight(ms_yield is not None and ms_yield > 20, 'Alto Potencial: > 20%')}</li>",
         f"<li>{highlight(ms_yield is not None and 0 <= ms_yield <= 20, 'Potencial Moderado: 0% a 20%')}</li>",
         f"<li>{highlight(ms_yield is not None and ms_yield < 0, 'Riesgo de Caída: < 0%')}</li>",
         "</ul>",
         "<br>",
-        "<li><b>Distancia desde Máximo Histórico:</b> Mide la caída desde su precio más alto.</li>",
+        "<li><b>Distancia desde Máximo Histórico:</b> Mide la caída desde su precio más alto de todos los tiempos.</li>",
         "</ul>"
     ])
     leyenda_margen_seguridad = "".join(leyenda_margen_seguridad_parts)
