@@ -282,30 +282,44 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         ath_10y = hist_10y['Close'].max() if not hist_10y.empty else None
         
         if hist_10y.empty:
-            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period, "ath_price": ath_price, "ath_10y": ath_10y}
+            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period, "ath_price": ath_price, "ath_10y": ath_10y, "valuation_history": None}
         
-        pers, annual_yields = [], []
-        per_historico, yield_historico = None, None
-        
-        financial_currency = info.get('financialCurrency', 'USD')
-        if financial_currency != 'USD':
-            st.warning(f"⚠️ **Precaución con el PER Histórico:** La divisa de los estados financieros ({financial_currency}) no es USD. El cálculo del PER histórico puede ser impreciso debido a las fluctuaciones del tipo de cambio.")
-        
-        if not financials_raw.empty:
+        # --- NEW: Historical Valuation Data ---
+        valuation_history_data = []
+        if not financials_raw.empty and not balance_sheet_raw.empty:
             net_income_key = 'Net Income'
             share_key = 'Basic Average Shares' if 'Basic Average Shares' in financials_raw.index else 'Diluted Average Shares'
-            if net_income_key in financials_raw.index and share_key in financials_raw.index:
-                for col_date in financials_raw.columns:
-                    net_income = financials_raw.loc[net_income_key, col_date]
-                    shares = financials_raw.loc[share_key, col_date]
-                    if pd.notna(net_income) and pd.notna(shares) and shares > 0 and net_income > 0:
-                        eps = net_income / shares
-                        price_data_year = hist_10y[hist_10y.index.year == col_date.year]
-                        if not price_data_year.empty:
-                            avg_price = price_data_year['Close'].mean()
-                            per_year = avg_price / eps
-                            if 0 < per_year < 200:
-                                pers.append(per_year)
+            book_value_key = 'Total Stockholder Equity'
+            
+            for col_date in financials_raw.columns:
+                year = col_date.year
+                price_data_year = hist_10y[hist_10y.index.year == year]
+                if price_data_year.empty: continue
+                
+                avg_price = price_data_year['Close'].mean()
+                
+                # P/E Calculation
+                net_income = financials_raw.loc[net_income_key, col_date] if net_income_key in financials_raw.index else None
+                shares = financials_raw.loc[share_key, col_date] if share_key in financials_raw.index else None
+                pe_ratio = None
+                if net_income and shares and shares > 0 and net_income > 0:
+                    eps = net_income / shares
+                    pe_ratio = avg_price / eps
+                    if not (0 < pe_ratio < 200): pe_ratio = None
+                
+                # P/B Calculation
+                book_value = balance_sheet_raw.loc[book_value_key, col_date] if book_value_key in balance_sheet_raw.index else None
+                pb_ratio = None
+                if book_value and shares and shares > 0 and book_value > 0:
+                    bvps = book_value / shares
+                    pb_ratio = avg_price / bvps
+                    if not (0 < pb_ratio < 50): pb_ratio = None
+                
+                valuation_history_data.append({'Year': year, 'P/E': pe_ratio, 'P/B': pb_ratio})
+        
+        valuation_history = pd.DataFrame(valuation_history_data).dropna().set_index('Year')
+        
+        pers = valuation_history['P/E'].tolist() if 'P/E' in valuation_history.columns else []
         per_historico = np.mean(pers) if pers else None
 
         divs_10y = stock.dividends
@@ -340,11 +354,12 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period,
             "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period,
             "ath_price": ath_price,
-            "ath_10y": ath_10y
+            "ath_10y": ath_10y,
+            "valuation_history": valuation_history
         }
     except Exception as e:
         st.error(f"Se produjo un error al procesar los datos históricos y técnicos. Detalle: {e}")
-        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "fcf_cagr_period": None, "bpa_cagr": None, "bpa_cagr_period": None, "ath_price": None, "ath_10y": None}
+        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "fcf_cagr_period": None, "bpa_cagr": None, "bpa_cagr_period": None, "ath_price": None, "ath_10y": None, "valuation_history": None}
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
@@ -669,6 +684,59 @@ def crear_graficos_financieros(ticker, financials, dividends):
         return fig
     except Exception:
         return None
+
+def crear_grafico_valoracion_historica(valuation_df, current_per, current_pb):
+    if valuation_df is None or valuation_df.empty:
+        return None
+    
+    fig, axs = plt.subplots(2, 1, figsize=(8, 5), sharex=True)
+    plt.style.use('dark_background')
+    fig.patch.set_facecolor('#0E1117')
+    
+    # --- P/E Ratio Chart ---
+    if 'P/E' in valuation_df.columns:
+        pe_data = valuation_df['P/E'].dropna()
+        if not pe_data.empty:
+            ax1 = axs[0]
+            ax1.set_facecolor('#0E1117')
+            ax1.plot(pe_data.index, pe_data, marker='o', linestyle='-', color='#87CEEB', label='P/E Histórico')
+            
+            mean_pe = pe_data.mean()
+            std_pe = pe_data.std()
+            
+            ax1.axhline(current_per, color='#D4AF37', linestyle='--', label=f'P/E Actual ({current_per:.2f})')
+            ax1.axhline(mean_pe, color='white', linestyle=':', label=f'Media ({mean_pe:.2f})')
+            ax1.axhline(mean_pe + std_pe, color='red', linestyle=':', alpha=0.5, label='+1 Desv. Est.')
+            ax1.axhline(mean_pe - std_pe, color='green', linestyle=':', alpha=0.5, label='-1 Desv. Est.')
+            
+            ax1.set_ylabel('Ratio P/E')
+            ax1.set_title('Evolución Histórica del P/E Ratio', color='white')
+            ax1.legend()
+            ax1.grid(color='gray', linestyle='--', linewidth=0.5)
+
+    # --- P/B Ratio Chart ---
+    if 'P/B' in valuation_df.columns:
+        pb_data = valuation_df['P/B'].dropna()
+        if not pb_data.empty:
+            ax2 = axs[1]
+            ax2.set_facecolor('#0E1117')
+            ax2.plot(pb_data.index, pb_data, marker='o', linestyle='-', color='#90EE90', label='P/B Histórico')
+            
+            mean_pb = pb_data.mean()
+            std_pb = pb_data.std()
+            
+            ax2.axhline(current_pb, color='#D4AF37', linestyle='--', label=f'P/B Actual ({current_pb:.2f})')
+            ax2.axhline(mean_pb, color='white', linestyle=':', label=f'Media ({mean_pb:.2f})')
+            ax2.axhline(mean_pb + std_pb, color='red', linestyle=':', alpha=0.5, label='+1 Desv. Est.')
+            ax2.axhline(mean_pb - std_pb, color='green', linestyle=':', alpha=0.5, label='-1 Desv. Est.')
+
+            ax2.set_ylabel('Ratio P/B')
+            ax2.set_title('Evolución Histórica del P/B Ratio', color='white')
+            ax2.legend()
+            ax2.grid(color='gray', linestyle='--', linewidth=0.5)
+            
+    plt.tight_layout()
+    return fig
 
 def mostrar_crecimiento_con_color(label, value, umbral_excelente, umbral_bueno):
     if value is None or (isinstance(value, float) and np.isnan(value)):
@@ -1463,6 +1531,13 @@ if st.button('Analizar Acción'):
 
                     with st.expander("Ver Leyenda Detallada de Múltiplos"):
                         st.markdown(leyendas['valoracion'], unsafe_allow_html=True)
+                    
+                    with st.expander("Análisis de Valoración Histórica"):
+                        fig_hist_val = crear_grafico_valoracion_historica(hist_data.get('valuation_history'), datos.get('per'), datos.get('p_b'))
+                        if fig_hist_val:
+                            st.pyplot(fig_hist_val)
+                        else:
+                            st.warning("No hay suficientes datos históricos para generar los gráficos de valoración.")
 
                 with st.container(border=True):
                     st.subheader("Ratio PEG (Peter Lynch)")
