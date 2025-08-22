@@ -368,6 +368,8 @@ def analizar_banderas_rojas(datos, financials):
         banderas.append("🔴 **Ratio Corriente (Liquidez) Baja:** Podría tener problemas para cubrir obligaciones a corto plazo.")
     if datos.get('market_cap') is not None and datos.get('market_cap') < 250000000:
         banderas.append("🔴 **Baja Capitalización de Mercado:** Inferior a $250M, puede implicar mayor volatilidad.")
+    if datos.get('roic') is not None and datos.get('roe') is not None and datos.get('roic') > datos.get('roe'):
+        st.warning("🟡 **Apalancamiento Negativo:** El ROIC es superior al ROE. Esto sugiere que el coste de la deuda podría ser mayor que la rentabilidad que genera, destruyendo valor para el accionista.")
     return banderas
 
 def calcular_puntuaciones_y_justificaciones(datos, hist_data):
@@ -844,6 +846,8 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data):
             debilidades.append("la **sostenibilidad de su dividendo**, que podría estar en duda por un Payout Ratio elevado")
         elif datos.get('yield_dividendo') < hist_data.get('yield_hist', 999):
             debilidades.append("una **señal de alerta en su dividendo**, ya que la rentabilidad actual es inferior a su media histórica")
+    if datos.get('roic') is not None and datos.get('roe') is not None and datos.get('roic') > datos.get('roe'):
+        debilidades.append("un **posible apalancamiento negativo (ROIC > ROE)**, lo que podría indicar que la deuda está destruyendo valor para el accionista")
 
     if debilidades:
         resumen += "\n\n**⚠️ Debilidades:**\n- " + "\n- ".join(debilidades) + "."
@@ -896,6 +900,8 @@ Rangos para el sector **{datos['sector']}**:<br>
         leyenda_calidad += " - <i>Datos no disponibles.</i>"
 
     leyenda_calidad += f"""
+<br>
+**Relación con el ROE:** Un ROIC alto es la señal de un gran negocio. Si el ROE es aún mayor, significa que la empresa usa la deuda de forma inteligente (apalancamiento positivo). Si el **ROIC es mayor que el ROE**, es una señal de alerta 🟡, ya que podría significar que el coste de la deuda es superior a la rentabilidad que genera, destruyendo valor.
 <br><br>
 - **Margen Operativo:** El porcentaje de beneficio que le queda a la empresa de sus ventas tras pagar los costes de producción y gestión. Un margen alto refleja una **fuerte ventaja competitiva**.<br>
 Rangos para el sector **{datos['sector']}**:<br>
