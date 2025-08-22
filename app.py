@@ -74,9 +74,10 @@ def obtener_datos_completos(ticker):
     
     roe = info.get('returnOnEquity', 0) * 100
     
-    # --- CÁLCULO DEL ROIC ---
+    # --- CÁLCULO DEL ROIC (con fallback) ---
     roic = None
     try:
+        # Intento 1: Método NOPAT (más preciso)
         pretax_income = financials.loc['Pretax Income'].iloc[0] if 'Pretax Income' in financials.index else None
         tax_provision = financials.loc['Tax Provision'].iloc[0] if 'Tax Provision' in financials.index else None
         total_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index else None
@@ -87,8 +88,23 @@ def obtener_datos_completos(ticker):
             invested_capital = total_debt + total_equity
             if invested_capital > 0:
                 roic = (nopat / invested_capital) * 100
-    except (TypeError, KeyError, IndexError):
-        roic = None
+    except (TypeError, KeyError, IndexError, ZeroDivisionError):
+        roic = None # Fallo en el primer intento, se pasará al segundo
+
+    if roic is None:
+        try:
+            # Intento 2: Método Beneficio Neto + Intereses (más robusto)
+            net_income = financials.loc['Net Income'].iloc[0] if 'Net Income' in financials.index else None
+            total_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index else None
+
+            if net_income and interest_expense and total_debt and total_equity:
+                # Usamos el valor absoluto de los gastos por intereses porque suelen ser negativos
+                numerator = net_income + abs(interest_expense)
+                invested_capital = total_debt + total_equity
+                if invested_capital > 0:
+                    roic = (numerator / invested_capital) * 100
+        except (TypeError, KeyError, IndexError, ZeroDivisionError):
+            roic = None # Si ambos fallan, el ROIC será N/A
 
     net_buybacks_pct = None
     try:
@@ -704,17 +720,18 @@ def mostrar_margen_seguridad(label, value):
     ''', unsafe_allow_html=True)
 
 def mostrar_distancia_maximo(label, value, current_price, ath_price):
-    color_class = "color-red"
+    color_class = "color-white"
     prose = "N/A"
     if isinstance(value, (int, float)) and not np.isnan(value):
         if value < -40:
             color_class = "color-green"
-            prose = f"Alto Potencial ({value:.2f}%)"
+            prose = f"Caída Fuerte ({value:.2f}%)"
         elif value < -15:
             color_class = "color-orange"
-            prose = f"Potencial Interesante ({value:.2f}%)"
+            prose = f"Caída Moderada ({value:.2f}%)"
         else:
-            prose = f"Sobrecalentada ({value:.2f}%)"
+            color_class = "color-red"
+            prose = f"Cerca de Máximos ({value:.2f}%)"
     
     formatted_prices = f"Actual: ${current_price:.2f} vs Máx: ${ath_price:.2f}" if current_price is not None and ath_price is not None else ""
 
