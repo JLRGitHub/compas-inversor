@@ -923,14 +923,16 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     return resumen
 
 def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_data):
-    # --- CORRECCIÓN: La función ahora solo devuelve HTML para evitar conflictos con Markdown ---
+    # --- FUNCIÓN AUXILIAR PARA RESALTAR TEXTO ---
+    # Esta función interna ayuda a aplicar un estilo de resaltado a partes del texto
+    # si se cumple una condición, o devuelve el texto sin cambios si no se cumple.
     def highlight(condition, text):
-        clean_text = text.replace('**', '')
         if condition:
-            return f'<span style="font-weight: bold; background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;">{clean_text}</span>'
+            # Si la condición es verdadera, envuelve el texto en un <span> con estilos para resaltarlo.
+            return f'<span style="font-weight: bold; background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;">{text}</span>'
         else:
-            # Devuelve el texto normal sin formato de markdown
-            return f'<span>{clean_text}</span>'
+            # Si la condición es falsa, devuelve el texto original sin formato HTML.
+            return text
 
     # --- Leyenda de Calidad ---
     roe = datos.get('roe', 0)
