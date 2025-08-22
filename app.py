@@ -279,8 +279,10 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         if not hist_max.empty:
             ath_price = hist_max['Close'].max()
         
+        ath_10y = hist_10y['Close'].max() if not hist_10y.empty else None
+        
         if hist_10y.empty:
-            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period, "ath_price": ath_price}
+            return {"financials_charts": financials_for_charts, "dividends_charts": dividends_for_charts, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period, "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period, "ath_price": ath_price, "ath_10y": ath_10y}
         
         pers, annual_yields = [], []
         per_historico, yield_historico = None, None
@@ -337,11 +339,12 @@ def obtener_datos_historicos_y_tecnicos(ticker):
             "tech_data": tech_data,
             "cagr_fcf": cagr_fcf, "fcf_cagr_period": fcf_cagr_period,
             "bpa_cagr": bpa_cagr, "bpa_cagr_period": bpa_cagr_period,
-            "ath_price": ath_price
+            "ath_price": ath_price,
+            "ath_10y": ath_10y
         }
     except Exception as e:
         st.error(f"Se produjo un error al procesar los datos históricos y técnicos. Detalle: {e}")
-        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "fcf_cagr_period": None, "bpa_cagr": None, "bpa_cagr_period": None, "ath_price": None}
+        return {"financials_charts": None, "dividends_charts": None, "per_hist": None, "yield_hist": None, "tech_data": None, "cagr_fcf": None, "fcf_cagr_period": None, "bpa_cagr": None, "bpa_cagr_period": None, "ath_price": None, "ath_10y": None}
 
 # --- BLOQUE 2: LÓGICA DE PUNTUACIÓN Y ANÁLISIS ---
 def analizar_banderas_rojas(datos, financials):
@@ -853,18 +856,18 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
 
     # --- 1. Veredicto General ---
     if calidad_score >= 7.5 and valoracion_score >= 7.5 and salud_score >= 7:
-        resumen_parts.append("#### Veredicto: Oportunidad de Inversión de Alta Convicción\nNos encontramos ante una **empresa excepcional a un precio que parece muy atractivo**. Combina un modelo de negocio de élite, una salud financiera robusta y una valoración que ofrece un margen de seguridad considerable. Este tipo de activo es raro y suele ser la base de carteras de inversión a largo plazo.")
+        resumen_parts.append("##### Veredicto: Oportunidad de Inversión de Alta Convicción\nNos encontramos ante una **empresa excepcional a un precio que parece muy atractivo**. Combina un modelo de negocio de élite, una salud financiera robusta y una valoración que ofrece un margen de seguridad considerable. Este tipo de activo es raro y suele ser la base de carteras de inversión a largo plazo.")
     elif calidad_score >= 7.5 and valoracion_score < 5:
-        resumen_parts.append("#### Veredicto: Negocio Excepcional a un Precio Exigente\nEstamos ante una **joya de negocio, pero su valoración actual es elevada**. El mercado reconoce su calidad y la cotiza a múltiplos altos. La inversión aquí depende de la confianza en que su crecimiento futuro justifique el precio actual. Ideal para inversores en crecimiento que no temen pagar una prima por la calidad.")
+        resumen_parts.append("##### Veredicto: Negocio Excepcional a un Precio Exigente\nEstamos ante una **joya de negocio, pero su valoración actual es elevada**. El mercado reconoce su calidad y la cotiza a múltiplos altos. La inversión aquí depende de la confianza en que su crecimiento futuro justifique el precio actual. Ideal para inversores en crecimiento que no temen pagar una prima por la calidad.")
     elif calidad_score < 5 and valoracion_score >= 7.5:
-        resumen_parts.append("#### Veredicto: Posible 'Ganga' con Riesgos (Deep Value)\nEsta es una **potencial oportunidad de valor profundo, pero no exenta de riesgos**. Su bajo precio refleja debilidades en su modelo de negocio (baja rentabilidad o crecimiento). Requiere un análisis más profundo para determinar si es una 'trampa de valor' o un activo genuinamente infravalorado a punto de recuperarse.")
+        resumen_parts.append("##### Veredicto: Posible 'Ganga' con Riesgos (Deep Value)\nEsta es una **potencial oportunidad de valor profundo, pero no exenta de riesgos**. Su bajo precio refleja debilidades en su modelo de negocio (baja rentabilidad o crecimiento). Requiere un análisis más profundo para determinar si es una 'trampa de valor' o un activo genuinamente infravalorado a punto de recuperarse.")
     else:
-        resumen_parts.append("#### Veredicto: Empresa Sólida, Inversión Equilibrada\nSe trata de una **empresa sólida con una valoración razonable**, que presenta un equilibrio entre sus puntos fuertes y sus áreas de mejora. No es una ganga obvia ni un negocio de élite incuestionable, pero podría ser un componente estable y fiable en una cartera diversificada.")
+        resumen_parts.append("##### Veredicto: Empresa Sólida, Inversión Equilibrada\nSe trata de una **empresa sólida con una valoración razonable**, que presenta un equilibrio entre sus puntos fuertes y sus áreas de mejora. No es una ganga obvia ni un negocio de élite incuestionable, pero podría ser un componente estable y fiable en una cartera diversificada.")
     
     resumen_parts.append("\n---\n")
 
     # --- 2. Análisis de Calidad del Negocio ---
-    resumen_parts.append("#### ✅ Análisis de Calidad del Negocio\n")
+    resumen_parts.append(f"##### ✅ Análisis de Calidad del Negocio (Sector: {datos['sector']})\n")
     calidad_fortalezas = []
     calidad_debilidades = []
 
@@ -894,12 +897,12 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     if calidad_fortalezas:
         resumen_parts.append("**Fortalezas:**\n- " + "\n- ".join(calidad_fortalezas))
     if calidad_debilidades:
-        resumen_parts.append("\n**Debilidades:**\n- " + "\n- ".join(calidad_debilidades))
+        resumen_parts.append("\n\n**Debilidades:**\n- " + "\n- ".join(calidad_debilidades))
     
     resumen_parts.append("\n---\n")
 
     # --- 3. Análisis de Salud Financiera ---
-    resumen_parts.append("#### 🛡️ Análisis de Salud Financiera\n")
+    resumen_parts.append("##### 🛡️ Análisis de Salud Financiera\n")
     salud_fortalezas = []
     salud_debilidades = []
 
@@ -917,12 +920,12 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     if salud_fortalezas:
         resumen_parts.append("**Fortalezas:**\n- " + "\n- ".join(salud_fortalezas))
     if salud_debilidades:
-        resumen_parts.append("\n**Debilidades:**\n- " + "\n- ".join(salud_debilidades))
+        resumen_parts.append("\n\n**Debilidades:**\n- " + "\n- ".join(salud_debilidades))
 
     resumen_parts.append("\n---\n")
 
     # --- 4. Análisis de Valoración ---
-    resumen_parts.append("#### ⚖️ Análisis de Valoración\n")
+    resumen_parts.append("##### ⚖️ Análisis de Valoración\n")
     valoracion_oportunidades = []
     valoracion_riesgos = []
 
@@ -937,12 +940,12 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     if valoracion_oportunidades:
         resumen_parts.append("**Oportunidades:**\n- " + "\n- ".join(valoracion_oportunidades))
     if valoracion_riesgos:
-        resumen_parts.append("\n**Riesgos:**\n- " + "\n- ".join(valoracion_riesgos))
+        resumen_parts.append("\n\n**Riesgos:**\n- " + "\n- ".join(valoracion_riesgos))
     
     resumen_parts.append("\n---\n")
 
     # --- 5. Perfil de Inversor ---
-    resumen_parts.append("#### 👤 Perfil Ideal de Inversor\n")
+    resumen_parts.append("##### 👤 Perfil Ideal de Inversor\n")
     if calidad_score >= 7 and dividendos_score >= 7:
         resumen_parts.append("**Inversor en Dividendos (DGI):** Busca empresas de alta calidad que ofrezcan una renta estable y creciente. La combinación de un negocio sólido y un dividendo fiable es su principal atractivo.")
     elif calidad_score >= 7 and valoracion_score < 5:
@@ -1137,6 +1140,8 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     
     leyenda_valoracion_parts.extend([
         "</ul>",
+        "<br>",
+        "<li><b>PER Actual vs Histórico:</b> Compara el PER actual con su media de los últimos años. Un PER por debajo de su media puede indicar una oportunidad de compra si la empresa sigue siendo de calidad.</li>",
         "<br>",
         "<li><b>PER Adelantado (Forward PE):</b> PER calculado con los beneficios esperados. Si es más bajo que el actual, se espera crecimiento.</li>",
         "<ul>",
@@ -1501,10 +1506,8 @@ if st.button('Analizar Acción'):
                     with ms3:
                         mostrar_margen_seguridad("💸 Según su Yield Histórico", puntuaciones['margen_seguridad_yield'])
                     with ms4:
-                        # CORRECCIÓN: Usar el precio máximo de los últimos 10 años para mayor fiabilidad
-                        hist_10y = stock.history(period="10y")
-                        ath_10y = hist_10y['Close'].max() if not hist_10y.empty else None
-                        distancia_ath = ((datos.get('precio_actual', 0) - ath_10y) / ath_10y) * 100 if ath_10y else None
+                        ath_10y = hist_data.get('ath_10y')
+                        distancia_ath = ((datos.get('precio_actual', 0) - ath_10y) / ath_10y) * 100 if ath_10y and datos.get('precio_actual') else None
                         mostrar_distancia_maximo("📉 Distancia Máx. Histórico (10A)", distancia_ath, datos.get('precio_actual'), ath_10y)
                     with st.expander("Ver Leyenda Detallada"):
                         st.markdown(leyendas['margen_seguridad'], unsafe_allow_html=True)
