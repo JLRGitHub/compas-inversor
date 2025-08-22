@@ -869,7 +869,11 @@ def generar_leyenda_dinamica(datos, hist_data, puntuaciones, sector_bench, tech_
     highlight_style = 'style="font-weight: bold; background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;"'
     
     def highlight(condition, text):
-        return f"<span {highlight_style}>{text}</span>" if condition else f"**{text}**"
+        clean_text = text.replace('**', '')
+        if condition:
+            return f'<span style="font-weight: bold; background-color: #D4AF37; color: #0E1117; padding: 2px 5px; border-radius: 3px;">{clean_text}</span>'
+        else:
+            return f"**{clean_text}**"
 
     # --- Leyenda de Calidad ---
     roe = datos.get('roe', 0)
