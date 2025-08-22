@@ -317,10 +317,13 @@ def obtener_datos_historicos_y_tecnicos(ticker):
                 
                 valuation_history_data.append({'Year': year, 'P/E': pe_ratio, 'P/B': pb_ratio})
         
-        valuation_history = pd.DataFrame(valuation_history_data).dropna().set_index('Year')
-        
-        pers = valuation_history['P/E'].tolist() if 'P/E' in valuation_history.columns else []
-        per_historico = np.mean(pers) if pers else None
+        # --- CORRECCIÓN: Cálculo de PER histórico robusto ---
+        valuation_history = pd.DataFrame(valuation_history_data).set_index('Year')
+        per_historico = None
+        if not valuation_history.empty and 'P/E' in valuation_history.columns:
+            pers = valuation_history['P/E'].dropna().tolist()
+            if pers:
+                per_historico = np.mean(pers)
 
         divs_10y = stock.dividends
         if not divs_10y.empty:
@@ -874,7 +877,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
 
 def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     """
-    Genera un análisis textual profundo de la empresa,
+    Genera un análisis textual profundo y profesional de la empresa,
     combinando métricas cuantitativas con una interpretación cualitativa y estética mejorada.
     """
     
@@ -1416,7 +1419,7 @@ st.caption("Herramienta de análisis. Esto no es una recomendación de compra o 
 ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "GOOGL").upper()
 
 if st.button('Analizar Acción'):
-    with st.spinner('Realizando análisis profundo...'):
+    with st.spinner('Realizando análisis profesional...'):
         try:
             datos = obtener_datos_completos(ticker_input)
             
@@ -1471,7 +1474,7 @@ if st.button('Analizar Acción'):
                     st.write(f"Descripción: {datos['descripcion']}")
                 
                 with st.container(border=True):
-                    st.subheader("Resumen Ejecutivo")
+                    st.subheader("Resumen Ejecutivo Profesional")
                     resumen = generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench)
                     st.markdown(resumen, unsafe_allow_html=True)
 
@@ -1664,4 +1667,3 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("Ha ocurrido un problema inesperado. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
-
