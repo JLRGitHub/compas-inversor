@@ -74,10 +74,12 @@ def obtener_datos_completos(ticker):
     
     roe = info.get('returnOnEquity', 0) * 100
     
-    # --- CÁLCULO DEL ROIC (con fallback) ---
+    # --- CÁLCULO DEL ROIC (con fallback de 3 niveles) ---
     roic = None
+    roic_is_approx = False # Flag para saber si usamos ROA
+
+    # Intento 1: Método NOPAT (más preciso)
     try:
-        # Intento 1: Método NOPAT (más preciso)
         pretax_income = financials.loc['Pretax Income'].iloc[0] if 'Pretax Income' in financials.index else None
         tax_provision = financials.loc['Tax Provision'].iloc[0] if 'Tax Provision' in financials.index else None
         total_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index else None
@@ -89,22 +91,31 @@ def obtener_datos_completos(ticker):
             if invested_capital > 0:
                 roic = (nopat / invested_capital) * 100
     except (TypeError, KeyError, IndexError, ZeroDivisionError):
-        roic = None # Fallo en el primer intento, se pasará al segundo
+        roic = None
 
+    # Intento 2: Método Beneficio Neto + Intereses (robusto)
     if roic is None:
         try:
-            # Intento 2: Método Beneficio Neto + Intereses (más robusto)
             net_income = financials.loc['Net Income'].iloc[0] if 'Net Income' in financials.index else None
             total_equity = balance_sheet.loc['Total Stockholder Equity'].iloc[0] if 'Total Stockholder Equity' in balance_sheet.index else None
 
             if net_income and interest_expense and total_debt and total_equity:
-                # Usamos el valor absoluto de los gastos por intereses porque suelen ser negativos
                 numerator = net_income + abs(interest_expense)
                 invested_capital = total_debt + total_equity
                 if invested_capital > 0:
                     roic = (numerator / invested_capital) * 100
         except (TypeError, KeyError, IndexError, ZeroDivisionError):
-            roic = None # Si ambos fallan, el ROIC será N/A
+            roic = None
+
+    # Intento 3: Red de Seguridad - ROA (Return on Assets)
+    if roic is None:
+        try:
+            total_assets = balance_sheet.loc['Total Assets'].iloc[0] if 'Total Assets' in balance_sheet.index else None
+            if ebit and total_assets and total_assets > 0:
+                roic = (ebit / total_assets) * 100
+                roic_is_approx = True
+        except (TypeError, KeyError, IndexError, ZeroDivisionError):
+            roic = None
 
     net_buybacks_pct = None
     try:
@@ -157,6 +168,7 @@ def obtener_datos_completos(ticker):
         "descripcion": descripcion_corta,
         "roe": roe,
         "roic": roic,
+        "roic_is_approx": roic_is_approx,
         "margen_operativo": info.get('operatingMargins', 0) * 100 if info.get('operatingMargins') is not None else 0,
         "margen_beneficio": info.get('profitMargins', 0) * 100 if info.get('profitMargins') is not None else 0,
         "ratio_corriente": info.get('currentRatio'),
@@ -1209,7 +1221,8 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_con_color("📈 ROE", datos['roe'], sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)
                             mostrar_metrica_con_color("💰 Margen Neto", datos['margen_beneficio'], sector_bench['margen_neto_excelente'], sector_bench['margen_neto_bueno'], is_percent=True)
                         with c2:
-                            mostrar_metrica_con_color("🏆 ROIC", datos['roic'], sector_bench['roic_excelente'], sector_bench['roic_bueno'], is_percent=True)
+                            label_roic = "🏆 ROIC (Aprox. ROA)" if datos.get('roic_is_approx') else "🏆 ROIC"
+                            mostrar_metrica_con_color(label_roic, datos['roic'], sector_bench['roic_excelente'], sector_bench['roic_bueno'], is_percent=True)
                             mostrar_metrica_con_color("📊 Margen Operativo", datos['margen_operativo'], sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)
                         with c3:
                             bpa_cagr_val = hist_data.get('bpa_cagr')
