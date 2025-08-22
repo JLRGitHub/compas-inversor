@@ -920,6 +920,9 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     deuda_ebitda = datos.get('deuda_ebitda')
     per = datos.get('per')
     per_hist = hist_data.get('per_hist')
+    yield_div = datos.get('yield_dividendo')
+    payout = datos.get('payout_ratio')
+    net_buybacks = datos.get('net_buybacks_pct')
     
     resumen_parts = []
 
@@ -1021,7 +1024,32 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     if not valoracion_oportunidades and not valoracion_riesgos:
         resumen_parts.append('<p style="font-style: italic; color: #adb5bd;">La valoración actual no presenta oportunidades ni riesgos evidentes en comparación con su histórico y su sector. Se considera que cotiza a un precio justo.</p>')
     
-    # --- 5. Perfil de Inversor ---
+    # --- 5. Análisis de Retorno al Accionista ---
+    resumen_parts.append(f"<h6>💸 Análisis de Retorno al Accionista</h6>")
+    dividendos_fortalezas = []
+    dividendos_debilidades = []
+
+    if yield_div is not None and yield_div > 0:
+        if yield_div > 3.5 and payout < sector_bench['payout_bueno']:
+            dividendos_fortalezas.append(f"Ofrece un dividendo muy atractivo del {colorize(yield_div, 3.5, 2.0, is_percent=True)} que además parece muy seguro, con un Payout Ratio del {colorize(payout, sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)}.")
+        elif payout > sector_bench['payout_aceptable']:
+            dividendos_debilidades.append(f"La sostenibilidad del dividendo es una preocupación. El Payout Ratio es del {colorize(payout, sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)}, un nivel muy elevado que podría comprometer futuros pagos.")
+        elif deuda_ebitda is not None and deuda_ebitda > sector_bench['deuda_ebitda_aceptable']:
+            dividendos_debilidades.append(f"Aunque el Payout es aceptable, el alto nivel de deuda ({colorize(deuda_ebitda, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True, is_ratio=True)}) podría presionar la capacidad de la empresa para mantener el dividendo a futuro.")
+
+    if net_buybacks is not None and net_buybacks > 1:
+        dividendos_fortalezas.append(f"Además del dividendo, la empresa está recomprando activamente sus propias acciones ({colorize(net_buybacks, 1, -1, is_percent=True)} en el último año), lo que aumenta el valor para el accionista.")
+
+    if dividendos_fortalezas:
+        resumen_parts.append('<strong style="color: #28a745;">Fortalezas:</strong><ul><li>' + "</li><li>".join(dividendos_fortalezas) + '</li></ul>')
+    if dividendos_debilidades:
+        if dividendos_fortalezas:
+            resumen_parts.append('<br>')
+        resumen_parts.append('<strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(dividendos_debilidades) + '</li></ul>')
+    if not dividendos_fortalezas and not dividendos_debilidades:
+        resumen_parts.append('<p style="font-style: italic; color: #adb5bd;">La política de retorno al accionista se encuentra en un rango normal, sin puntos especialmente destacables o preocupantes.</p>')
+
+    # --- 6. Perfil de Inversor ---
     resumen_parts.append("<h6>👤 Perfil Ideal de Inversor</h6>")
     perfil_text = ""
     if calidad_score >= 7 and dividendos_score >= 7:
@@ -1667,4 +1695,3 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("Ha ocurrido un problema inesperado. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
-
