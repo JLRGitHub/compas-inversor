@@ -1158,7 +1158,7 @@ st.caption("Herramienta de análisis. Esto no es una recomendación de compra o 
 ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "GOOGL").upper()
 
 if st.button('Analizar Acción'):
-    with st.spinner('Realizando análisis profundo...'):
+    with st.spinner('Realizando análisis profesional...'):
         try:
             datos = obtener_datos_completos(ticker_input)
             
@@ -1398,4 +1398,3 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("Ha ocurrido un problema inesperado. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
-
