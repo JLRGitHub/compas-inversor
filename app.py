@@ -807,7 +807,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
 def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     """
     Genera un análisis textual profundo y profesional de la empresa,
-    combinando métricas cuantitativas con una interpretación cualitativa.
+    combinando métricas cuantitativas con una interpretación cualitativa y estética mejorada.
     """
     
     # --- Helper function for colorizing text ---
@@ -849,83 +849,74 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     deuda_ebitda = datos.get('deuda_ebitda')
     per = datos.get('per')
     per_hist = hist_data.get('per_hist')
-    payout = datos.get('payout_ratio')
-    yield_div = datos.get('yield_dividendo')
     
     resumen_parts = []
 
     # --- 1. Veredicto General ---
+    resumen_parts.append('<h6>Veredicto General</h6>')
+    veredicto_text = ""
     if calidad_score >= 7.5 and valoracion_score >= 7.5 and salud_score >= 7:
-        resumen_parts.append("##### Veredicto: Oportunidad de Inversión de Alta Convicción\nNos encontramos ante una **empresa excepcional a un precio que parece muy atractivo**. Combina un modelo de negocio de élite, una salud financiera robusta y una valoración que ofrece un margen de seguridad considerable. Este tipo de activo es raro y suele ser la base de carteras de inversión a largo plazo.")
+        veredicto_text = "<strong>Oportunidad de Inversión de Alta Convicción:</strong> Nos encontramos ante una empresa excepcional a un precio que parece muy atractivo. Combina un modelo de negocio de élite, una salud financiera robusta y una valoración que ofrece un margen de seguridad considerable."
     elif calidad_score >= 7.5 and valoracion_score < 5:
-        resumen_parts.append("##### Veredicto: Negocio Excepcional a un Precio Exigente\nEstamos ante una **joya de negocio, pero su valoración actual es elevada**. El mercado reconoce su calidad y la cotiza a múltiplos altos. La inversión aquí depende de la confianza en que su crecimiento futuro justifique el precio actual. Ideal para inversores en crecimiento que no temen pagar una prima por la calidad.")
+        veredicto_text = "<strong>Negocio Excepcional a un Precio Exigente:</strong> Estamos ante una joya de negocio, pero su valoración actual es elevada. El mercado reconoce su calidad y la cotiza a múltiplos altos. La inversión aquí depende de la confianza en que su crecimiento futuro justifique el precio actual."
     elif calidad_score < 5 and valoracion_score >= 7.5:
-        resumen_parts.append("##### Veredicto: Posible 'Ganga' con Riesgos (Deep Value)\nEsta es una **potencial oportunidad de valor profundo, pero no exenta de riesgos**. Su bajo precio refleja debilidades en su modelo de negocio (baja rentabilidad o crecimiento). Requiere un análisis más profundo para determinar si es una 'trampa de valor' o un activo genuinamente infravalorado a punto de recuperarse.")
+        veredicto_text = "<strong>Posible 'Ganga' con Riesgos (Deep Value):</strong> Esta es una potencial oportunidad de valor profundo, pero no exenta de riesgos. Su bajo precio refleja debilidades en su modelo de negocio. Requiere un análisis más profundo para determinar si es una 'trampa de valor' o un activo genuinamente infravalorado."
     else:
-        resumen_parts.append("##### Veredicto: Empresa Sólida, Inversión Equilibrada\nSe trata de una **empresa sólida con una valoración razonable**, que presenta un equilibrio entre sus puntos fuertes y sus áreas de mejora. No es una ganga obvia ni un negocio de élite incuestionable, pero podría ser un componente estable y fiable en una cartera diversificada.")
+        veredicto_text = "<strong>Empresa Sólida, Inversión Equilibrada:</strong> Se trata de una empresa sólida con una valoración razonable, que presenta un equilibrio entre sus puntos fuertes y sus áreas de mejora. Podría ser un componente estable y fiable en una cartera diversificada."
     
-    resumen_parts.append("\n---\n")
+    resumen_parts.append(f'<p style="background-color: #1a1c24; padding: 12px; border-radius: 8px; border: 1px solid #333;">{veredicto_text}</p>')
 
     # --- 2. Análisis de Calidad del Negocio ---
-    resumen_parts.append(f"##### ✅ Análisis de Calidad del Negocio (Sector: {datos['sector']})\n")
+    resumen_parts.append(f"<h6>✅ Análisis de Calidad del Negocio (Sector: {datos['sector']})</h6>")
     calidad_fortalezas = []
     calidad_debilidades = []
 
-    # Rentabilidad
     if roe is not None and roic is not None:
         if roe > sector_bench['roe_excelente'] and roic > sector_bench['roic_excelente']:
-            calidad_fortalezas.append(f"Presenta una rentabilidad sobre el capital sobresaliente, con un ROE del {colorize(roe, sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)} y un ROIC del {colorize(roic, sector_bench['roic_excelente'], sector_bench['roic_bueno'], is_percent=True)}. Esto indica una enorme eficiencia en la generación de beneficios tanto para accionistas como sobre el capital total invertido.")
+            calidad_fortalezas.append(f"Presenta una rentabilidad sobre el capital sobresaliente, con un ROE del {colorize(roe, sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)} y un ROIC del {colorize(roic, sector_bench['roic_excelente'], sector_bench['roic_bueno'], is_percent=True)}.")
         elif roe > sector_bench['roe_bueno'] and roic > sector_bench['roic_bueno']:
             calidad_fortalezas.append(f"Muestra una buena rentabilidad, con un ROE del {colorize(roe, sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)} y un ROIC del {colorize(roic, sector_bench['roic_excelente'], sector_bench['roic_bueno'], is_percent=True)}, superando los niveles aceptables para su sector.")
         else:
-            calidad_debilidades.append(f"Su rentabilidad es un punto débil. El ROE de {colorize(roe, sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)} y el ROIC de {colorize(roic, sector_bench['roic_excelente'], sector_bench['roic_bueno'], is_percent=True)} están por debajo de la media del sector, sugiriendo dificultades para generar valor de forma eficiente.")
+            calidad_debilidades.append(f"Su rentabilidad es un punto débil. El ROE de {colorize(roe, sector_bench['roe_excelente'], sector_bench['roe_bueno'], is_percent=True)} y el ROIC de {colorize(roic, sector_bench['roic_excelente'], sector_bench['roic_bueno'], is_percent=True)} están por debajo de la media del sector.")
     
-    # Márgenes
     if margen_op is not None:
         if margen_op > sector_bench['margen_excelente']:
-            calidad_fortalezas.append(f"Opera con unos márgenes de beneficio de élite ({colorize(margen_op, sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)}), lo que sugiere fuertes ventajas competitivas y poder de fijación de precios.")
+            calidad_fortalezas.append(f"Opera con unos márgenes de beneficio de élite ({colorize(margen_op, sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)}), lo que sugiere fuertes ventajas competitivas.")
         elif margen_op < sector_bench['margen_bueno']:
-            calidad_debilidades.append(f"Sus márgenes operativos son ajustados ({colorize(margen_op, sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)}), lo que podría indicar una alta competencia o falta de ventajas diferenciales en su industria.")
+            calidad_debilidades.append(f"Sus márgenes operativos son ajustados ({colorize(margen_op, sector_bench['margen_excelente'], sector_bench['margen_bueno'], is_percent=True)}), indicando una posible alta competencia.")
 
-    # Crecimiento
     if bpa_cagr is not None:
         if bpa_cagr > sector_bench['bpa_growth_excelente']:
-            calidad_fortalezas.append(f"Demuestra un crecimiento de beneficios a largo plazo excepcional, con una tasa anual compuesta (CAGR) del {colorize(bpa_cagr, sector_bench['bpa_growth_excelente'], sector_bench['bpa_growth_bueno'], is_percent=True)}.")
+            calidad_fortalezas.append(f"Demuestra un crecimiento de beneficios a largo plazo excepcional (CAGR del {colorize(bpa_cagr, sector_bench['bpa_growth_excelente'], sector_bench['bpa_growth_bueno'], is_percent=True)}).")
         elif bpa_cagr < sector_bench['bpa_growth_bueno']:
-            calidad_debilidades.append(f"El crecimiento de beneficios a largo plazo es lento o negativo ({colorize(bpa_cagr, sector_bench['bpa_growth_excelente'], sector_bench['bpa_growth_bueno'], is_percent=True)}), una señal de alerta sobre la madurez o el deterioro del negocio.")
+            calidad_debilidades.append(f"El crecimiento de beneficios a largo plazo es lento o negativo ({colorize(bpa_cagr, sector_bench['bpa_growth_excelente'], sector_bench['bpa_growth_bueno'], is_percent=True)}).")
 
     if calidad_fortalezas:
-        resumen_parts.append("**Fortalezas:**\n- " + "\n- ".join(calidad_fortalezas))
+        resumen_parts.append('<strong style="color: #28a745;">Fortalezas:</strong><ul><li>' + "</li><li>".join(calidad_fortalezas) + '</li></ul>')
     if calidad_debilidades:
-        resumen_parts.append("\n\n**Debilidades:**\n- " + "\n- ".join(calidad_debilidades))
-    
-    resumen_parts.append("\n---\n")
+        resumen_parts.append('<strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(calidad_debilidades) + '</li></ul>')
 
     # --- 3. Análisis de Salud Financiera ---
-    resumen_parts.append("##### 🛡️ Análisis de Salud Financiera\n")
+    resumen_parts.append(f"<h6>🛡️ Análisis de Salud Financiera</h6>")
     salud_fortalezas = []
     salud_debilidades = []
 
-    # Deuda
     if deuda_ebitda is not None:
         if deuda_ebitda < sector_bench['deuda_ebitda_bueno']:
             salud_fortalezas.append(f"Su balance es muy sólido, con un nivel de deuda neta de solo {colorize(deuda_ebitda, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True, is_ratio=True)} veces su EBITDA, un ratio muy saludable para el sector {datos['sector']}.")
         elif deuda_ebitda > sector_bench['deuda_ebitda_aceptable']:
-            salud_debilidades.append(f"El nivel de apalancamiento es un punto de riesgo. Su deuda neta es de {colorize(deuda_ebitda, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True, is_ratio=True)} veces su EBITDA, una cifra elevada para una empresa del sector {datos['sector']} que podría limitar su flexibilidad financiera.")
+            salud_debilidades.append(f"El nivel de apalancamiento es un punto de riesgo. Su deuda neta es de {colorize(deuda_ebitda, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True, is_ratio=True)} veces su EBITDA, una cifra elevada para una empresa del sector {datos['sector']}.")
 
-    # Flujo de Caja
     if datos.get('raw_fcf') is not None and datos.get('raw_fcf') < 0:
         salud_debilidades.append("Actualmente presenta un Flujo de Caja Libre negativo, lo que significa que está quemando más efectivo del que genera. Es una bandera roja importante que requiere vigilancia.")
 
     if salud_fortalezas:
-        resumen_parts.append("**Fortalezas:**\n- " + "\n- ".join(salud_fortalezas))
+        resumen_parts.append('<strong style="color: #28a745;">Fortalezas:</strong><ul><li>' + "</li><li>".join(salud_fortalezas) + '</li></ul>')
     if salud_debilidades:
-        resumen_parts.append("\n\n**Debilidades:**\n- " + "\n- ".join(salud_debilidades))
-
-    resumen_parts.append("\n---\n")
+        resumen_parts.append('<strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(salud_debilidades) + '</li></ul>')
 
     # --- 4. Análisis de Valoración ---
-    resumen_parts.append("##### ⚖️ Análisis de Valoración\n")
+    resumen_parts.append(f"<h6>⚖️ Análisis de Valoración</h6>")
     valoracion_oportunidades = []
     valoracion_riesgos = []
 
@@ -938,22 +929,22 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
             valoracion_oportunidades.append(f"La valoración se encuentra en un rango razonable, con un PER de {colorize(per, sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)}, en línea con los estándares de su sector y su media histórica.")
 
     if valoracion_oportunidades:
-        resumen_parts.append("**Oportunidades:**\n- " + "\n- ".join(valoracion_oportunidades))
+        resumen_parts.append('<strong style="color: #28a745;">Oportunidades:</strong><ul><li>' + "</li><li>".join(valoracion_oportunidades) + '</li></ul>')
     if valoracion_riesgos:
-        resumen_parts.append("\n\n**Riesgos:**\n- " + "\n- ".join(valoracion_riesgos))
+        resumen_parts.append('<strong style="color: #dc3545;">Riesgos:</strong><ul><li>' + "</li><li>".join(valoracion_riesgos) + '</li></ul>')
     
-    resumen_parts.append("\n---\n")
-
     # --- 5. Perfil de Inversor ---
-    resumen_parts.append("##### 👤 Perfil Ideal de Inversor\n")
+    resumen_parts.append("<h6>👤 Perfil Ideal de Inversor</h6>")
+    perfil_text = ""
     if calidad_score >= 7 and dividendos_score >= 7:
-        resumen_parts.append("**Inversor en Dividendos (DGI):** Busca empresas de alta calidad que ofrezcan una renta estable y creciente. La combinación de un negocio sólido y un dividendo fiable es su principal atractivo.")
+        perfil_text = "<strong>Inversor en Dividendos (DGI):</strong> Busca empresas de alta calidad que ofrezcan una renta estable y creciente. La combinación de un negocio sólido y un dividendo fiable es su principal atractivo."
     elif calidad_score >= 7 and valoracion_score < 5:
-        resumen_parts.append("**Inversor en Crecimiento a un Precio Razonable (GARP):** Dispuesto a pagar un precio justo o ligeramente alto por un negocio de calidad superior con altas expectativas de futuro, esperando que el crecimiento compuesto justifique la valoración.")
+        perfil_text = "<strong>Inversor en Crecimiento a un Precio Razonable (GARP):</strong> Dispuesto a pagar un precio justo o ligeramente alto por un negocio de calidad superior con altas expectativas de futuro, esperando que el crecimiento compuesto justifique la valoración."
     elif calidad_score < 5 and valoracion_score >= 7:
-        resumen_parts.append("**Inversor de Valor Profundo (Deep Value):** Busca activos infravalorados que el mercado ha castigado, asumiendo un riesgo mayor a cambio de un potencial de revalorización significativo si la empresa logra dar un giro a su situación.")
+        perfil_text = "<strong>Inversor de Valor Profundo (Deep Value):</strong> Busca activos infravalorados que el mercado ha castigado, asumiendo un riesgo mayor a cambio de un potencial de revalorización significativo si la empresa logra dar un giro a su situación."
     else:
-        resumen_parts.append("**Inversor Mixto (Blend):** Busca un equilibrio entre calidad, crecimiento y un precio razonable. Esta empresa encaja en una cartera diversificada como un activo que no destaca excesivamente en ningún área pero que es competente en todas.")
+        perfil_text = "<strong>Inversor Mixto (Blend):</strong> Busca un equilibrio entre calidad, crecimiento y un precio razonable. Esta empresa encaja en una cartera diversificada como un activo que no destaca excesivamente en ningún área pero que es competente en todas."
+    resumen_parts.append(f'<p style="font-style: italic;">{perfil_text}</p>')
 
     return "".join(resumen_parts)
 
