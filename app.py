@@ -806,7 +806,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
 
 def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     """
-    Genera un análisis textual profundo de la empresa,
+    Genera un análisis textual profundo y profesional de la empresa,
     combinando métricas cuantitativas con una interpretación cualitativa y estética mejorada.
     """
     
@@ -894,7 +894,7 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     if calidad_fortalezas:
         resumen_parts.append('<strong style="color: #28a745;">Fortalezas:</strong><ul><li>' + "</li><li>".join(calidad_fortalezas) + '</li></ul>')
     if calidad_debilidades:
-        resumen_parts.append('<strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(calidad_debilidades) + '</li></ul>')
+        resumen_parts.append('<br><strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(calidad_debilidades) + '</li></ul>')
 
     # --- 3. Análisis de Salud Financiera ---
     resumen_parts.append(f"<h6>🛡️ Análisis de Salud Financiera</h6>")
@@ -913,7 +913,7 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     if salud_fortalezas:
         resumen_parts.append('<strong style="color: #28a745;">Fortalezas:</strong><ul><li>' + "</li><li>".join(salud_fortalezas) + '</li></ul>')
     if salud_debilidades:
-        resumen_parts.append('<strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(salud_debilidades) + '</li></ul>')
+        resumen_parts.append('<br><strong style="color: #dc3545;">Debilidades:</strong><ul><li>' + "</li><li>".join(salud_debilidades) + '</li></ul>')
 
     # --- 4. Análisis de Valoración ---
     resumen_parts.append(f"<h6>⚖️ Análisis de Valoración</h6>")
@@ -926,11 +926,22 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
         elif per > sector_bench['per_justo'] and per > per_hist * 1.2:
             valoracion_riesgos.append(f"La acción parece cara en este momento. Su PER de {colorize(per, sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)} es elevado tanto para su sector como en comparación con su propia historia (media de {per_hist:.1f}x).")
         else:
-            valoracion_oportunidades.append(f"La valoración se encuentra en un rango razonable, con un PER de {colorize(per, sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)}, en línea con los estándares de su sector y su media histórica.")
+            base_text = f"La valoración se encuentra en un rango razonable para su sector, con un PER de {colorize(per, sector_bench['per_barato'], sector_bench['per_justo'], lower_is_better=True)}. "
+            if per < per_hist * 0.9:
+                historical_comparison = f"Sin embargo, cotiza con un <strong>atractivo descuento</strong> frente a su media histórica de {per_hist:.1f}x, lo que podría sugerir una oportunidad."
+                valoracion_oportunidades.append(base_text + historical_comparison)
+            elif per > per_hist * 1.1:
+                historical_comparison = f"No obstante, cotiza con una <strong>prima</strong> sobre su media histórica de {per_hist:.1f}x, indicando que el mercado tiene expectativas más altas que en el pasado."
+                valoracion_riesgos.append(base_text + historical_comparison)
+            else:
+                historical_comparison = f"Este múltiplo está en línea con su propia media histórica de {per_hist:.1f}x."
+                valoracion_oportunidades.append(base_text + historical_comparison)
 
     if valoracion_oportunidades:
         resumen_parts.append('<strong style="color: #28a745;">Oportunidades:</strong><ul><li>' + "</li><li>".join(valoracion_oportunidades) + '</li></ul>')
     if valoracion_riesgos:
+        if valoracion_oportunidades:
+            resumen_parts.append('<br>')
         resumen_parts.append('<strong style="color: #dc3545;">Riesgos:</strong><ul><li>' + "</li><li>".join(valoracion_riesgos) + '</li></ul>')
     
     # --- 5. Perfil de Inversor ---
@@ -1331,7 +1342,7 @@ st.caption("Herramienta de análisis. Esto no es una recomendación de compra o 
 ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "GOOGL").upper()
 
 if st.button('Analizar Acción'):
-    with st.spinner('Realizando análisis profundo...'):
+    with st.spinner('Realizando análisis profesional...'):
         try:
             datos = obtener_datos_completos(ticker_input)
             
@@ -1386,7 +1397,7 @@ if st.button('Analizar Acción'):
                     st.write(f"Descripción: {datos['descripcion']}")
                 
                 with st.container(border=True):
-                    st.subheader("Resumen Ejecutivo")
+                    st.subheader("Resumen Ejecutivo Profesional")
                     resumen = generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench)
                     st.markdown(resumen, unsafe_allow_html=True)
 
@@ -1572,4 +1583,3 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("Ha ocurrido un problema inesperado. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
-
