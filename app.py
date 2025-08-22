@@ -748,7 +748,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
     </div>
     ''', unsafe_allow_html=True)
 
-def generar_resumen_ejecutivo(datos, puntuaciones):
+def generar_resumen_ejecutivo(datos, puntuaciones, hist_data):
     calidad = puntuaciones.get('calidad', 0)
     valoracion = puntuaciones.get('valoracion', 0)
     salud = puntuaciones.get('salud', 0)
@@ -789,7 +789,10 @@ def generar_resumen_ejecutivo(datos, puntuaciones):
     if valoracion < 5:
         debilidades.append("su **valoración exigente**, ya que los múltiplos actuales son elevados y dejan poco margen de seguridad")
     if datos.get('yield_dividendo', 0) > 0 and dividendos < 5:
-        debilidades.append("la **sostenibilidad de su dividendo**, que podría estar en duda por un Payout Ratio elevado o un crecimiento débil")
+        if datos.get('payout_ratio', 101) > 85 or datos.get('payout_fcf_ratio', 101) > 90:
+            debilidades.append("la **sostenibilidad de su dividendo**, que podría estar en duda por un Payout Ratio elevado")
+        elif datos.get('yield_dividendo') < hist_data.get('yield_hist', 999):
+            debilidades.append("una **señal de alerta en su dividendo**, ya que la rentabilidad actual es inferior a su media histórica")
 
     if debilidades:
         resumen += "\n\n**⚠️ Debilidades:**\n- " + "\n- ".join(debilidades) + "."
@@ -1145,7 +1148,7 @@ if st.button('Analizar Acción'):
                 
                 with st.container(border=True):
                     st.subheader("Consenso de Analistas y Resumen Ejecutivo")
-                    resumen = generar_resumen_ejecutivo(datos, puntuaciones)
+                    resumen = generar_resumen_ejecutivo(datos, puntuaciones, hist_data)
                     st.markdown(resumen)
 
                 col1, col2 = st.columns(2)
