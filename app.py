@@ -252,20 +252,38 @@ def obtener_datos_historicos_y_tecnicos(ticker):
         
         if not cashflow_raw.empty:
             cashflow_annual = cashflow_raw.T.sort_index(ascending=True)
-            fcf_key = next((key for key in ['Free Cash Flow', 'Net Cash Flow From Continuing Investing Activities'] if key in cashflow_annual.columns), None)
-            if fcf_key and len(cashflow_annual) >= 5:
-                years_cf = 4
-                start_fcf = cashflow_annual[fcf_key].iloc[-5]
-                end_fcf = cashflow_annual[fcf_key].iloc[-1]
-                cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
-                if cagr_fcf is not None: fcf_cagr_period = "5A"
+            fcf_series = None
+
+            # Attempt 1: Direct 'Free Cash Flow'
+            if 'Free Cash Flow' in cashflow_annual.columns:
+                fcf_series = cashflow_annual['Free Cash Flow']
             
-            if cagr_fcf is None and fcf_key and len(cashflow_annual) >= 3:
-                years_cf = 2
-                start_fcf = cashflow_annual[fcf_key].iloc[-3]
-                end_fcf = cashflow_annual[fcf_key].iloc[-1]
-                cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
-                if cagr_fcf is not None: fcf_cagr_period = "3A"
+            # Attempt 2: Manual Calculation (Operating Cashflow - Capex)
+            elif 'Total Cash From Operating Activities' in cashflow_annual.columns and ('Capital Expenditure' in cashflow_annual.columns or 'Capital Expenditures' in cashflow_annual.columns):
+                op_cash = cashflow_annual['Total Cash From Operating Activities']
+                capex_key = 'Capital Expenditure' if 'Capital Expenditure' in cashflow_annual.columns else 'Capital Expenditures'
+                capex = cashflow_annual[capex_key]
+                fcf_series = op_cash + capex # Capex is negative, so we add
+            
+            # Attempt 3: Proxy
+            elif 'Net Cash Flow From Continuing Investing Activities' in cashflow_annual.columns:
+                 fcf_series = cashflow_annual['Net Cash Flow From Continuing Investing Activities']
+
+            if fcf_series is not None and not fcf_series.empty:
+                fcf_series = fcf_series.dropna()
+                if len(fcf_series) >= 5:
+                    years_cf = 4
+                    start_fcf = fcf_series.iloc[-5]
+                    end_fcf = fcf_series.iloc[-1]
+                    cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
+                    if cagr_fcf is not None: fcf_cagr_period = "5A"
+                
+                if cagr_fcf is None and len(fcf_series) >= 3:
+                    years_cf = 2
+                    start_fcf = fcf_series.iloc[-3]
+                    end_fcf = fcf_series.iloc[-1]
+                    cagr_fcf = calculate_cagr(end_fcf, start_fcf, years_cf)
+                    if cagr_fcf is not None: fcf_cagr_period = "3A"
 
         if not financials_raw.empty and not balance_sheet_raw.empty and not cashflow_raw.empty:
             financials = financials_raw.T.sort_index(ascending=True).tail(4)
