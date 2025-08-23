@@ -39,7 +39,7 @@ SECTOR_BENCHMARKS = {
     'Consumer Staples': {'roe_excelente': 20, 'roe_bueno': 15, 'roic_excelente': 15, 'roic_bueno': 12, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 8, 'bpa_growth_bueno': 5, 'fcf_growth_excelente': 7, 'fcf_growth_bueno': 4, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 4, 'pb_justo': 6, 'payout_bueno': 70, 'payout_aceptable': 85, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'int_coverage_excelente': 7, 'int_coverage_bueno': 4},
     'Energy': {'roe_excelente': 15, 'roe_bueno': 10, 'roic_excelente': 10, 'roic_bueno': 7, 'margen_excelente': 10, 'margen_bueno': 7, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 8, 'bpa_growth_bueno': 0, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 0, 'per_barato': 15, 'per_justo': 20, 'pb_barato': 1.5, 'pb_justo': 2.5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2, 'deuda_ebitda_aceptable': 3, 'int_coverage_excelente': 8, 'int_coverage_bueno': 5},
     'Materials': {'roe_excelente': 15, 'roe_bueno': 12, 'roic_excelente': 12, 'roic_bueno': 9, 'margen_excelente': 12, 'margen_bueno': 8, 'margen_neto_excelente': 7, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 10, 'bpa_growth_bueno': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'per_barato': 18, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 2.5, 'deuda_ebitda_aceptable': 4, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
-    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'roic_excelente': 6, 'roic_bueno': 4, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'bpa_growth_excelente': 8, 'bpa_growth_bueno': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 90, 'payout_aceptable': 100, 'deuda_ebitda_bueno': 5, 'deuda_ebitda_aceptable': 7, 'int_coverage_excelente': 3, 'int_coverage_bueno': 2},
+    'Real Estate': {'roe_excelente': 8, 'roe_bueno': 6, 'roic_excelente': 6, 'roic_bueno': 4, 'margen_excelente': 20, 'margen_bueno': 15, 'margen_neto_excelente': 15, 'margen_neto_bueno': 10, 'bpa_growth_excelente': 8, 'bpa_growth_bueno': 4, 'fcf_growth_excelente': 8, 'fcf_growth_bueno': 4, 'per_barato': 25, 'per_justo': 35, 'pb_barato': 2, 'pb_justo': 3, 'payout_bueno': 85, 'payout_aceptable': 95, 'deuda_ebitda_bueno': 5, 'deuda_ebitda_aceptable': 7, 'int_coverage_excelente': 3, 'int_coverage_bueno': 2},
     'Communication Services': {'roe_excelente': 15, 'roe_bueno': 12, 'roic_excelente': 15, 'roic_bueno': 12, 'margen_excelente': 18, 'margen_bueno': 12, 'margen_neto_excelente': 12, 'margen_neto_bueno': 9, 'bpa_growth_excelente': 12, 'bpa_growth_bueno': 7, 'fcf_growth_excelente': 12, 'fcf_growth_bueno': 7, 'per_barato': 22, 'per_justo': 30, 'pb_barato': 3, 'pb_justo': 5, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 4.5, 'int_coverage_excelente': 6, 'int_coverage_bueno': 3.5},
     'Default': {'roe_excelente': 15, 'roe_bueno': 12, 'roic_excelente': 12, 'roic_bueno': 9, 'margen_excelente': 15, 'margen_bueno': 10, 'margen_neto_excelente': 8, 'margen_neto_bueno': 5, 'bpa_growth_excelente': 10, 'bpa_growth_bueno': 5, 'fcf_growth_excelente': 10, 'fcf_growth_bueno': 5, 'per_barato': 20, 'per_justo': 25, 'pb_barato': 2, 'pb_justo': 4, 'payout_bueno': 60, 'payout_aceptable': 80, 'deuda_ebitda_bueno': 3, 'deuda_ebitda_aceptable': 5, 'int_coverage_excelente': 5, 'int_coverage_bueno': 3}
 }
@@ -142,6 +142,18 @@ def obtener_datos_completos(ticker):
         else:
             payout = None
 
+    # --- LÓGICA ESPECIAL PARA REITS ---
+    if info.get('sector') == 'Real Estate':
+        try:
+            net_income = financials.loc['Net Income From Continuing Operations'].iloc[0]
+            depreciation = cashflow.loc['Depreciation And Amortization'].iloc[0]
+            ffo = net_income + depreciation
+            dividends_paid = abs(cashflow.loc['Cash Dividends Paid'].iloc[0])
+            if ffo > 0:
+                payout = dividends_paid / ffo
+        except (KeyError, IndexError):
+            payout = info.get('payoutRatio') # Fallback al payout normal si no hay datos de FFO
+    
     free_cash_flow = info.get('freeCashflow')
     market_cap = info.get('marketCap')
     p_fcf = (market_cap / free_cash_flow) if market_cap and free_cash_flow and free_cash_flow > 0 else None
@@ -888,7 +900,7 @@ def mostrar_metrica_blue_chip(label, current_value, historical_value, is_percent
 
 def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     """
-    Genera un análisis textual profundo y profundo de la empresa,
+    Genera un análisis textual profundo y profesional de la empresa,
     combinando métricas cuantitativas con una interpretación cualitativa y estética mejorada.
     """
     
@@ -1041,10 +1053,11 @@ def generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench):
     dividendos_debilidades = []
 
     if yield_div is not None and yield_div > 0:
+        payout_label = "FFO" if datos.get('sector') == 'Real Estate' else "Beneficios"
         if yield_div > 3.5 and payout < sector_bench['payout_bueno']:
-            dividendos_fortalezas.append(f"Ofrece un dividendo muy atractivo del {colorize(yield_div, 3.5, 2.0, is_percent=True)} que además parece muy seguro, con un Payout Ratio del {colorize(payout, sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)}.")
+            dividendos_fortalezas.append(f"Ofrece un dividendo muy atractivo del {colorize(yield_div, 3.5, 2.0, is_percent=True)} que además parece muy seguro, con un Payout Ratio sobre {payout_label} del {colorize(payout, sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)}.")
         elif payout > sector_bench['payout_aceptable']:
-            dividendos_debilidades.append(f"La sostenibilidad del dividendo es una preocupación. El Payout Ratio es del {colorize(payout, sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)}, un nivel muy elevado que podría comprometer futuros pagos.")
+            dividendos_debilidades.append(f"La sostenibilidad del dividendo es una preocupación. El Payout Ratio sobre {payout_label} es del {colorize(payout, sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)}, un nivel muy elevado que podría comprometer futuros pagos.")
         elif deuda_ebitda is not None and deuda_ebitda > sector_bench['deuda_ebitda_aceptable']:
             dividendos_debilidades.append(f"Aunque el Payout es aceptable, el alto nivel de deuda ({colorize(deuda_ebitda, sector_bench['deuda_ebitda_bueno'], sector_bench['deuda_ebitda_aceptable'], lower_is_better=True, is_ratio=True)}) podría presionar la capacidad de la empresa para mantener el dividendo a futuro.")
 
@@ -1458,7 +1471,7 @@ st.caption("Herramienta de análisis. Esto no es una recomendación de compra o 
 ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "GOOGL").upper()
 
 if st.button('Analizar Acción'):
-    with st.spinner('Realizando análisis profundo...'):
+    with st.spinner('Realizando análisis profesional...'):
         try:
             datos = obtener_datos_completos(ticker_input)
             
@@ -1513,7 +1526,7 @@ if st.button('Analizar Acción'):
                     st.write(f"Descripción: {datos['descripcion']}")
                 
                 with st.container(border=True):
-                    st.subheader("Resumen Ejecutivo")
+                    st.subheader("Resumen Ejecutivo Profesional")
                     resumen = generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench)
                     st.markdown(resumen, unsafe_allow_html=True)
 
@@ -1609,7 +1622,8 @@ if st.button('Analizar Acción'):
                             mostrar_metrica_con_color("💸 Rentabilidad (Yield)", datos['yield_dividendo'], 3.5, 2.0, is_percent=True)
                             mostrar_metrica_blue_chip("Yield Actual vs Histórico", datos.get('yield_dividendo'), hist_data.get('yield_hist'), is_percent=True)
                         with div2:
-                            mostrar_metrica_con_color("🤲 Payout (Beneficios)", datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
+                            label_payout = "🤲 Payout (FFO)" if datos['sector'] == 'Real Estate' else "🤲 Payout (Beneficios)"
+                            mostrar_metrica_con_color(label_payout, datos['payout_ratio'], sector_bench['payout_bueno'], sector_bench['payout_aceptable'], lower_is_better=True, is_percent=True)
                         with div3:
                             net_buybacks_display = f"{datos['net_buybacks_pct']:.2f}%" if datos['net_buybacks_pct'] is not None and not np.isnan(datos['net_buybacks_pct']) else "N/A"
                             color_buybacks = "color-white"
