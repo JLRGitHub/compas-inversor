@@ -1489,7 +1489,7 @@ st.caption("Herramienta de análisis. Esto no es una recomendación de compra o 
 ticker_input = st.text_input("Introduce el Ticker de la Acción a Analizar (ej. JNJ, MSFT, BABA)", "GOOGL").upper()
 
 if st.button('Analizar Acción'):
-    with st.spinner('Realizando análisis profesional...'):
+    with st.spinner('Realizando análisis profundo...'):
         try:
             datos = obtener_datos_completos(ticker_input)
             
@@ -1544,7 +1544,7 @@ if st.button('Analizar Acción'):
                     st.write(f"Descripción: {datos['descripcion']}")
                 
                 with st.container(border=True):
-                    st.subheader("Resumen Ejecutivo Profesional")
+                    st.subheader("Resumen Ejecutivo")
                     resumen = generar_resumen_ejecutivo(datos, puntuaciones, hist_data, sector_bench)
                     st.markdown(resumen, unsafe_allow_html=True)
 
@@ -1738,3 +1738,4 @@ if st.button('Analizar Acción'):
         except Exception as e:
             st.error("Ha ocurrido un problema inesperado. Por favor, inténtalo de nuevo más tarde.")
             st.error(f"Detalle técnico: {e}")
+
